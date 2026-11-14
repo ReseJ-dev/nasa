@@ -1,3 +1,5 @@
-// Single entry point to the store for everything in src/twin.
-// For now it re-exports the mock store; at integration only this file changes.
-export { useHealthStore } from './mockStore'
+import { create } from 'zustand'
+import { initializeHealthStore, type HealthStore } from '../../../src/store/useHealthStore'
+
+export type { ScenarioId } from '../../../src/store/useHealthStore'
+export const useHealthStore = create<HealthStore>()(initializeHealthStore)
