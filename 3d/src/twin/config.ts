@@ -219,7 +219,7 @@ export const EFFECTS = {
   cabinSensors: true, // CO2 / temperature / noise chips (environment)
   cabinFlow: true, // air flow into the nose and lungs (environment)
   circadianRing: true, // sleep ring near the brain (isolation)
-  earthLink: true, // small Earth, link line, packet, cold tint (distance)
+  offline: true, // 'Autonomous mode' tag + colder frame when earthLink is false (distance)
   gravityArrow: true, // g arrow + landing moment (gravity)
   fluidShift: true, // shell tint feet -> head (gravity)
   sansGlow: true, // eyes glow at high fluid shift (gravity)
@@ -305,38 +305,12 @@ export const SHELTER = {
   lerpSpeed: 2,
 }
 
-// Distance from Earth: a small Earth in the top-right corner (drei Hud, pixel units),
-// a dashed link to the body and a packet running along it. Full strength when the
-// distance threat is focused (or demo) or when earthLink is false; faint otherwise.
-export const EARTH_LINK = {
-  texture: '/textures/earth.jpg', // optional local file in public/; plain blue if missing
-  // Earth shrinks and recedes into the corner as missionDay grows (reaches "far" at dayFar).
-  dayFar: 240,
-  radiusNear: 30, // px at day 0
-  radiusFar: 12, // px at dayFar
-  offsetNear: [110, 140] as [number, number], // center: px from the right, px from the top
-  offsetFar: [60, 100] as [number, number],
-  oceanColor: '#1d5fd1',
-  landColor: '#2f9e6b',
-  atmosphereColor: '#7fc8ff',
-  dimBrightness: 0.35, // Earth brightness when earthLink is false
-  // Link line and packet
-  bodyPoint: [0.15, 1.5, 0] as Vec3, // where the line ends on the body (shoulder)
-  lineWidth: 1.5, // px
-  dashSize: 6, // px
-  gapSize: 5, // px
-  dashSpeed: 24, // px per second the dashes flow toward the body
-  color: '#9cc8ff',
-  brokenColor: '#ff3b30', // same red as critical
-  breakGap: 0.12, // fraction of the line removed in the middle when the link is down
-  packetRadius: 3.5, // px
-  packetSecondsPerSec: 1 / 120, // travel time = commDelaySec / 120, clamped below
-  packetMinSeconds: 1,
-  packetMaxSeconds: 6,
-  // Scene tint when the link is down (multiplied over the frame; white = no change).
-  coldTint: '#d2ddff',
-  autonomyLabelTop: 128, // px from the top, centered: below the threats strip, above the head
-  lerpSpeed: 2.5,
+// Distance from Earth, as a simple state (no Earth in 3D). When earthLink is false:
+// a small "Autonomous mode" tag above the head and a slightly colder frame.
+export const OFFLINE = {
+  labelPosition: [0, 1.88, 0.1] as Vec3, // just above the head, below the threats strip
+  coldTint: '#d2ddff', // multiplied over the canvas; white would be no change
+  tintSeconds: 1, // fade in / out
 }
 
 // Gravity threat.
