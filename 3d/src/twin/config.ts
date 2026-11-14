@@ -30,6 +30,16 @@ export const BODY_SHELL = {
   clearcoatRoughness: 0.3,
 }
 
+// Heartbeat: the heart mesh scales in a "lub-dub, pause" rhythm.
+export const HEART = {
+  metricId: 'heart_rate', // Metric.id in the store
+  defaultBpm: 70, // used when the metric is missing
+  amplitude: 0.14, // extra scale at the strongest beat (0.14 = +14%)
+  // Beat shape inside one cycle (0..1 of the cycle):
+  lub: { at: 0.05, width: 0.045, strength: 1 }, // first, strong contraction
+  dub: { at: 0.24, width: 0.045, strength: 0.55 }, // second, weaker one; the rest is a pause
+}
+
 // Organ material and animation
 export const REGION = {
   roughness: 0.5,
@@ -40,5 +50,12 @@ export const REGION = {
     base: 0.15,
     selected: 0.5,
     hover: 0.9,
+  },
+  // Emissive pulse for unhealthy regions, added on top of the glow above.
+  // hz = pulses per second, amplitude = extra emissive at the peak.
+  pulse: {
+    ok: { hz: 0, amplitude: 0 },
+    warning: { hz: 0.7, amplitude: 0.35 },
+    critical: { hz: 1.6, amplitude: 0.9 },
   },
 }

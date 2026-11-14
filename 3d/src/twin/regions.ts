@@ -24,6 +24,7 @@ export interface RegionDef {
   label: string
   labelPosition: Vec3 // where the hover label appears
   parts: RegionPart[]
+  heartbeat?: boolean // true = parts scale with heart_rate (see useHeartbeat)
 }
 
 export const REGIONS: RegionDef[] = [
@@ -55,6 +56,7 @@ export const REGIONS: RegionDef[] = [
     id: 'heart',
     label: 'Heart',
     labelPosition: [0.25, 1.28, 0.1],
+    heartbeat: true,
     parts: [{ geometry: new SphereGeometry(0.05, 20, 16), position: [0.025, 1.26, 0.06], scale: [1, 1.15, 0.9] }],
   },
   {
