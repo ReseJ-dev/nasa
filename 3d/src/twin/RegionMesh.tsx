@@ -13,13 +13,17 @@ import { useHeartbeat } from './hooks/useHeartbeat'
 import { useHover } from './hooks/useHover'
 import { useStatusColor } from './hooks/useStatusColor'
 import type { RegionDef } from './regions'
+import type { RegionId } from '../contract/types'
 
 // One health region: behavior only (color, pulse, chain, heartbeat, bloom, hover, click). Shapes come from regions.ts.
-export function RegionMesh({ def, layer }: { def: RegionDef; layer: Layer }) {
+// focus: regions highlighted by a threat in the strip (null = none). Regions outside it dim.
+export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer; focus: RegionId[] | null }) {
   const status = useHealthStore((s) => s.regions[def.id].status)
   const isSelected = useHealthStore((s) => s.selectedRegion === def.id)
   // Another region is selected: this one dims so the selected one stands out.
-  const dimmed = useHealthStore((s) => s.selectedRegion !== null && s.selectedRegion !== def.id)
+  const otherSelected = useHealthStore((s) => s.selectedRegion !== null && s.selectedRegion !== def.id)
+  const inFocus = focus?.includes(def.id) ?? false
+  const dimmed = otherSelected || (focus !== null && !inFocus)
   const selectRegion = useHealthStore((s) => s.selectRegion)
   // Only the body layer is interactive: in skeleton mode organs cannot be hovered or clicked.
   const interactive = layer === 'body'
@@ -41,7 +45,11 @@ export function RegionMesh({ def, layer }: { def: RegionDef; layer: Layer }) {
   const hidden = layer === 'skeleton' && HIDDEN_IN_SKELETON.includes(def.id)
   useFadeOpacity(material, hidden ? 0 : LAYERS[layer].organs)
 
-  const glow = hovered ? REGION.emissive.hover : isSelected ? REGION.emissive.selected : REGION.emissive.base[status]
+  const glow = hovered
+    ? REGION.emissive.hover
+    : isSelected || inFocus
+      ? REGION.emissive.selected
+      : REGION.emissive.base[status]
   // Must run before useStatusColor so its value is fresh in the same frame.
   const chainGlow = useChainGlow(def.id)
   useStatusColor(material, status, glow, chainGlow, dimmed ? REGION.dimmedBrightness : 1)

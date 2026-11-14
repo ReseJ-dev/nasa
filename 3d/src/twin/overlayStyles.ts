@@ -37,6 +37,33 @@ export const overlayStyles = {
   calloutLeft: { transform: 'translate(-100%, -50%)' }, // right edge at the line end
   calloutRight: { transform: 'translate(0, -50%)' }, // left edge at the line end
   calloutScore: { fontWeight: 600 },
+  // Five threats strip, top-left. Interactive (hover/click), unlike the other overlay parts.
+  threats: {
+    ...panel,
+    bottom: undefined,
+    left: 16,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    padding: 6,
+    pointerEvents: 'auto',
+  },
+  threat: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '4px 8px',
+    border: 'none',
+    borderRadius: 6,
+    background: 'transparent',
+    color: '#fff',
+    font: '13px system-ui, sans-serif',
+    cursor: 'pointer',
+    textAlign: 'left',
+  },
+  threatActive: { background: 'rgba(79, 163, 255, 0.35)' },
+  threatName: { flex: 1, whiteSpace: 'nowrap' },
+  threatLevel: { minWidth: 36, textAlign: 'right', fontWeight: 600 },
   hint: {
     ...panel,
     left: '50%',

@@ -9,10 +9,13 @@ import { Skeleton } from './Skeleton'
 import { Hint, Legend } from './Overlay'
 import { Callouts } from './Callouts'
 import { CameraRig } from './CameraRig'
+import { ThreatStrip } from './ThreatStrip'
+import { RadiationParticles } from './RadiationParticles'
+import type { ThreatId } from '../contract/types'
 import { LAYER_LABEL } from './labels'
 import { REGIONS } from './regions'
 import { useHealthStore } from './store'
-import { BLOOM, CAMERA, RENDER, SCENE, type Layer } from './config'
+import { BLOOM, CAMERA, RADIATION_PARTICLES, RENDER, SCENE, type Layer } from './config'
 
 // Dark vertical gradient for the scene background, created once at module load.
 function createBackground() {
@@ -68,7 +71,6 @@ function StudioEnvironment() {
   )
 }
 
-
 // "Body / Skeleton" switch shown over the top-right corner of the scene.
 function LayerSwitch({ layer, onChange }: { layer: Layer; onChange(l: Layer): void }) {
   return (
@@ -121,6 +123,13 @@ export function BodyScene({
   const selectRegion = useHealthStore((s) => s.selectRegion)
   const [ownLayer, setOwnLayer] = useState<Layer>('body') // used only when `layer` is not passed
   const layer = layerProp ?? ownLayer
+  // Threat highlight (local view state, never selectRegion): hover wins over a clicked one.
+  const [hoverThreat, setHoverThreat] = useState<ThreatId | null>(null)
+  const [pinnedThreat, setPinnedThreat] = useState<ThreatId | null>(null)
+  const activeThreat = hoverThreat ?? pinnedThreat
+  const togglePinned = (id: ThreatId) => setPinnedThreat((cur) => (cur === id ? null : id))
+  // Same array object until the scenario changes, so organs re-render only on real changes.
+  const focus = useHealthStore((s) => (activeThreat ? (s.threats?.[activeThreat].regions ?? null) : null))
   // Hint disappears after the first pointer interaction with the canvas (set once).
   const [hintVisible, setHintVisible] = useState(true)
   const hideHint = () => setHintVisible(false)
@@ -169,7 +178,7 @@ export function BodyScene({
         {/* Selection collects the organs marked with <Select enabled> in RegionMesh. */}
         <Selection>
           {REGIONS.map((def) => (
-            <RegionMesh key={def.id} def={def} layer={layer} />
+            <RegionMesh key={def.id} def={def} layer={layer} focus={focus} />
           ))}
           <Skeleton layer={layer} />
           <Body layer={layer} />
@@ -186,10 +195,17 @@ export function BodyScene({
           </EffectComposer>
         </Selection>
         <Callouts visible={layer === 'body'} />
+        {RADIATION_PARTICLES.enabled && <RadiationParticles />}
         {showFps && <Stats />}
         <CameraRig />
       </Canvas>
       <LayerSwitch layer={layer} onChange={changeLayer} />
+      <ThreatStrip
+        top={showFps ? 64 : 16} // below the FPS counter when it is shown
+        active={activeThreat}
+        onHover={setHoverThreat}
+        onToggle={togglePinned}
+      />
       <Legend layer={layer} />
       <Hint visible={hintVisible} />
     </div>

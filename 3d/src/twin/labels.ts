@@ -1,4 +1,4 @@
-import type { RegionId, Status } from '../contract/types'
+import type { RegionId, Status, ThreatId } from '../contract/types'
 
 // All user-facing text of the overlay in one place.
 export const REGION_LABEL: Record<RegionId, string> = {
@@ -34,6 +34,14 @@ export const DEV_PANEL = {
   selectedRegion: 'Selected region',
   none: 'none',
   scenario: { healthy: 'Healthy', day60: 'Day 60', critical: 'Crisis' },
+}
+
+export const THREAT_LABEL: Record<ThreatId, string> = {
+  radiation: 'Radiation',
+  isolation: 'Isolation',
+  gravity: 'Microgravity',
+  distance: 'Distance from Earth',
+  environment: 'Environment',
 }
 
 export const HINT = 'Rotate, zoom, click an organ'
