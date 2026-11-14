@@ -86,6 +86,7 @@ export function BodyScene({
       <Canvas
         camera={{ position: CAMERA.position, fov: CAMERA.fov }}
         dpr={RENDER.dpr}
+        shadows={false} // no shadow maps: nothing in the scene casts shadows
         gl={{ antialias: false }} // EffectComposer does the anti-aliasing (multisampling)
         onPointerMissed={clearSelection} // click on empty space clears selection
         onPointerDown={hintVisible ? hideHint : undefined}
@@ -113,7 +114,7 @@ export function BodyScene({
             />
           </EffectComposer>
         </Selection>
-        {layer === 'body' && <Callouts />}
+        <Callouts visible={layer === 'body'} />
         {showFps && <Stats />}
         <OrbitControls
           target={CAMERA.target}

@@ -1,5 +1,7 @@
-import { useMemo } from 'react'
-import { Html, Line } from '@react-three/drei'
+import { useLayoutEffect, useMemo } from 'react'
+import { Html } from '@react-three/drei'
+import { BufferGeometry, Line, LineBasicMaterial, Vector3 } from 'three'
+import type { Status } from '../contract/types'
 import { useHealthStore } from './store'
 import { STATUS_HEX } from './colors'
 import { REGION_LABEL } from './labels'
@@ -8,24 +10,52 @@ import { REGIONS, type RegionDef } from './regions'
 
 // Permanent callouts for warning/critical regions: a thin line from the organ
 // to a label (name + score) at a fixed spot left or right of the body.
+// Performance: every callout stays mounted and is only shown/hidden, so a scenario
+// or layer change creates no new materials, geometries or Html roots.
+
+// Line geometries and materials, created once at module load.
+const LINE_GEOMETRY = new Map(
+  REGIONS.map((def) => [
+    def.id,
+    new BufferGeometry().setFromPoints([new Vector3(...def.callout.anchor), new Vector3(...def.callout.label)]),
+  ]),
+)
+const lineMaterial = (status: Status) =>
+  // depthTest off: the line stays visible through the translucent shell
+  new LineBasicMaterial({ color: STATUS_HEX[status], transparent: true, opacity: 0.8, depthTest: false })
+const LINE_MATERIAL: Record<Status, LineBasicMaterial> = {
+  ok: lineMaterial('ok'), // never drawn (ok callouts are hidden), keeps the record complete
+  warning: lineMaterial('warning'),
+  critical: lineMaterial('critical'),
+}
 
 const noRaycast = () => null // the line must not catch hover or clicks
 
-function Callout({ def }: { def: RegionDef }) {
+function Callout({ def, visible }: { def: RegionDef; visible: boolean }) {
   // Re-renders only when this region's status or score changes.
   const status = useHealthStore((st) => st.regions[def.id].status)
   const score = useHealthStore((st) => st.regions[def.id].score)
-  const points = useMemo(() => [def.callout.anchor, def.callout.label], [def])
 
-  if (status === 'ok') return null
+  // One Line object per callout, created once on mount.
+  const line = useMemo(() => {
+    const l = new Line(LINE_GEOMETRY.get(def.id), LINE_MATERIAL.ok)
+    l.raycast = noRaycast
+    return l
+  }, [def.id])
+
+  const shown = visible && status !== 'ok'
+  useLayoutEffect(() => {
+    line.material = LINE_MATERIAL[status]
+    line.visible = shown
+  }, [line, status, shown])
+
   const color = STATUS_HEX[status]
   const side = def.callout.label[0] < 0 ? s.calloutLeft : s.calloutRight
 
   return (
     <group name={`${def.id}_callout`}>
-      {/* depthTest off: the line stays visible through the translucent shell */}
-      <Line points={points} color={color} lineWidth={1} depthTest={false} transparent opacity={0.8} raycast={noRaycast} />
-      <Html position={def.callout.label} style={{ pointerEvents: 'none' }}>
+      <primitive object={line} />
+      <Html position={def.callout.label} style={{ pointerEvents: 'none', display: shown ? 'block' : 'none' }}>
         <div style={{ ...s.callout, ...side, border: `1px solid ${color}` }}>
           {REGION_LABEL[def.id]}
           <span style={{ ...s.calloutScore, color }}>{Math.round(score)}</span>
@@ -35,11 +65,12 @@ function Callout({ def }: { def: RegionDef }) {
   )
 }
 
-export function Callouts() {
+// visible = false in skeleton mode: callouts are hidden, not unmounted.
+export function Callouts({ visible }: { visible: boolean }) {
   return (
     <group name="callouts">
       {REGIONS.map((def) => (
-        <Callout key={def.id} def={def} />
+        <Callout key={def.id} def={def} visible={visible} />
       ))}
     </group>
   )
