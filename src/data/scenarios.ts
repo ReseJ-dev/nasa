@@ -8,9 +8,10 @@
  *
  * Scaled scores, radiationLevel and fluidShift are illustrative visualization
  * indices, NOT validated medical thresholds. Bone changes follow ~1–1.5%
- * loss/month in weight-bearing areas (spine, hips, femurs), without assuming
- * that every individual loses bone at this rate. Solar flare and isolation
- * are *separate* hazards. CO2 -> brain is not evidence of CO2 -> SANS.
+ * average density loss per month in weight-bearing bones on four-to-six-month
+ * missions. The day-60 values extrapolate that rate for the demo.
+ * Solar flare and isolation are *separate* hazards.
+ * CO2 -> brain is not evidence of CO2 -> SANS.
  */
 import type {
   Baseline, BonePart, HealthState, Metric, RegionId, RegionState, Status,
@@ -87,7 +88,7 @@ function makeMetrics(values: {
     { id: 'reaction_ms', label: 'Reaction time', value: values.reactionMs, unit: 'ms' },
     { id: 'co2_ppm', label: 'Cabin CO₂', value: values.co2Ppm, unit: 'ppm' },
     { id: 'radiation_msv', label: 'Cumulative dose (demo)', value: values.radiationMsv, unit: 'mSv' },
-    { id: 'bone_loss_pct', label: 'Weight-bearing bone loss (demo)', value: values.boneLossPct, unit: '%' },
+    { id: 'bone_loss_pct', label: 'Weight-bearing bone density loss (demo)', value: values.boneLossPct, unit: '%' },
     { id: 'muscle_loss_pct', label: 'Muscle loss (demo)', value: values.muscleLossPct, unit: '%' },
     { id: 'vision_score', label: 'Visual acuity (demo)', value: values.visionScore, unit: '' },
   ]
