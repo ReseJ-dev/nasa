@@ -3,11 +3,13 @@ import type { RegionId, Status } from '../contract/types'
 
 type Vec3 = [number, number, number]
 
-// Camera and orbit controls
+// Camera controls. The camera moves on its own only on a selection change (see CameraRig.tsx).
 export const CAMERA = {
   position: [0, 0.9, 3.2] as Vec3, // start in front of the body, at chest height
   fov: 45, // vertical field of view, degrees
   target: [0, 0.9, 0] as Vec3, // orbit center = vertical middle of the body
+  fitPadding: 0.15, // space around a selected region when the camera fits to it
+  smoothTime: 0.4, // seconds-ish for camera moves (higher = slower)
   minDistance: 1.5, // closest zoom
   maxDistance: 5, // farthest zoom
   minPolarAngle: Math.PI * 0.25, // cannot look from straight above
@@ -108,6 +110,7 @@ export const REGION = {
   roughness: 0.5,
   // How fast color and glow follow their target (higher = faster, ~0.5 s at 6).
   lerpSpeed: 6,
+  dimmedBrightness: 0.15, // color/glow of non-selected organs while a region is selected
   // Emissive glow strength in each state. Base glow depends on the status:
   // ok organs stay dim, warning/critical stand out.
   emissive: {
