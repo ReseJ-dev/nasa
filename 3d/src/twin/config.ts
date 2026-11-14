@@ -1,5 +1,5 @@
 // All tunable numbers of the 3D scene in one place.
-import type { RegionId, Status } from '../contract/types'
+import type { RegionId, Status, ThreatId } from '../contract/types'
 
 type Vec3 = [number, number, number]
 
@@ -132,6 +132,19 @@ export const REGION = {
 export const THREAT_LEVEL = {
   warnAt: 0.4,
   criticalAt: 0.7,
+}
+
+// A threat counts as active from this level (0..1).
+export const THREAT_ACTIVE_THRESHOLD = 0.3
+
+// Identity color per threat. Deliberately different from the status colors
+// (ok grey, warning yellow, critical red), so a threat is never read as a status.
+export const THREAT_COLOR: Record<ThreatId, string> = {
+  radiation: '#a66cff', // violet
+  isolation: '#5f7396', // dull blue
+  gravity: '#a8eef7', // light cyan
+  distance: '#3a6dff', // blue
+  environment: '#b8927a', // grey-orange
 }
 
 // Optional radiation particles flowing through the body. Count and speed follow threats.radiation.level.

@@ -17,7 +17,19 @@ export type ScenarioId = 'healthy' | 'day60' | 'critical'
 
 type ScenarioData = Pick<HealthState, 'regions' | 'metrics' | 'boneDensity' | 'chain'> &
   Required<
-    Pick<HealthState, 'radiationLevel' | 'commDelaySec' | 'earthLink' | 'activeEvent' | 'fluidShift' | 'chainLinks' | 'threats'>
+    Pick<
+      HealthState,
+      | 'radiationLevel'
+      | 'activeEvent'
+      | 'inShelter'
+      | 'commDelaySec'
+      | 'earthLink'
+      | 'fluidShift'
+      | 'muscleMass'
+      | 'co2Level'
+      | 'chainLinks'
+      | 'threats'
+    >
   >
 
 // Small helper to keep scenario tables short.
@@ -35,7 +47,7 @@ function metric(id: string, label: string, value: number, unit: string): Metric 
   return { id, label, value, unit }
 }
 
-// Which regions each threat affects (same in every scenario).
+// Default regions each threat affects; a scenario can override them.
 const THREAT_REGIONS: Record<ThreatId, RegionId[]> = {
   radiation: ['immune', 'brain', 'eyes'], // DNA damage, CNS effects, cataracts
   isolation: ['brain'], // sleep, mood, attention
@@ -44,9 +56,15 @@ const THREAT_REGIONS: Record<ThreatId, RegionId[]> = {
   environment: ['lungs', 'brain', 'immune'], // CO2, noise, microbes in a closed cabin
 }
 
-function threats(levels: Record<ThreatId, number>): Record<ThreatId, ThreatState> {
+function threats(
+  levels: Record<ThreatId, number>,
+  regions: Partial<Record<ThreatId, RegionId[]>> = {},
+): Record<ThreatId, ThreatState> {
   return Object.fromEntries(
-    (Object.keys(levels) as ThreatId[]).map((id) => [id, { level: levels[id], regions: THREAT_REGIONS[id] }]),
+    (Object.keys(levels) as ThreatId[]).map((id) => [
+      id,
+      { level: levels[id], regions: regions[id] ?? THREAT_REGIONS[id] },
+    ]),
   ) as Record<ThreatId, ThreatState>
 }
 
@@ -76,12 +94,15 @@ const healthy: ScenarioData = {
   },
   chain: [],
   radiationLevel: 0.1,
+  activeEvent: 'none',
+  inShelter: false,
   commDelaySec: 2,
   earthLink: true,
-  activeEvent: 'none',
-  fluidShift: 0.3,
+  fluidShift: 0.1,
+  muscleMass: 1,
+  co2Level: 0.1,
   chainLinks: [],
-  threats: threats({ radiation: 0.1, isolation: 0.1, gravity: 0.15, distance: 0.05, environment: 0.1 }),
+  threats: threats({ radiation: 0.1, isolation: 0.1, gravity: 0.1, distance: 0.1, environment: 0.1 }),
 }
 
 // Day 60: microgravity starts to show in bones, muscles and eyes.
@@ -117,13 +138,19 @@ const day60: ScenarioData = {
     pelvis: 0.93, leg_left: 0.94, leg_right: 0.95,
   },
   chain: ['muscles', 'bones'],
-  radiationLevel: 0.35,
-  commDelaySec: 240,
-  earthLink: true,
+  radiationLevel: 0.15,
   activeEvent: 'none',
-  fluidShift: 0.5,
+  inShelter: false,
+  commDelaySec: 300,
+  earthLink: true,
+  fluidShift: 0.45,
+  muscleMass: 0.9,
+  co2Level: 0.15,
   chainLinks: [{ from: 'muscles', to: 'bones', label: 'less load' }],
-  threats: threats({ radiation: 0.35, isolation: 0.3, gravity: 0.5, distance: 0.4, environment: 0.3 }),
+  threats: threats(
+    { radiation: 0.15, isolation: 0.35, gravity: 0.5, distance: 0.2, environment: 0.15 },
+    { gravity: ['bones', 'muscles', 'eyes'], isolation: ['brain'] },
+  ),
 }
 
 // Day 180, demo scenario: solar flare, crew in the shelter, CO2 rises, sleep drops.
@@ -168,15 +195,26 @@ const critical: ScenarioData = {
   },
   chain: ['lungs', 'brain', 'eyes'],
   radiationLevel: 0.8,
+  activeEvent: 'solar_flare',
+  inShelter: true,
   commDelaySec: 720,
   earthLink: false,
-  activeEvent: 'solar_flare',
   fluidShift: 0.7,
+  muscleMass: 0.8,
+  co2Level: 0.75,
   chainLinks: [
     { from: 'lungs', to: 'brain', label: 'CO₂ ↑' },
     { from: 'brain', to: 'eyes', label: 'intracranial pressure' },
   ],
-  threats: threats({ radiation: 0.8, isolation: 0.5, gravity: 0.6, distance: 0.9, environment: 0.7 }),
+  threats: threats(
+    { radiation: 0.8, isolation: 0.55, gravity: 0.6, distance: 0.9, environment: 0.7 },
+    {
+      radiation: ['immune'],
+      environment: ['lungs', 'brain', 'eyes'],
+      gravity: ['bones', 'muscles', 'eyes'],
+      isolation: ['brain'],
+    },
+  ),
 }
 
 // Day-0 state, shared by every scenario for comparison.
