@@ -54,6 +54,13 @@ export interface ThreatState {
   regions: RegionId[]
 }
 
+// Proposed, to agree with participant 3: one threat making another worse, strength 0..1.
+export interface ThreatLink {
+  from: ThreatId
+  to: ThreatId
+  strength: number
+}
+
 export interface HealthState {
   regions: Record<RegionId, RegionState>
   selectedRegion: RegionId | null
@@ -69,6 +76,14 @@ export interface HealthState {
   fluidShift?: number // 0..1, how much body fluid moved toward the head
   muscleMass?: number // 0..1, 1 = norm
   co2Level?: number // 0..1, cabin CO2
+  // Proposed, to agree with participant 3 (optional until agreed):
+  threatLinks?: ThreatLink[] // how threats feed each other
+  missionDay?: number // days since launch
+  gravityField?: number // local gravity in g (0 = microgravity, 1 = Earth)
+  cabinTempC?: number // cabin temperature, °C
+  noiseDb?: number // cabin noise, dB
+  sleepHours?: number // sleep in the last night, hours
+  sleepShiftHours?: number // circadian shift from the normal schedule, hours
   chainLinks?: ChainLink[] // cause labels between neighbouring chain organs
   baseline?: Baseline // day-0 region statuses and bone density
   threats?: Record<ThreatId, ThreatState> // the five threats, level and affected regions
