@@ -4,6 +4,7 @@ import { STATUS_HEX } from '../twin/colors'
 import { REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { useHealthStore, type ScenarioId } from '../twin/store'
 import './healthDashboard.css'
+import { SoundControls } from './SoundControls'
 
 const scenarios: Record<ScenarioId, string> = { healthy: 'Healthy', day60: 'Day 60', critical: 'Critical' }
 const systems = ['heart', 'brain', 'bones', 'muscles', 'eyes', 'immune', 'lungs'] satisfies RegionId[]
@@ -40,6 +41,7 @@ function MissionHeader() {
       <div className="health-title">
         <h1>Astronaut Health Monitor</h1>
         <p>Demonstration model · simulated values</p>
+        <SoundControls />
       </div>
       <dl className="health-telemetry">
         <div><dt>Mission Day</dt><dd>{day} <small>/ 180</small></dd></div>
