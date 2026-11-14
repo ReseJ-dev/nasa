@@ -1,37 +1,37 @@
-import { useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import type { Mesh } from 'three'
+import { Body } from './Body'
+import { RegionMesh } from './RegionMesh'
+import { REGIONS } from './regions'
+import { useHealthStore } from './mockStore'
+import { CAMERA, SCENE } from './config'
 
-// Временный куб для проверки, что сцена работает. Позже заменим на тело.
-function SpinningCube() {
-  const ref = useRef<Mesh>(null)
-
-  // useFrame вызывается каждый кадр: поворачиваем куб без setState.
-  useFrame((_, delta) => {
-    if (!ref.current) return
-    ref.current.rotation.x += delta * 0.5
-    ref.current.rotation.y += delta * 0.8
-  })
-
-  return (
-    <mesh ref={ref}>
-      <boxGeometry args={[1.5, 1.5, 1.5]} />
-      <meshStandardMaterial color="#4fa3ff" />
-    </mesh>
-  )
-}
-
-// Единственный экспорт для участника 2. Заполняет родительский контейнер целиком.
+// The only export for teammate 2. Fills its parent container completely.
 export function BodyScene() {
+  const selectRegion = useHealthStore((s) => s.selectRegion)
+
   return (
     <div style={{ width: '100%', height: '100%' }}>
-      <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
-        <color attach="background" args={['#05070d']} />
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[3, 5, 4]} intensity={1.2} />
-        <SpinningCube />
-        <OrbitControls enablePan={false} minDistance={2} maxDistance={10} />
+      <Canvas
+        camera={{ position: CAMERA.position, fov: CAMERA.fov }}
+        onPointerMissed={() => selectRegion(null)} // click on empty space clears selection
+      >
+        <color attach="background" args={[SCENE.background]} />
+        <ambientLight intensity={SCENE.ambientIntensity} />
+        <directionalLight position={SCENE.keyLight.position} intensity={SCENE.keyLight.intensity} />
+        <directionalLight position={SCENE.rimLight.position} intensity={SCENE.rimLight.intensity} />
+        {REGIONS.map((def) => (
+          <RegionMesh key={def.id} def={def} />
+        ))}
+        <Body />
+        <OrbitControls
+          target={CAMERA.target}
+          enablePan={false}
+          minDistance={CAMERA.minDistance}
+          maxDistance={CAMERA.maxDistance}
+          minPolarAngle={CAMERA.minPolarAngle}
+          maxPolarAngle={CAMERA.maxPolarAngle}
+        />
       </Canvas>
     </div>
   )
