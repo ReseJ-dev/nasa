@@ -23,7 +23,7 @@ export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer
   // Another region is selected: this one dims so the selected one stands out.
   const otherSelected = useHealthStore((s) => s.selectedRegion !== null && s.selectedRegion !== def.id)
   const inFocus = focus?.includes(def.id) ?? false
-  const dimmed = otherSelected || (focus !== null && !inFocus)
+  const outOfThreat = focus !== null && !inFocus
   const selectRegion = useHealthStore((s) => s.selectRegion)
   // Only the body layer is interactive: in skeleton mode organs cannot be hovered or clicked.
   const interactive = layer === 'body'
@@ -52,7 +52,9 @@ export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer
       : REGION.emissive.base[status]
   // Must run before useStatusColor so its value is fresh in the same frame.
   const chainGlow = useChainGlow(def.id)
-  useStatusColor(material, status, glow, chainGlow, dimmed ? REGION.dimmedBrightness : 1)
+  // Selection dim wins (darker) over the threat dim.
+  const brightness = otherSelected ? REGION.dimmedBrightness : outOfThreat ? REGION.threatDimmedBrightness : 1
+  useStatusColor(material, status, glow, chainGlow, brightness)
 
   // Wrapper group of every part, used by the heartbeat.
   const partRefs = useRef<(Group | null)[]>([])

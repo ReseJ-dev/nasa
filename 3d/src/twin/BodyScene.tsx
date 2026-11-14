@@ -111,14 +111,18 @@ function LayerSwitch({ layer, onChange }: { layer: Layer; onChange(l: Layer): vo
 // layer / onLayerChange (optional): pass `layer` to control the Body/Skeleton view
 // from outside; without it BodyScene keeps its own layer state.
 // onLayerChange is called on every button click in both cases.
+// onThreatClick (optional): called with the threat id on every click in the threats strip,
+// e.g. to open a threat panel. The scene's own highlight toggles independently of it.
 export function BodyScene({
   showFps = false,
   layer: layerProp,
   onLayerChange,
+  onThreatClick,
 }: {
   showFps?: boolean
   layer?: Layer
   onLayerChange?(layer: Layer): void
+  onThreatClick?(threatId: ThreatId): void
 }) {
   const selectRegion = useHealthStore((s) => s.selectRegion)
   const [ownLayer, setOwnLayer] = useState<Layer>('body') // used only when `layer` is not passed
@@ -127,7 +131,10 @@ export function BodyScene({
   const [hoverThreat, setHoverThreat] = useState<ThreatId | null>(null)
   const [pinnedThreat, setPinnedThreat] = useState<ThreatId | null>(null)
   const activeThreat = hoverThreat ?? pinnedThreat
-  const togglePinned = (id: ThreatId) => setPinnedThreat((cur) => (cur === id ? null : id))
+  const onThreatToggle = (id: ThreatId) => {
+    setPinnedThreat((cur) => (cur === id ? null : id))
+    onThreatClick?.(id)
+  }
   // Same array object until the scenario changes, so organs re-render only on real changes.
   const focus = useHealthStore((s) => (activeThreat ? (s.threats?.[activeThreat].regions ?? null) : null))
   // Hint disappears after the first pointer interaction with the canvas (set once).
@@ -204,7 +211,7 @@ export function BodyScene({
         top={showFps ? 64 : 16} // below the FPS counter when it is shown
         active={activeThreat}
         onHover={setHoverThreat}
-        onToggle={togglePinned}
+        onToggle={onThreatToggle}
       />
       <Legend layer={layer} />
       <Hint visible={hintVisible} />
