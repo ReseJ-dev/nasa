@@ -42,14 +42,14 @@ export type SimOutput = Pick<HealthState, 'regions' | 'metrics' | 'boneDensity' 
 
 const clamp01 = (v: number) => Math.min(Math.max(v, 0), 1)
 
-function statusOf(deviation: number): Status {
+export function statusOf(deviation: number): Status {
   if (deviation >= C.CRITICAL_AT) return 'critical'
   if (deviation >= C.WARN_AT) return 'warning'
   return 'ok'
 }
 
 // Deviation of one vital from its baseline, in tolerance units (0 = at baseline).
-function vitalDeviation(key: keyof Vitals, value: number, baseline: number) {
+export function vitalDeviation(key: keyof Vitals, value: number, baseline: number) {
   const { unit, direction } = C.TOLERANCE[key]
   const d = (value - baseline) / unit
   if (direction === 'up') return Math.max(d, 0)

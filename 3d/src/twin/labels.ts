@@ -55,11 +55,28 @@ export const SENSOR_LABEL = {
   noiseUnit: 'dB',
 }
 
-export const CIRCADIAN_LABEL = {
+// Isolation visuals (circadian ring, reaction impulse, activity bars, mood).
+// Captions are short words; values always carry their unit.
+export const ISOLATION_LABEL = {
   sleep: 'Sleep',
-  hours: 'h',
   shift: 'shift',
+  norm: 'norm',
+  reaction: 'Reaction',
+  activity: 'Activity',
+  days: '7 days',
+  mood: 'Mood',
 }
+const signed = (v: number, digits = 0) => {
+  const r = Number(v.toFixed(digits))
+  return r > 0 ? `+${r}` : r < 0 ? `\u2212${Math.abs(r)}` : '\u00b10'
+}
+export const formatHours = (h: number) => `${h.toFixed(1)} h` // "5.2 h"
+export const formatShift = (h: number) => `${signed(h, 1)} h` // "+3 h"
+export const formatMs = (ms: number) => `${Math.round(ms)} ms` // "412 ms"
+export const formatMinutes = (min: number) => `${Math.round(min)} min`
+// Change against the personal baseline: "+31%", "−73%", "±0%".
+export const formatChange = (value: number, baseline: number) =>
+  baseline > 0 ? `${signed(((value - baseline) / baseline) * 100)}%` : ''
 
 export const EARTH_LABEL = {
   // reply = signal there and back (2 x commDelaySec)

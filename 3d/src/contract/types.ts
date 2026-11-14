@@ -50,6 +50,25 @@ export interface ChainLink {
 export interface Baseline {
   statuses: Record<RegionId, Status>
   boneDensity: Record<BonePart, number>
+  // Proposed (isolation visuals): personal pre-flight values for comparison.
+  sleepHours?: number
+  reactionMs?: number
+  activityMin?: number
+}
+
+// Proposed, to agree with participant 3: one finding of the engine, tied to a threat.
+export type AlertMetric = 'sleep' | 'reaction' | 'activity' | 'mood'
+export interface Alert {
+  id: string
+  hazard: ThreatId
+  metric: AlertMetric
+  status: Exclude<Status, 'ok'>
+}
+
+// Proposed, to agree with participant 3: one past day of self-tracking.
+export interface DayRecord {
+  sleepHours: number
+  activityMin: number
 }
 
 // Proposed, to agree with participant 3: the five threats from the task.
@@ -125,5 +144,13 @@ export interface HealthState {
   baseline?: Baseline // day-0 region statuses and bone density
   threats?: Record<ThreatId, ThreatState> // the five threats, level and affected regions
   boneSource?: Record<BonePart, Source> // proposed: bones are always 'forecast' in flight
+  // Proposed, to agree with participant 3 (isolation and confinement):
+  brightLightMin?: number // minutes of bright light today
+  reactionMs?: number // mean reaction time of the last reaction self-test, ms
+  reactionLapses?: number // lapses (no response in time) in the last test
+  mood?: number // 1..5, 5 = best
+  activityMin?: number // exercise today, minutes
+  history?: DayRecord[] // last 7 days, oldest first, last = today
+  alerts?: Alert[] // engine findings; the twin only displays them
   selectRegion(id: RegionId | null): void
 }

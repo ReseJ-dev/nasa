@@ -1,77 +1,159 @@
+import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
-import type { Status } from '../contract/types'
+import { BoxGeometry, Color, CylinderGeometry, Group, Mesh, TorusGeometry, Vector3, type ShaderMaterial } from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useHealthStore } from './store'
-import { useThreatEffect } from './hooks/useThreatEffect'
-import { STATUS_HEX } from './colors'
-import { CIRCADIAN as C, type Layer } from './config'
-import { CIRCADIAN_LABEL } from './labels'
+import { STATUS_COLOR, STATUS_HEX } from './colors'
+import { CIRCADIAN as C, ISOLATION as I } from './config'
+import { formatHours, formatShift, ISOLATION_LABEL as L } from './labels'
+import { createArcMaterial, createLineMaterial, decorative } from './holoMaterials'
+import { setOpacity, setText, smoothK, stage, useAlertStatus, useAnyIsolationAlert } from './isolationStage'
 import { overlayStyles as s } from './overlayStyles'
+import { REGIONS } from './regions'
 
-// Circadian ring near the brain (isolation threat): a 24-hour circle (midnight at the top)
-// with the sleep sector. Sector length = sleepHours, start = normal bedtime + sleepShiftHours.
-// Yellow / red when sleep is short or the rhythm has shifted (thresholds in config.ts).
-// Full when isolation is focused / demo, faint otherwise, hidden when inactive or in skeleton mode.
+// Circadian ring around the head (isolation): a 24-hour clock seen from above, tilted toward
+// the camera. Thin outline, ticks every 3 h, the sleep arc (length = sleepHours, rotated by
+// sleepShiftHours), a warm bright-light arc, and a faint norm arc behind the sleep arc.
+// Not focused: only the outline. Focused: everything fades in (see isolationStage.ts).
+// The arc turns yellow / red with the sleep alert; a thin line ties it to the brain while
+// any isolation alert is active. Created once; all motion in useFrame.
 
-function sleepStatus(sleep: number, shift: number): Status {
-  if (sleep < C.critSleep || Math.abs(shift) >= C.critShift) return 'critical'
-  if (sleep < C.warnSleep || Math.abs(shift) > C.warnShift) return 'warning'
-  return 'ok'
+const TAU = Math.PI * 2
+const SEGMENTS = 160
+// Hour -> fraction of the circle from the front of the ring, clockwise seen from above.
+const hourFraction = (hour: number) => (((hour - C.frontHour) / 24) % 1 + 1) % 1
+
+const BRAIN = new Vector3(...REGIONS.find((r) => r.id === 'brain')!.callout.anchor)
+const BRAIN_RADIUS = 0.085
+const UP = new Vector3(0, 1, 0)
+const OK_SLEEP = new Color(C.sleepColor)
+
+function createTicks() {
+  const parts = []
+  for (let hour = 0; hour < 24; hour += 3) {
+    const a = hourFraction(hour) * TAU
+    const length = hour % 12 === 0 ? C.tick.longLength : C.tick.length
+    const box = new BoxGeometry(C.tick.width, C.tick.width, length)
+    const r = C.radius + length / 2 - 0.008 // ticks point outward from the outline
+    box.rotateY(-a)
+    box.translate(-r * Math.sin(a), 0, r * Math.cos(a))
+    parts.push(box)
+  }
+  const merged = mergeGeometries(parts)
+  parts.forEach((p) => p.dispose())
+  return merged
 }
 
-// Point on the clock face for an hour (0 h at the top, clockwise).
-function clock(hour: number, r: number, c: number) {
-  const a = (hour / 24) * Math.PI * 2 - Math.PI / 2
-  return [c + r * Math.cos(a), c + r * Math.sin(a)] as const
+function createRing() {
+  const torus = (radius: number, tube: number, material: ShaderMaterial) => {
+    const mesh = decorative(new Mesh(new TorusGeometry(radius, tube, 8, SEGMENTS), material))
+    mesh.rotation.x = Math.PI / 2 // lay the torus flat; its uv.x = 0.25 is now at the front (+z)
+    return mesh
+  }
+  const outline = torus(C.radius, I.minLine, createArcMaterial(I.line))
+  const ghost = torus(C.radius + C.ghostOffset, C.ghostTube, createArcMaterial(I.line, hourFraction(C.normalBedtime), 0))
+  const sleep = torus(C.radius, C.sleepTube, createArcMaterial(C.sleepColor))
+  const light = torus(C.radius, C.lightTube, createArcMaterial(C.lightColor, hourFraction(C.lightStartHour), 0))
+  const ticks = decorative(new Mesh(createTicks(), createLineMaterial()))
+  const group = new Group()
+  group.position.set(...C.center)
+  group.rotation.x = C.tilt // front edge down: the camera sees the ring as a circle
+  group.add(outline, ghost, sleep, light, ticks)
+  // Line from the middle of the sleep arc to the brain (a unit cylinder, placed every frame).
+  const link = decorative(new Mesh(new CylinderGeometry(I.minLine, I.minLine, 1, 6), createLineMaterial()))
+  return { group, outline, ghost, sleep, light, ticks, link }
 }
 
-export function CircadianRing({ layer }: { layer: Layer }) {
-  const sleep = useHealthStore((st) => st.sleepHours ?? 8)
-  const shift = useHealthStore((st) => st.sleepShiftHours ?? 0)
-  const effect = useThreatEffect('isolation')
-  const opacity = layer === 'body' ? effect : 0
+const uniforms = (mesh: Mesh) => (mesh.material as ShaderMaterial).uniforms
 
-  const size = C.size
-  const c = size / 2
-  const r = size / 2 - 6
-  const start = C.normalBedtime + shift
-  const end = start + Math.min(Math.max(sleep, 0), 23.9)
-  const [x0, y0] = clock(start, r, c)
-  const [x1, y1] = clock(end, r, c)
-  const large = end - start > 12 ? 1 : 0
-  const color = STATUS_HEX[sleepStatus(sleep, shift)]
+export function CircadianRing() {
+  const sleepHours = useHealthStore((st) => st.sleepHours ?? 8)
+  const shiftHours = useHealthStore((st) => st.sleepShiftHours ?? 0)
+  const lightMin = useHealthStore((st) => st.brightLightMin ?? 0)
+  const normHours = useHealthStore((st) => st.baseline?.sleepHours ?? 8)
+  const status = useAlertStatus('sleep')
+  const anyAlert = useAnyIsolationAlert()
+
+  const ring = useMemo(createRing, [])
+  const goal = useRef({ sleepHours, shiftHours, lightMin, normHours, status, anyAlert })
+  useLayoutEffect(() => {
+    goal.current = { sleepHours, shiftHours, lightMin, normHours, status, anyAlert }
+  }, [sleepHours, shiftHours, lightMin, normHours, status, anyAlert])
+  // Shown values follow the store smoothly: presets and the demo never make the arcs jump.
+  const shown = useRef({ sleepHours, shiftHours, lightMin, link: 0 })
+
+  const label = useRef<HTMLDivElement>(null)
+  const value = useRef<HTMLSpanElement>(null)
+  const caption = useRef<HTMLSpanElement>(null)
+  const scratch = useMemo(() => ({ from: new Vector3(), to: new Vector3(), dir: new Vector3() }), [])
+
+  useFrame((_, delta) => {
+    const g = goal.current
+    const v = shown.current
+    const k = smoothK(delta, I.valueLerp)
+    v.sleepHours += (g.sleepHours - v.sleepHours) * k
+    v.shiftHours += (g.shiftHours - v.shiftHours) * k
+    v.lightMin += (g.lightMin - v.lightMin) * k
+
+    // Outline: always there in body mode. The rest only with the focus.
+    const outline = uniforms(ring.outline)
+    outline.uOpacity.value = stage.outline
+    ring.outline.visible = stage.outline > 0.005
+    const on = stage.ring > 0.005
+    ring.ghost.visible = ring.sleep.visible = ring.light.visible = ring.ticks.visible = on
+
+    if (on) {
+      const sleep = uniforms(ring.sleep)
+      sleep.uStart.value = hourFraction(C.normalBedtime + v.shiftHours)
+      sleep.uLength.value = Math.min(Math.max(v.sleepHours, 0), 23.9) / 24
+      sleep.uOpacity.value = stage.ring
+      sleep.uColor.value.lerp(g.status === 'ok' ? OK_SLEEP : STATUS_COLOR[g.status], smoothK(delta, I.colorLerp))
+      const ghost = uniforms(ring.ghost)
+      ghost.uLength.value = g.normHours / 24
+      ghost.uOpacity.value = C.ghostOpacity * stage.ring
+      const light = uniforms(ring.light)
+      light.uLength.value = Math.min(v.lightMin / 60, 12) / 24
+      light.uOpacity.value = 0.9 * stage.ring
+      ;(ring.ticks.material as { opacity: number }).opacity = 0.8 * stage.ring
+    }
+
+    // Link to the brain: from the middle of the sleep arc, while any isolation alert is active.
+    v.link += ((g.anyAlert ? 1 : 0) - v.link) * smoothK(delta, I.colorLerp)
+    const linkOpacity = C.linkOpacity * v.link * stage.ring
+    ring.link.visible = linkOpacity > 0.005
+    if (ring.link.visible) {
+      const a = hourFraction(C.normalBedtime + v.shiftHours + v.sleepHours / 2) * TAU
+      const { from, to, dir } = scratch
+      from.set(-C.radius * Math.sin(a), 0, C.radius * Math.cos(a)).applyEuler(ring.group.rotation).add(ring.group.position)
+      dir.copy(BRAIN).sub(from)
+      const length = dir.length() - BRAIN_RADIUS // stop at the brain surface
+      dir.normalize()
+      to.copy(from).addScaledVector(dir, length)
+      ring.link.position.copy(from).add(to).multiplyScalar(0.5)
+      ring.link.quaternion.setFromUnitVectors(UP, dir)
+      ring.link.scale.y = length
+      ;(ring.link.material as { opacity: number }).opacity = linkOpacity
+    }
+
+    setOpacity(label.current, stage.labels)
+    if (stage.labels > 0.005) {
+      const shift = Math.abs(v.shiftHours) >= 0.05 ? ` · ${L.shift} ${formatShift(v.shiftHours)}` : ''
+      setText(value.current, `${formatHours(v.sleepHours)}${shift}`)
+      setText(caption.current, `${L.sleep} · ${L.norm} ${formatHours(g.normHours)}`)
+    }
+  })
 
   return (
-    <Html
-      position={C.position}
-      center
-      style={{ pointerEvents: 'none', opacity, transition: 'opacity 0.5s', display: opacity > 0 ? 'block' : 'none' }}
-    >
-      <div style={s.circadian}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
-          <circle cx={c} cy={c} r={r} fill="rgba(10,14,24,0.7)" stroke="rgba(255,255,255,0.25)" strokeWidth={1} />
-          {/* hour ticks at 0, 6, 12, 18 */}
-          {[0, 6, 12, 18].map((h) => {
-            const [ax, ay] = clock(h, r - 3, c)
-            const [bx, by] = clock(h, r + 3, c)
-            return <line key={h} x1={ax} y1={ay} x2={bx} y2={by} stroke="rgba(255,255,255,0.5)" strokeWidth={1} />
-          })}
-          {/* sleep sector */}
-          <path
-            d={`M${x0} ${y0} A${r} ${r} 0 ${large} 1 ${x1} ${y1}`}
-            fill="none"
-            stroke={color}
-            strokeWidth={5}
-            strokeLinecap="round"
-          />
-          <text x={c} y={c + 4} textAnchor="middle" fill="#fff" fontSize={12} fontWeight={600}>
-            {sleep} {CIRCADIAN_LABEL.hours}
-          </text>
-        </svg>
-        <span>
-          {CIRCADIAN_LABEL.sleep}
-          {shift ? ` · ${CIRCADIAN_LABEL.shift} ${shift > 0 ? '+' : ''}${shift} ${CIRCADIAN_LABEL.hours}` : ''}
-        </span>
-      </div>
-    </Html>
+    <>
+      <primitive object={ring.group} />
+      <primitive object={ring.link} />
+      <Html position={C.sleepLabel} style={{ pointerEvents: 'none' }}>
+        <div ref={label} style={{ ...s.holo, ...s.holoLeft }}>
+          <span ref={caption} style={s.holoCaption} />
+          <span ref={value} style={{ ...s.holoValue, ...(status !== 'ok' ? { color: STATUS_HEX[status] } : null) }} />
+        </div>
+      </Html>
+    </>
   )
 }

@@ -4,12 +4,23 @@
 // only events (flare, shelter, sleep shift, threat links) are set by hand here.
 import { create } from 'zustand'
 import type { Baseline, BonePart, HealthState, RegionId, SimInputs, Status, ThreatId, Vitals } from '../contract/types'
-import { simulate, type SimOutput } from '../sim'
+import { isolationAlerts, simulate, type SimOutput } from '../sim'
 
 export type ScenarioId = 'healthy' | 'day60' | 'critical'
 
+type Events = Required<Pick<HealthState, 'activeEvent' | 'inShelter' | 'sleepShiftHours' | 'threatLinks'>>
+// Isolation self-tracking that the simulation inputs do not carry (set by hand per preset).
+type Tracking = Required<Pick<HealthState, 'brightLightMin' | 'reactionLapses' | 'activityMin' | 'history'>>
 type ScenarioData = SimOutput &
-  Required<Pick<HealthState, 'activeEvent' | 'inShelter' | 'sleepShiftHours' | 'threatLinks'>>
+  Events &
+  Tracking &
+  Required<Pick<HealthState, 'reactionMs' | 'mood' | 'alerts'>>
+
+// Pre-flight exercise, minutes per day (ISS plan: about 2.5 h including setup).
+const PRE_FLIGHT_ACTIVITY_MIN = 150
+// Last 7 days, oldest first; the last entry is today (same values as the preset's own fields).
+const week = (sleep: number[], activity: number[]) =>
+  activity.map((activityMin, i) => ({ sleepHours: sleep[i], activityMin }))
 
 // Pre-flight values of the same crew member, shared by every preset.
 const PRE_FLIGHT: Vitals = {
@@ -23,7 +34,7 @@ const PRE_FLIGHT: Vitals = {
   reactionMs: 255,
 }
 
-const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Omit<ScenarioData, keyof SimOutput> }> = {
+const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking: Tracking }> = {
   // Day 0 on the station: everything at baseline.
   healthy: {
     inputs: {
@@ -37,6 +48,12 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Omit<ScenarioData
       noiseDb: 55,
     },
     events: { activeEvent: 'none', inShelter: false, sleepShiftHours: 0, threatLinks: [] },
+    tracking: {
+      brightLightMin: 120,
+      reactionLapses: 0,
+      activityMin: 150,
+      history: week([8, 7.8, 8.1, 8, 7.9, 8.2, 8], [148, 152, 145, 150, 155, 147, 150]),
+    },
   },
   // Day 60 in transit: less sleep, slower reactions, first bone and muscle loss.
   day60: {
@@ -57,6 +74,12 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Omit<ScenarioData
       noiseDb: 60,
     },
     events: { activeEvent: 'none', inShelter: false, sleepShiftHours: 1.5, threatLinks: [] },
+    tracking: {
+      brightLightMin: 60,
+      reactionLapses: 2,
+      activityMin: 110,
+      history: week([7.4, 7.2, 7, 6.9, 6.8, 6.6, 6.5], [145, 140, 132, 128, 120, 114, 110]),
+    },
   },
   // Day 180, demo scenario: solar flare, crew in the shelter, CO2 rises, sleep drops, no Earth link.
   critical: {
@@ -89,10 +112,34 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Omit<ScenarioData
         { from: 'environment', to: 'gravity', strength: 0.3 }, // less exercise in the shelter
       ],
     },
+    // Two days in the shelter: exercise collapses, almost no bright light.
+    tracking: {
+      brightLightMin: 20,
+      reactionLapses: 5,
+      activityMin: 40,
+      history: week([6.8, 6.6, 6.5, 6.2, 6, 5.4, 5], [142, 138, 130, 124, 118, 45, 40]),
+    },
   },
 }
 
-const scenario = (id: ScenarioId): ScenarioData => ({ ...simulate(PRESETS[id].inputs), ...PRESETS[id].events })
+function scenario(id: ScenarioId): ScenarioData {
+  const { inputs, events, tracking } = PRESETS[id]
+  return {
+    ...simulate(inputs),
+    ...events,
+    ...tracking,
+    reactionMs: inputs.reactionMs,
+    mood: inputs.mood,
+    alerts: isolationAlerts({
+      sleepHours: inputs.sleepHours,
+      sleepShiftHours: events.sleepShiftHours,
+      reactionMs: inputs.reactionMs,
+      mood: inputs.mood,
+      activityMin: tracking.activityMin,
+      baseline: { ...PRE_FLIGHT, activityMin: PRE_FLIGHT_ACTIVITY_MIN },
+    }),
+  }
+}
 const healthy = scenario('healthy')
 const day60 = scenario('day60')
 const critical = scenario('critical')
@@ -103,6 +150,9 @@ const baseline: Baseline = {
     Object.values(healthy.regions).map((r) => [r.id, r.status]),
   ) as Record<RegionId, Status>,
   boneDensity: { ...healthy.boneDensity },
+  sleepHours: PRE_FLIGHT.sleepHours,
+  reactionMs: PRE_FLIGHT.reactionMs,
+  activityMin: PRE_FLIGHT_ACTIVITY_MIN,
 }
 
 export const SCENARIOS: Record<ScenarioId, ScenarioData & Pick<HealthState, 'baseline'>> = {

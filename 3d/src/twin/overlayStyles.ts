@@ -91,16 +91,30 @@ export const overlayStyles = {
     whiteSpace: 'nowrap',
     userSelect: 'none',
   },
-  // Circadian ring near the brain.
-  circadian: {
+  // Hologram labels of the isolation visuals: text only, no panel. Exactly two sizes:
+  // holoValue for numbers with units, holoCaption for the word above them.
+  holo: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    color: '#fff',
-    font: '11px system-ui, sans-serif',
+    gap: 1,
+    whiteSpace: 'nowrap',
     userSelect: 'none',
     pointerEvents: 'none',
+    opacity: 0, // faded by the owner in useFrame
+    // dark halo: keeps thin text readable over the shell glow and on a projector
+    textShadow: '0 0 4px #020309, 0 0 10px #020309, 0 0 2px #020309',
   },
+  holoLeft: { transform: 'translate(0, -50%)', alignItems: 'flex-start' }, // label grows to the right
+  holoRight: { transform: 'translate(-100%, -50%)', alignItems: 'flex-end' }, // label grows to the left
+  holoValue: { font: '600 18px system-ui, sans-serif', letterSpacing: 0.2, color: '#e6eeff' },
+  holoCaption: {
+    font: '500 12px system-ui, sans-serif',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: '#a9bce0',
+  },
+  moodDots: { display: 'flex', gap: 5, padding: '4px 0 2px' },
+  moodDot: { boxSizing: 'border-box', borderRadius: '50%', border: '1.5px solid #a9bce0' },
   // "Autonomous mode" above the body when the link to Earth is down.
   autonomyLabel: {
     padding: '3px 10px',

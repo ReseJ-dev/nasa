@@ -127,3 +127,9 @@ export const CHAIN_LABELS: Partial<Record<`${RegionId}>${RegionId}`, string>> = 
   'brain>eyes': 'intracranial pressure',
   'muscles>bones': 'less load',
 }
+
+// ---- Isolation alerts --------------------------------------------------------------------
+// Same deviation scale as the regions (WARN_AT / CRITICAL_AT). Sleep, reaction and mood use TOLERANCE.
+export const SLEEP_SHIFT_UNIT = 1.5 // hours of circadian shift per deviation unit. TODO: source
+// Exercise: share of the personal baseline lost per deviation unit (ISS plan: ~2.5 h/day incl. setup).
+export const ACTIVITY_DROP_UNIT = 0.25 // TODO: confirm with participant 3
