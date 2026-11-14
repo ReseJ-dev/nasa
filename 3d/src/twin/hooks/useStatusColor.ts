@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { MeshStandardMaterial } from 'three'
 import type { Status } from '../../contract/types'
@@ -7,8 +7,14 @@ import { REGION } from '../config'
 
 // Every frame, smoothly moves the material's color and glow toward
 // the status color and the requested glow strength, and adds a sine pulse
-// for warning/critical. No setState per frame.
-export function useStatusColor(material: MeshStandardMaterial, status: Status, glow: number) {
+// for warning/critical. `extraGlow` (optional) is added on top, e.g. the chain glow.
+// No setState per frame.
+export function useStatusColor(
+  material: MeshStandardMaterial,
+  status: Status,
+  glow: number,
+  extraGlow?: RefObject<number>,
+) {
   // Latest targets, read inside useFrame without re-subscribing.
   const target = useRef({ status, glow })
   useLayoutEffect(() => {
@@ -35,6 +41,6 @@ export function useStatusColor(material: MeshStandardMaterial, status: Status, g
     s.phase += delta * s.hz * Math.PI * 2
     // wave goes 0..1 and back, so the glow never drops below the base value
     const wave = 0.5 + 0.5 * Math.sin(s.phase)
-    material.emissiveIntensity = s.glow + s.amplitude * wave
+    material.emissiveIntensity = s.glow + s.amplitude * wave + (extraGlow?.current ?? 0)
   })
 }

@@ -5,12 +5,13 @@ import { MeshStandardMaterial, type Group } from 'three'
 import { useHealthStore } from './mockStore'
 import { STATUS_COLOR } from './colors'
 import { REGION } from './config'
+import { useChainGlow } from './hooks/useChainGlow'
 import { useHeartbeat } from './hooks/useHeartbeat'
 import { useHover } from './hooks/useHover'
 import { useStatusColor } from './hooks/useStatusColor'
 import type { RegionDef } from './regions'
 
-// One health region: behavior only (color, pulse, heartbeat, hover, click). Shapes come from regions.ts.
+// One health region: behavior only (color, pulse, chain, heartbeat, hover, click). Shapes come from regions.ts.
 export function RegionMesh({ def }: { def: RegionDef }) {
   const status = useHealthStore((s) => s.regions[def.id].status)
   const isSelected = useHealthStore((s) => s.selectedRegion === def.id)
@@ -30,7 +31,9 @@ export function RegionMesh({ def }: { def: RegionDef }) {
   )
 
   const glow = hovered ? REGION.emissive.hover : isSelected ? REGION.emissive.selected : REGION.emissive.base
-  useStatusColor(material, status, glow)
+  // Must run before useStatusColor so its value is fresh in the same frame.
+  const chainGlow = useChainGlow(def.id)
+  useStatusColor(material, status, glow, chainGlow)
 
   // Wrapper group of every part, used by the heartbeat.
   const partRefs = useRef<(Group | null)[]>([])
