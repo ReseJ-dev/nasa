@@ -11,6 +11,8 @@ import { Callouts } from './Callouts'
 import { CameraRig } from './CameraRig'
 import { ThreatStrip } from './ThreatStrip'
 import { RadiationParticles } from './RadiationParticles'
+import { CO2Haze } from './CO2Haze'
+import { ChainLinks } from './ChainLinks'
 import type { ThreatId } from '../contract/types'
 import { LAYER_LABEL } from './labels'
 import { REGIONS } from './regions'
@@ -202,6 +204,8 @@ export function BodyScene({
           </EffectComposer>
         </Selection>
         <Callouts visible={layer === 'body'} />
+        <ChainLinks visible={layer === 'body'} />
+        <CO2Haze layer={layer} />
         {RADIATION_PARTICLES.enabled && <RadiationParticles />}
         {showFps && <Stats />}
         <CameraRig />

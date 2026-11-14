@@ -64,6 +64,17 @@ export const overlayStyles = {
   threatActive: { background: 'rgba(79, 163, 255, 0.35)' },
   threatName: { flex: 1, whiteSpace: 'nowrap' },
   threatLevel: { minWidth: 36, textAlign: 'right', fontWeight: 600 },
+  // Cause label between two chain organs (e.g. "CO₂ ↑").
+  chainLabel: {
+    padding: '2px 8px',
+    borderRadius: 10,
+    background: 'rgba(10, 14, 24, 0.85)',
+    border: '1px solid rgba(255, 255, 255, 0.35)',
+    color: '#fff',
+    font: 'italic 12px system-ui, sans-serif',
+    whiteSpace: 'nowrap',
+    opacity: 0, // faded in by ChainLinks
+  },
   hint: {
     ...panel,
     left: '50%',
