@@ -58,6 +58,10 @@ export const BONE_DENSITY = {
   fractureLabel: 'Fracture risk at landing', // shown at the weakest bone part
 }
 
+// The fracture label shows only if the weakest part's density is below this.
+// Temporary display value: the real threshold will come from the engine later.
+export const FRACTURE_LABEL_THRESHOLD = 0.9
+
 // View layers: "body" (organs) and "skeleton". Opacity of each layer in each mode.
 export type Layer = 'body' | 'skeleton'
 export const LAYERS: Record<Layer, { shell: number; skeleton: number; organs: number }> = {

@@ -7,7 +7,7 @@ import { Body } from './Body'
 import { RegionMesh } from './RegionMesh'
 import { Skeleton } from './Skeleton'
 import { REGIONS } from './regions'
-import { useHealthStore } from './mockStore'
+import { useHealthStore } from './store'
 import { BLOOM, CAMERA, RENDER, SCENE, type Layer } from './config'
 
 const LAYER_LABEL: Record<Layer, string> = { body: 'Body', skeleton: 'Skeleton' }
@@ -49,9 +49,25 @@ function LayerSwitch({ layer, onChange }: { layer: Layer; onChange(l: Layer): vo
 // The only export for teammate 2. Fills its parent container completely
 // (Canvas follows the container size automatically, also on window resize).
 // showFps: dev-only FPS counter in the top-left corner.
-export function BodyScene({ showFps = false }: { showFps?: boolean }) {
+// layer / onLayerChange (optional): pass `layer` to control the Body/Skeleton view
+// from outside; without it BodyScene keeps its own layer state.
+// onLayerChange is called on every button click in both cases.
+export function BodyScene({
+  showFps = false,
+  layer: layerProp,
+  onLayerChange,
+}: {
+  showFps?: boolean
+  layer?: Layer
+  onLayerChange?(layer: Layer): void
+}) {
   const selectRegion = useHealthStore((s) => s.selectRegion)
-  const [layer, setLayer] = useState<Layer>('body') // changes only on button click
+  const [ownLayer, setOwnLayer] = useState<Layer>('body') // used only when `layer` is not passed
+  const layer = layerProp ?? ownLayer
+  const changeLayer = (l: Layer) => {
+    if (layerProp === undefined) setOwnLayer(l)
+    onLayerChange?.(l)
+  }
   // SelectiveBloom re-lights the selected organs, so it needs the scene lights.
   const ambient = useRef<AmbientLight>(null)
   const keyLight = useRef<DirectionalLight>(null)
@@ -100,7 +116,7 @@ export function BodyScene({ showFps = false }: { showFps?: boolean }) {
           maxPolarAngle={CAMERA.maxPolarAngle}
         />
       </Canvas>
-      <LayerSwitch layer={layer} onChange={setLayer} />
+      <LayerSwitch layer={layer} onChange={changeLayer} />
     </div>
   )
 }
