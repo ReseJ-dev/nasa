@@ -32,11 +32,32 @@ export type BonePart =
   | 'leg_left'
   | 'leg_right'
 
+// Proposed, to agree with participant 3: a cause label between two organs of the chain.
+export interface ChainLink {
+  from: RegionId
+  to: RegionId
+  label: string
+}
+
+// Proposed, to agree with participant 3: day-0 state, for comparison.
+export interface Baseline {
+  statuses: Record<RegionId, Status>
+  boneDensity: Record<BonePart, number>
+}
+
 export interface HealthState {
   regions: Record<RegionId, RegionState>
   selectedRegion: RegionId | null
   metrics: Metric[] // includes heart_rate
   boneDensity: Record<BonePart, number> // proposed: 0..1, 1 = normal
   chain: RegionId[] // proposed: cause chain, e.g. ['lungs', 'brain', 'eyes']
+  // Proposed, to agree with participant 3 (optional until agreed):
+  radiationLevel?: number // 0..1
+  commDelaySec?: number // one-way signal delay to Earth, seconds
+  earthLink?: boolean // false = no connection to Earth
+  activeEvent?: 'none' | 'solar_flare'
+  fluidShift?: number // 0..1, how much body fluid moved toward the head
+  chainLinks?: ChainLink[] // cause labels between neighbouring chain organs
+  baseline?: Baseline // day-0 region statuses and bone density
   selectRegion(id: RegionId | null): void
 }
