@@ -193,13 +193,18 @@ function FractureLabel({ part }: { part: BonePart }) {
   )
 }
 
-export function Skeleton({ layer }: { layer: Layer }) {
-  const boneDensity = useHealthStore((s) => s.boneDensity)
-
-  // Weakest part = lowest density. Only labeled if it is below normal.
+// Weakest part = lowest density, or null if every part is normal.
+function weakestPart(density: Record<BonePart, number>): BonePart | null {
   let weakest: BonePart = BONE_PARTS[0]
-  for (const part of BONE_PARTS) if (boneDensity[part] < boneDensity[weakest]) weakest = part
-  const showLabel = layer === 'skeleton' && boneDensity[weakest] < 1
+  for (const part of BONE_PARTS) if (density[part] < density[weakest]) weakest = part
+  return density[weakest] < 1 ? weakest : null
+}
+
+export function Skeleton({ layer }: { layer: Layer }) {
+  // Selects just a name, so Skeleton re-renders only when the weakest part changes
+  // (each BoneMesh subscribes to its own density).
+  const weakest = useHealthStore((s) => weakestPart(s.boneDensity))
+  const showLabel = layer === 'skeleton' && weakest !== null
 
   return (
     <group name="skeleton">
