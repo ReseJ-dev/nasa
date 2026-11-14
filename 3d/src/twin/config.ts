@@ -1,4 +1,5 @@
 // All tunable numbers of the 3D scene in one place.
+import type { Status } from '../contract/types'
 
 type Vec3 = [number, number, number]
 
@@ -21,18 +22,29 @@ export const RENDER = {
 
 // Scene background and lights
 export const SCENE = {
-  background: '#05070d',
-  ambientIntensity: 0.5,
-  keyLight: { position: [3, 5, 4] as Vec3, intensity: 1.2 }, // main light, front-right-top
-  rimLight: { position: [-3, 2, -4] as Vec3, intensity: 0.5 }, // back light, outlines the shell
+  // Vertical background gradient, top -> bottom.
+  backgroundTop: '#0b1830',
+  backgroundBottom: '#020309',
+  ambientIntensity: 0.25, // lower than before: the environment adds soft light
+  keyLight: { position: [3, 5, 4] as Vec3, intensity: 1.1 }, // main light, front-right-top
+  rimLight: { position: [-3, 2, -4] as Vec3, intensity: 0.9, color: '#7fdcff' }, // back light, cyan outline
+  // Few faint stars, so they stay cheap and do not compete with the body.
+  stars: { radius: 40, depth: 20, count: 600, factor: 2, speed: 0.3 },
+  environmentResolution: 64, // env map size; rendered once, built only from Lightformers
 }
 
-// Translucent body shell
+// Translucent body shell with a fresnel look: almost clear in the center,
+// glowing cyan on the silhouette edges.
 export const BODY_SHELL = {
-  color: '#9fc4e8',
-  roughness: 0.35,
-  clearcoat: 0.6,
-  clearcoatRoughness: 0.3,
+  color: '#2a5a78', // base tint seen in the center
+  roughness: 0.4,
+  rimColor: '#4fe3ff', // cyan edge glow
+  rimPower: 2.2, // higher = thinner edge
+  rimIntensity: 1.6, // brightness of the edge glow
+  // Opacity multipliers on top of the layer opacity (LAYERS.*.shell), result clamped to 1.
+  centerAlpha: 0.35,
+  edgeAlpha: 3.5,
+  renderOrder: 10, // drawn after organs and bones (see Body.tsx: stencil, front-to-back)
 }
 
 // Skeleton (neutral, before density colors)
@@ -94,9 +106,10 @@ export const REGION = {
   roughness: 0.5,
   // How fast color and glow follow their target (higher = faster, ~0.5 s at 6).
   lerpSpeed: 6,
-  // Emissive glow strength in each state.
+  // Emissive glow strength in each state. Base glow depends on the status:
+  // ok organs stay dim, warning/critical stand out.
   emissive: {
-    base: 0.15,
+    base: { ok: 0.04, warning: 0.35, critical: 0.5 } as Record<Status, number>,
     selected: 0.5,
     hover: 0.9,
   },
