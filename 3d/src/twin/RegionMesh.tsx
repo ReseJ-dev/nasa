@@ -26,7 +26,7 @@ export function RegionMesh({ def, layer }: { def: RegionDef; layer: Layer }) {
       new MeshStandardMaterial({
         color: STATUS_COLOR.ok.clone(),
         emissive: STATUS_COLOR.ok.clone(),
-        emissiveIntensity: REGION.emissive.base,
+        emissiveIntensity: REGION.emissive.base.ok,
         roughness: REGION.roughness,
         transparent: false, // useFadeOpacity turns it on when organs are dimmed
         opacity: LAYERS.body.organs,
@@ -35,7 +35,7 @@ export function RegionMesh({ def, layer }: { def: RegionDef; layer: Layer }) {
   )
   useFadeOpacity(material, LAYERS[layer].organs)
 
-  const glow = hovered ? REGION.emissive.hover : isSelected ? REGION.emissive.selected : REGION.emissive.base
+  const glow = hovered ? REGION.emissive.hover : isSelected ? REGION.emissive.selected : REGION.emissive.base[status]
   // Must run before useStatusColor so its value is fresh in the same frame.
   const chainGlow = useChainGlow(def.id)
   useStatusColor(material, status, glow, chainGlow)
