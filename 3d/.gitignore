@@ -1,6 +1,7 @@
 CLAUDE.md
 PROMPTS.md
 .claude/
+node_modules/
 # Logs
 logs
 *.log
