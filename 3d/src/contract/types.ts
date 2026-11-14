@@ -4,7 +4,12 @@
 
 export type Status = 'ok' | 'warning' | 'critical'
 
-export type RegionId = 'heart' | 'brain' | 'bones' | 'muscles' | 'eyes' | 'immune' | 'lungs'
+// 'metabolism' is PROPOSED (glucose), to agree with participant 3.
+export type RegionId = 'heart' | 'brain' | 'bones' | 'muscles' | 'eyes' | 'immune' | 'lungs' | 'metabolism'
+
+// Proposed, to agree with participant 3: where a value comes from, and who acts on it.
+export type Source = 'measured' | 'forecast'
+export type Escalation = 'self' | 'crew' | 'ground' // 'ground' needs Earth; offline it becomes 'crew'
 
 export interface RegionState {
   id: RegionId
@@ -12,6 +17,8 @@ export interface RegionState {
   score: number // 0..100, 100 = perfect
   metrics: string[] // ids of related metrics (Metric.id)
   advice: string[]
+  source?: Source // proposed: measured now, or forecast by the model
+  escalation?: Escalation // proposed: who should act
 }
 
 export interface Metric {
@@ -61,6 +68,36 @@ export interface ThreatLink {
   strength: number
 }
 
+// Proposed, to agree with participant 3: inputs of the simulation (src/sim).
+export type SimEnvironment = 'station' | 'transit' | 'mars_surface'
+
+// Measured values, also used for the pre-flight baseline.
+export interface Vitals {
+  systolic: number // mmHg
+  diastolic: number // mmHg
+  heartRate: number // bpm
+  glucose: number // mmol/L
+  bodyTempC: number // °C
+  sleepHours: number // last night
+  mood: number // 1..5, 5 = best
+  reactionMs: number // reaction test, ms
+}
+
+export interface SimInputs extends Vitals {
+  environment: SimEnvironment // sets gravity, radiation and comm delay defaults
+  missionDay: number
+  baseline: Vitals // pre-flight values of the same fields
+  // Optional overrides of the environment defaults
+  gravityField?: number
+  radiationLevel?: number
+  commDelaySec?: number
+  earthLink?: boolean
+  // Cabin
+  co2Level: number // 0..1
+  cabinTempC: number
+  noiseDb: number
+}
+
 export interface HealthState {
   regions: Record<RegionId, RegionState>
   selectedRegion: RegionId | null
@@ -87,5 +124,6 @@ export interface HealthState {
   chainLinks?: ChainLink[] // cause labels between neighbouring chain organs
   baseline?: Baseline // day-0 region statuses and bone density
   threats?: Record<ThreatId, ThreatState> // the five threats, level and affected regions
+  boneSource?: Record<BonePart, Source> // proposed: bones are always 'forecast' in flight
   selectRegion(id: RegionId | null): void
 }

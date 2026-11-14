@@ -9,6 +9,7 @@ export const REGION_LABEL: Record<RegionId, string> = {
   immune: 'Immune system',
   bones: 'Bones',
   muscles: 'Muscles',
+  metabolism: 'Metabolism',
 }
 
 export const STATUS_LABEL: Record<Status, string> = {
