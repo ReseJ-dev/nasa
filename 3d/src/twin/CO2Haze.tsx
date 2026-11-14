@@ -2,11 +2,13 @@ import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Color, FrontSide, Mesh, ShaderMaterial, SphereGeometry } from 'three'
 import { useHealthStore } from './store'
+import { useThreatEffect } from './hooks/useThreatEffect'
 import { CO2_HAZE as H, THREAT_ACTIVE_THRESHOLD, THREAT_COLOR, type Layer } from './config'
 
 // Closed-environment threat: a soft, slowly drifting haze around the head.
 // One sphere with a small noise shader, created once. co2Level sets opacity and tint:
 // invisible below THREAT_ACTIVE_THRESHOLD, denser and more grey-orange as it rises.
+// Scaled by useThreatEffect('environment'): faint unless focused or in demo.
 // Visible in body mode only. Values are lerped in useFrame, no setState per frame.
 
 const vertexShader = /* glsl */ `
@@ -61,14 +63,17 @@ const highColor = new Color(THREAT_COLOR.environment)
 export function CO2Haze({ layer }: { layer: Layer }) {
   // Re-renders only when the number changes.
   const co2 = useHealthStore((s) => s.co2Level ?? 0)
+  // 0 = environment threat not active, faint when not focused, 1 when focused or in demo.
+  const emphasis = useThreatEffect('environment')
 
   // Goal values for useFrame, updated only when inputs change.
   const goal = useRef({ opacity: 0, t: 0 })
   useLayoutEffect(() => {
     const active = layer === 'body' && co2 >= THREAT_ACTIVE_THRESHOLD
     const t = active ? (co2 - THREAT_ACTIVE_THRESHOLD) / (1 - THREAT_ACTIVE_THRESHOLD) : 0 // 0..1 above the threshold
-    goal.current = { opacity: active ? H.minOpacity + (H.maxOpacity - H.minOpacity) * t : 0, t }
-  }, [co2, layer])
+    const opacity = active ? (H.minOpacity + (H.maxOpacity - H.minOpacity) * t) * emphasis : 0
+    goal.current = { opacity, t }
+  }, [co2, layer, emphasis])
 
   const mesh = useMemo(() => {
     const material = new ShaderMaterial({

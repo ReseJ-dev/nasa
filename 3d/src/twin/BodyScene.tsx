@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Environment, Lightformer, Stars, Stats } from '@react-three/drei'
 import { EffectComposer, Selection, SelectiveBloom } from '@react-three/postprocessing'
@@ -10,6 +10,9 @@ import { Hint, Legend } from './Overlay'
 import { Callouts } from './Callouts'
 import { CameraRig } from './CameraRig'
 import { ThreatStrip } from './ThreatStrip'
+import { FocusLinesSvg, FocusLineTracker } from './FocusLines'
+import { useSceneStore } from './sceneStore'
+import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { RadiationParticles } from './RadiationParticles'
 import { CO2Haze } from './CO2Haze'
 import { ChainLinks } from './ChainLinks'
@@ -114,31 +117,56 @@ function LayerSwitch({ layer, onChange }: { layer: Layer; onChange(l: Layer): vo
 // from outside; without it BodyScene keeps its own layer state.
 // onLayerChange is called on every button click in both cases.
 // onThreatClick (optional): called with the threat id on every click in the threats strip,
-// e.g. to open a threat panel. The scene's own highlight toggles independently of it.
+// e.g. to open a threat panel.
+// focusedThreat (optional): pass it to control the pinned threat from outside (null = none);
+// clicks then only call onThreatClick. Without it, a click pins / unpins and Esc clears.
 export function BodyScene({
   showFps = false,
   layer: layerProp,
   onLayerChange,
   onThreatClick,
+  focusedThreat,
 }: {
   showFps?: boolean
   layer?: Layer
   onLayerChange?(layer: Layer): void
   onThreatClick?(threatId: ThreatId): void
+  focusedThreat?: ThreatId | null
 }) {
   const selectRegion = useHealthStore((s) => s.selectRegion)
   const [ownLayer, setOwnLayer] = useState<Layer>('body') // used only when `layer` is not passed
   const layer = layerProp ?? ownLayer
-  // Threat highlight (local view state, never selectRegion): hover wins over a clicked one.
-  const [hoverThreat, setHoverThreat] = useState<ThreatId | null>(null)
-  const [pinnedThreat, setPinnedThreat] = useState<ThreatId | null>(null)
-  const activeThreat = hoverThreat ?? pinnedThreat
+  // Threat focus lives in the twin's own scene store (not the shared health store,
+  // never selectRegion). Hover previews, click pins, click again or Esc clears.
+  const controlled = focusedThreat !== undefined
+  const setPinnedThreat = useSceneStore((s) => s.setPinnedThreat)
+  const setHoverThreat = useSceneStore((s) => s.setHoverThreat)
+  useLayoutEffect(() => {
+    if (controlled) setPinnedThreat(focusedThreat)
+  }, [controlled, focusedThreat, setPinnedThreat])
   const onThreatToggle = (id: ThreatId) => {
-    setPinnedThreat((cur) => (cur === id ? null : id))
+    if (!controlled) {
+      const pinned = useSceneStore.getState().pinnedThreat
+      setPinnedThreat(pinned === id ? null : id)
+    }
     onThreatClick?.(id)
   }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setHoverThreat(null)
+      if (!controlled) setPinnedThreat(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [controlled, setHoverThreat, setPinnedThreat])
+  const focused = useFocusedThreat()
   // Same array object until the scenario changes, so organs re-render only on real changes.
-  const focus = useHealthStore((s) => (activeThreat ? (s.threats?.[activeThreat].regions ?? null) : null))
+  const focus = useHealthStore((s) => (focused ? (s.threats?.[focused].regions ?? null) : null))
+  // Shared between the HTML overlay and the Canvas for the focus lines (no React state per frame).
+  const container = useRef<HTMLDivElement>(null)
+  const iconRefs = useRef<Partial<Record<ThreatId, HTMLElement | null>>>({})
+  const focusLines = useRef<(SVGLineElement | null)[]>([])
   // Hint disappears after the first pointer interaction with the canvas (set once).
   const [hintVisible, setHintVisible] = useState(true)
   const hideHint = () => setHintVisible(false)
@@ -155,7 +183,7 @@ export function BodyScene({
   const clearSelection = useMemo(() => () => selectRegion(null), [selectRegion])
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div ref={container} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas
         camera={{ position: CAMERA.position, fov: CAMERA.fov }}
         dpr={RENDER.dpr}
@@ -209,14 +237,11 @@ export function BodyScene({
         {RADIATION_PARTICLES.enabled && <RadiationParticles />}
         {showFps && <Stats />}
         <CameraRig />
+        <FocusLineTracker lines={focusLines} iconRefs={iconRefs} container={container} />
       </Canvas>
       <LayerSwitch layer={layer} onChange={changeLayer} />
-      <ThreatStrip
-        top={showFps ? 64 : 16} // below the FPS counter when it is shown
-        active={activeThreat}
-        onHover={setHoverThreat}
-        onToggle={onThreatToggle}
-      />
+      <FocusLinesSvg lines={focusLines} />
+      <ThreatStrip iconRefs={iconRefs} onToggle={onThreatToggle} />
       <Legend layer={layer} />
       <Hint visible={hintVisible} />
     </div>

@@ -1,16 +1,20 @@
-import type { ReactNode } from 'react'
-import type { Status, ThreatId } from '../contract/types'
+import type { ReactNode, RefObject } from 'react'
+import type { Status, ThreatId, ThreatLink } from '../contract/types'
 import { useHealthStore } from './store'
+import { useSceneStore } from './sceneStore'
+import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { STATUS_HEX } from './colors'
-import { THREAT_LEVEL } from './config'
+import { THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S } from './config'
 import { THREAT_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 
-// Five threats strip (HTML over the canvas, top-left): icon, name, level in %.
-// Hover or click a threat to highlight its regions in the scene; click again to clear.
-// Local view state only: it never calls selectRegion.
+// Five threats strip (HTML over the canvas, top center).
+// Each threat: its icon inside a ring filled by level (ring color = status thresholds),
+// name and level in %. Arcs above the rings show threatLinks (thickness = strength).
+// Hover previews the focus, click pins / unpins (handled by BodyScene). Never calls selectRegion.
 
 export const THREAT_IDS: ThreatId[] = ['radiation', 'isolation', 'gravity', 'distance', 'environment']
+const NO_LINKS: ThreatLink[] = []
 
 function levelStatus(level: number): Status {
   if (level >= THREAT_LEVEL.criticalAt) return 'critical'
@@ -29,7 +33,7 @@ function wedge(centerDeg: number) {
 }
 const TREFOIL = [-90, 30, 150].map(wedge).join(' ')
 
-// Simple 20x20 line icons drawn in the current text color.
+// Simple 20x20 line icons drawn in the current color.
 const ICON: Record<ThreatId, ReactNode> = {
   radiation: (
     <>
@@ -71,46 +75,110 @@ const ICON: Record<ThreatId, ReactNode> = {
   ),
 }
 
-function Icon({ id }: { id: ThreatId }) {
+// Icon (identity color) inside a ring filled by level (status color).
+function ThreatRing({ id, level }: { id: ThreatId; level: number }) {
+  const size = S.ring
+  const r = (size - S.ringWidth) / 2
+  const c = 2 * Math.PI * r
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-      {ICON[id]}
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={S.ringWidth} />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={STATUS_HEX[levelStatus(level)]}
+        strokeWidth={S.ringWidth}
+        strokeLinecap="round"
+        strokeDasharray={`${c * Math.min(Math.max(level, 0), 1)} ${c}`}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`} // fill starts at 12 o'clock
+      />
+      <g
+        transform={`translate(${size / 2 - 10} ${size / 2 - 10})`}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        color={THREAT_COLOR[id]}
+      >
+        {ICON[id]}
+      </g>
+    </svg>
+  )
+}
+
+// Arcs between icon rings for threatLinks, in strip coordinates.
+function LinkArcs({ focused }: { focused: ThreatId | null }) {
+  const links = useHealthStore((st) => st.threatLinks ?? NO_LINKS)
+  const width = THREAT_IDS.length * S.slot
+  const y = S.arcSpace // top of the rings
+  const cx = (id: ThreatId) => THREAT_IDS.indexOf(id) * S.slot + S.slot / 2
+  return (
+    <svg width={width} height={S.arcSpace} style={s.threatArcs} aria-hidden>
+      {links.map((l) => {
+        const x1 = cx(l.from)
+        const x2 = cx(l.to)
+        const lift = Math.min(S.arcSpace - 4, 8 + (Math.abs(x2 - x1) / S.slot) * 5) // longer link = higher arc
+        const lit = focused === l.from || focused === l.to
+        return (
+          <path
+            key={`${l.from}-${l.to}`}
+            d={`M${x1} ${y} Q${(x1 + x2) / 2} ${y - lift * 2} ${x2} ${y}`}
+            fill="none"
+            stroke="#cfe6ff"
+            strokeWidth={0.75 + l.strength * 2.5}
+            strokeLinecap="round"
+            opacity={lit ? S.linkOpacityFocused : S.linkOpacity}
+          />
+        )
+      })}
     </svg>
   )
 }
 
 export function ThreatStrip({
-  top,
-  active,
-  onHover,
+  iconRefs,
   onToggle,
 }: {
-  top: number
-  active: ThreatId | null // highlighted threat (hovered or clicked)
-  onHover(id: ThreatId | null): void
+  iconRefs: RefObject<Partial<Record<ThreatId, HTMLElement | null>>> // ring elements, for the focus lines
   onToggle(id: ThreatId): void
 }) {
-  // New object only on scenario change, so this re-renders rarely.
+  // New objects only on scenario change, so this re-renders rarely.
   const threats = useHealthStore((st) => st.threats)
+  const selected = useHealthStore((st) => st.selectedRegion)
+  const setHover = useSceneStore((st) => st.setHoverThreat)
+  const focused = useFocusedThreat()
   if (!threats) return null
 
   return (
-    <div style={{ ...s.threats, top }} onMouseLeave={() => onHover(null)}>
+    <div style={{ ...s.threats, paddingTop: S.arcSpace }} onMouseLeave={() => setHover(null)}>
+      <LinkArcs focused={focused} />
       {THREAT_IDS.map((id) => {
-        const level = threats[id].level
-        const color = STATUS_HEX[levelStatus(level)]
+        const { level, regions } = threats[id]
+        const ofSelected = selected !== null && regions.includes(selected) // reverse highlight
         return (
           <button
             key={id}
-            style={{ ...s.threat, ...(active === id ? s.threatActive : null) }}
-            onMouseEnter={() => onHover(id)}
+            title={`${THREAT_LABEL[id]}: ${Math.round(level * 100)}%`}
+            style={{
+              ...s.threat,
+              width: S.slot,
+              ...(ofSelected ? s.threatOfSelected : null),
+              ...(focused === id ? s.threatFocused : null),
+            }}
+            onMouseEnter={() => setHover(id)}
             onClick={() => onToggle(id)}
           >
-            <span style={{ color, display: 'flex' }}>
-              <Icon id={id} />
+            <span
+              ref={(el) => {
+                iconRefs.current[id] = el
+              }}
+              style={{ display: 'flex' }}
+            >
+              <ThreatRing id={id} level={level} />
             </span>
-            <span style={s.threatName}>{THREAT_LABEL[id]}</span>
-            <span style={{ ...s.threatLevel, color }}>{Math.round(level * 100)}%</span>
+            <span>{THREAT_LABEL[id]}</span>
+            <span style={s.threatLevel}>{Math.round(level * 100)}%</span>
           </button>
         )
       })}
