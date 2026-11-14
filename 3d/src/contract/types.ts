@@ -45,6 +45,15 @@ export interface Baseline {
   boneDensity: Record<BonePart, number>
 }
 
+// Proposed, to agree with participant 3: the five threats from the task.
+export type ThreatId = 'radiation' | 'isolation' | 'gravity' | 'distance' | 'environment'
+
+// Proposed, to agree with participant 3: level 0..1 (1 = worst) and the regions it affects.
+export interface ThreatState {
+  level: number
+  regions: RegionId[]
+}
+
 export interface HealthState {
   regions: Record<RegionId, RegionState>
   selectedRegion: RegionId | null
@@ -59,5 +68,6 @@ export interface HealthState {
   fluidShift?: number // 0..1, how much body fluid moved toward the head
   chainLinks?: ChainLink[] // cause labels between neighbouring chain organs
   baseline?: Baseline // day-0 region statuses and bone density
+  threats?: Record<ThreatId, ThreatState> // the five threats, level and affected regions
   selectRegion(id: RegionId | null): void
 }

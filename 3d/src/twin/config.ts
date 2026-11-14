@@ -126,3 +126,25 @@ export const REGION = {
     critical: { hz: 1.6, amplitude: 0.9 },
   },
 }
+
+// Five threats strip: level (0..1) -> color, same palette as the organs.
+// Below warnAt = ok color, from warnAt = warning, from criticalAt = critical.
+export const THREAT_LEVEL = {
+  warnAt: 0.4,
+  criticalAt: 0.7,
+}
+
+// Optional radiation particles flowing through the body. Count and speed follow threats.radiation.level.
+export const RADIATION_PARTICLES = {
+  enabled: true, // false = no particles at all
+  maxCount: 300, // at level 1
+  minSpeed: 0.15, // units per second at level 0
+  maxSpeed: 0.9, // units per second at level 1
+  color: '#e4d8ff', // violet-white
+  size: 0.018,
+  opacity: 0.8,
+  // Box the particles fly through: they enter at x = -span and leave at x = +span.
+  span: 1.1,
+  yRange: [0.05, 1.85] as [number, number],
+  zRange: [-0.25, 0.25] as [number, number],
+}

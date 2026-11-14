@@ -1,13 +1,23 @@
 // TEMPORARY mock store for developing the 3D scene alone.
 // Will be replaced by the real store from the engine. Do not import it outside twin/.
 import { create } from 'zustand'
-import type { Baseline, BonePart, HealthState, Metric, RegionId, RegionState, Status } from '../contract/types'
+import type {
+  Baseline,
+  BonePart,
+  HealthState,
+  Metric,
+  RegionId,
+  RegionState,
+  Status,
+  ThreatId,
+  ThreatState,
+} from '../contract/types'
 
 export type ScenarioId = 'healthy' | 'day60' | 'critical'
 
 type ScenarioData = Pick<HealthState, 'regions' | 'metrics' | 'boneDensity' | 'chain'> &
   Required<
-    Pick<HealthState, 'radiationLevel' | 'commDelaySec' | 'earthLink' | 'activeEvent' | 'fluidShift' | 'chainLinks'>
+    Pick<HealthState, 'radiationLevel' | 'commDelaySec' | 'earthLink' | 'activeEvent' | 'fluidShift' | 'chainLinks' | 'threats'>
   >
 
 // Small helper to keep scenario tables short.
@@ -23,6 +33,21 @@ function region(
 
 function metric(id: string, label: string, value: number, unit: string): Metric {
   return { id, label, value, unit }
+}
+
+// Which regions each threat affects (same in every scenario).
+const THREAT_REGIONS: Record<ThreatId, RegionId[]> = {
+  radiation: ['immune', 'brain', 'eyes'], // DNA damage, CNS effects, cataracts
+  isolation: ['brain'], // sleep, mood, attention
+  gravity: ['bones', 'muscles', 'eyes', 'heart'], // bone/muscle loss, fluid shift, deconditioning
+  distance: ['brain', 'heart'], // no evacuation, delayed help: stress and autonomy
+  environment: ['lungs', 'brain', 'immune'], // CO2, noise, microbes in a closed cabin
+}
+
+function threats(levels: Record<ThreatId, number>): Record<ThreatId, ThreatState> {
+  return Object.fromEntries(
+    (Object.keys(levels) as ThreatId[]).map((id) => [id, { level: levels[id], regions: THREAT_REGIONS[id] }]),
+  ) as Record<ThreatId, ThreatState>
 }
 
 // Day 1 of the mission: everything normal.
@@ -56,6 +81,7 @@ const healthy: ScenarioData = {
   activeEvent: 'none',
   fluidShift: 0.3,
   chainLinks: [],
+  threats: threats({ radiation: 0.1, isolation: 0.1, gravity: 0.15, distance: 0.05, environment: 0.1 }),
 }
 
 // Day 60: microgravity starts to show in bones, muscles and eyes.
@@ -97,6 +123,7 @@ const day60: ScenarioData = {
   activeEvent: 'none',
   fluidShift: 0.5,
   chainLinks: [{ from: 'muscles', to: 'bones', label: 'less load' }],
+  threats: threats({ radiation: 0.35, isolation: 0.3, gravity: 0.5, distance: 0.4, environment: 0.3 }),
 }
 
 // Day 180, demo scenario: solar flare, crew in the shelter, CO2 rises, sleep drops.
@@ -149,6 +176,7 @@ const critical: ScenarioData = {
     { from: 'lungs', to: 'brain', label: 'CO₂ ↑' },
     { from: 'brain', to: 'eyes', label: 'intracranial pressure' },
   ],
+  threats: threats({ radiation: 0.8, isolation: 0.5, gravity: 0.6, distance: 0.9, environment: 0.7 }),
 }
 
 // Day-0 state, shared by every scenario for comparison.
