@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict'
+import { createRequire } from 'node:module'
 import { beforeEach, test } from 'node:test'
 import { SCENARIOS } from '../data/scenarios.ts'
 import { computeState } from '../engine/index.ts'
-import { useHealthStore } from './useHealthStore.ts'
+import { initializeHealthStore } from './useHealthStore.ts'
 
+const requireFromApp = createRequire(new URL('../../3d/package.json', import.meta.url))
+const { create } = requireFromApp('zustand')
+const useHealthStore = create(initializeHealthStore)
 const { getState, getInitialState, setState, subscribe } = useHealthStore
 
 beforeEach(() => setState(getInitialState(), true))

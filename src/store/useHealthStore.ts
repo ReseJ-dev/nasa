@@ -1,5 +1,3 @@
-// The app's lockfile and dependencies live in 3d/. Use its Zustand ESM entry.
-import { create } from '../../3d/node_modules/zustand/esm/index.mjs'
 import type { HealthState } from '../../3d/src/contract/types'
 import { SCENARIOS, type ScenarioData, type ScenarioId } from '../data/scenarios.ts'
 import { computeState, type Exercise, type MissionInputs } from '../engine/index.ts'
@@ -68,7 +66,10 @@ function changedFields<T extends object>(state: T, next: Partial<T>): Partial<T>
   })) as Partial<T>
 }
 
-export const useHealthStore = create<HealthStore>()((set) => {
+type SetHealthState = (update: (state: HealthStore) => Partial<HealthStore>) => void
+
+// The application binds this initializer to its own Zustand installation.
+export function initializeHealthStore(set: SetHealthState): HealthStore {
   function updateMission(patch: (state: HealthStore) => Partial<MissionSettings>) {
     set((state) => {
       const next = patch(state)
@@ -102,4 +103,4 @@ export const useHealthStore = create<HealthStore>()((set) => {
     setInputs: (patch) => updateMission((state) => ({ inputs: { ...state.inputs, ...patch } })),
     setExercise: (patch) => updateMission((state) => ({ exercise: { ...state.exercise, ...patch } })),
   }
-})
+}
