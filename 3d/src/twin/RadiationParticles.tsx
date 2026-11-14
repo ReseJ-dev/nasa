@@ -12,11 +12,12 @@ import {
   SpriteMaterial,
 } from 'three'
 import { useHealthStore } from './store'
-import { BODY_VOLUMES, RADIATION_PARTICLES as P, THREAT_ACTIVE_THRESHOLD } from './config'
+import { BODY_VOLUMES, RADIATION_PARTICLES as P } from './config'
+import { useThreatEffect } from './hooks/useThreatEffect'
 
 // Radiation: particles flying through the body from the Sun side (-x), plus "hits":
 // tiny violet sparks at random points inside the body. Driven by radiationLevel,
-// nothing below THREAT_ACTIVE_THRESHOLD. Everything is created once and moved in
+// gated and scaled by useThreatEffect('radiation'). Everything is created once and moved in
 // useFrame through buffer attributes / object fields: no React state per frame.
 
 const random = (range: [number, number]) => range[0] + Math.random() * (range[1] - range[0])
@@ -37,10 +38,6 @@ function createDotTexture() {
 }
 const DOT = createDotTexture()
 
-// Effective radiation 0..1 for the visuals: 0 below the threshold, else the level itself.
-export function radiationIntensity(level: number) {
-  return level >= THREAT_ACTIVE_THRESHOLD ? level : 0
-}
 
 function createParticles() {
   const positions = new Float32Array(P.maxCount * 3)
@@ -100,8 +97,11 @@ function spawnSpark(sprite: Sprite) {
 }
 
 export function RadiationParticles() {
-  // Re-renders only when the number changes; read through a ref in useFrame.
-  const target = useHealthStore((s) => radiationIntensity(s.radiationLevel ?? 0))
+  // Effect strength: 0 when the radiation threat is not active, faint when not focused,
+  // full when focused or in demo (see useThreatEffect). Size comes from radiationLevel.
+  const emphasis = useThreatEffect('radiation')
+  const level = useHealthStore((s) => s.radiationLevel ?? 0) // re-renders only when the number changes
+  const target = level * emphasis
   const targetRef = useRef(target)
   useLayoutEffect(() => {
     targetRef.current = target

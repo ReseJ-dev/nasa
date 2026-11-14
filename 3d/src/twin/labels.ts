@@ -39,7 +39,7 @@ export const DEV_PANEL = {
 export const THREAT_LABEL: Record<ThreatId, string> = {
   radiation: 'Radiation',
   isolation: 'Isolation',
-  gravity: 'Microgravity',
+  gravity: 'Gravity',
   distance: 'Distance from Earth',
   environment: 'Environment',
 }

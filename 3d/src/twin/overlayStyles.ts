@@ -37,33 +37,38 @@ export const overlayStyles = {
   calloutLeft: { transform: 'translate(-100%, -50%)' }, // right edge at the line end
   calloutRight: { transform: 'translate(0, -50%)' }, // left edge at the line end
   calloutScore: { fontWeight: 600 },
-  // Five threats strip, top-left. Interactive (hover/click), unlike the other overlay parts.
+  // Five threats strip, top center. Interactive (hover/click), unlike the other overlay parts.
   threats: {
-    ...panel,
-    bottom: undefined,
-    left: 16,
+    position: 'absolute',
+    top: 8,
+    left: '50%',
+    transform: 'translateX(-50%)',
     display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-    padding: 6,
+    borderRadius: 10,
+    background: 'rgba(10, 14, 24, 0.6)',
     pointerEvents: 'auto',
   },
+  threatArcs: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none', overflow: 'visible' },
   threat: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: 8,
-    padding: '4px 8px',
+    gap: 2,
+    padding: '0 2px 6px',
     border: 'none',
-    borderRadius: 6,
+    borderRadius: 8,
     background: 'transparent',
     color: '#fff',
-    font: '13px system-ui, sans-serif',
+    font: '11px system-ui, sans-serif',
+    lineHeight: 1.2,
     cursor: 'pointer',
-    textAlign: 'left',
+    textAlign: 'center',
   },
-  threatActive: { background: 'rgba(79, 163, 255, 0.35)' },
-  threatName: { flex: 1, whiteSpace: 'nowrap' },
-  threatLevel: { minWidth: 36, textAlign: 'right', fontWeight: 600 },
+  threatFocused: { background: 'rgba(79, 163, 255, 0.3)' },
+  threatOfSelected: { boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.7)' }, // includes the selected region
+  threatLevel: { fontWeight: 600, opacity: 0.85 },
+  // Full-size SVG over the canvas for lines from the focused icon toward its regions.
+  focusLines: { position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' },
   // Cause label between two chain organs (e.g. "CO₂ ↑").
   chainLabel: {
     padding: '2px 8px',

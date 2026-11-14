@@ -157,6 +157,21 @@ export const THREAT_LEVEL = {
 // A threat counts as active from this level (0..1).
 export const THREAT_ACTIVE_THRESHOLD = 0.3
 
+// Strength of an active threat's 3D effect while it is NOT focused (and no demo): a faint background.
+export const THREAT_BACKGROUND_EMPHASIS = 0.3
+
+// Threats strip layout (px) and its lines.
+export const THREAT_STRIP = {
+  slot: 96, // width per threat
+  ring: 44, // icon ring diameter
+  ringWidth: 3,
+  arcSpace: 30, // room above the rings for the threat-link arcs
+  linkOpacity: 0.22, // threat-link arcs at rest
+  linkOpacityFocused: 0.85, // when one end is the focused threat
+  focusLineOpacity: 0.55, // lines from the focused icon toward its regions
+  focusLineReach: 0.92, // lines stop at this fraction of the way, so they do not cover the organ
+}
+
 // Identity color per threat. Deliberately different from the status colors
 // (ok grey, warning yellow, critical red), so a threat is never read as a status.
 export const THREAT_COLOR: Record<ThreatId, string> = {
