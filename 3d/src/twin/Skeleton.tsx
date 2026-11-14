@@ -17,9 +17,9 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { BonePart } from '../contract/types'
-import { BONE_DENSITY, LAYERS, SKELETON, type Layer } from './config'
+import { BONE_DENSITY, FRACTURE_LABEL_THRESHOLD, LAYERS, SKELETON, type Layer } from './config'
 import { boneDensityColor } from './colors'
-import { useHealthStore } from './mockStore'
+import { useHealthStore } from './store'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
 
 // Skeleton built from primitives, one mesh per BonePart (mesh name = BonePart).
@@ -193,11 +193,13 @@ function FractureLabel({ part }: { part: BonePart }) {
   )
 }
 
-// Weakest part = lowest density, or null if every part is normal.
+// Part that gets the fracture label: the one with the lowest density,
+// and only if that density is below FRACTURE_LABEL_THRESHOLD; otherwise null.
+// TODO: the real threshold will come from the engine later.
 function weakestPart(density: Record<BonePart, number>): BonePart | null {
   let weakest: BonePart = BONE_PARTS[0]
   for (const part of BONE_PARTS) if (density[part] < density[weakest]) weakest = part
-  return density[weakest] < 1 ? weakest : null
+  return density[weakest] < FRACTURE_LABEL_THRESHOLD ? weakest : null
 }
 
 export function Skeleton({ layer }: { layer: Layer }) {

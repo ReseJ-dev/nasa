@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { RegionId } from '../../contract/types'
-import { useHealthStore } from '../mockStore'
+import { useHealthStore } from '../store'
 import { CHAIN, REGION } from '../config'
 
 // Extra emissive glow for a region that is part of the cause chain.
 // The organ at position i lights up i * CHAIN.stepDelay seconds after the chain starts.
-// When `chain` changes (or becomes empty) the timing restarts.
+// When the content of `chain` changes (or it becomes empty) the timing restarts.
 // Returns a ref with the current boost; read it in useFrame, no setState per frame.
 export function useChainGlow(id: RegionId) {
   const chain = useHealthStore((s) => s.chain)
@@ -15,10 +15,12 @@ export function useChainGlow(id: RegionId) {
   const boost = useRef(0)
   const startTime = useRef<number | null>(null) // clock time when the chain started
 
-  // New chain array -> start again from the first organ.
+  // Restart only when the chain content changes, not when the store
+  // hands out a new array with the same organs.
+  const chainKey = chain.join(',')
   useEffect(() => {
     startTime.current = null
-  }, [chain])
+  }, [chainKey])
 
   useFrame((state, delta) => {
     const now = state.clock.elapsedTime

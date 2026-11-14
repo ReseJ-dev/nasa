@@ -1,7 +1,7 @@
 import { useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { Object3D } from 'three'
-import { useHealthStore } from '../mockStore'
+import { useHealthStore } from '../store'
 import { HEART } from '../config'
 
 // A smooth bump around `at` (Gaussian), 1 at the center, ~0 far away.
