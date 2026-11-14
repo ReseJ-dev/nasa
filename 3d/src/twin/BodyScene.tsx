@@ -18,7 +18,7 @@ import { FlareFlash, Shelter, useSolarFlareWatcher } from './SolarFlare'
 import { Habitat } from './Habitat'
 import { CabinFlow } from './CabinFlow'
 import { CircadianRing } from './CircadianRing'
-import { EarthLink } from './EarthLink'
+import { OfflineTag, OfflineTint } from './Offline'
 import { GravityArrow } from './GravityArrow'
 import { ChainLinks } from './ChainLinks'
 import type { ThreatId } from '../contract/types'
@@ -243,7 +243,7 @@ export function BodyScene({
         {(EFFECTS.habitatModule || EFFECTS.cabinFog || EFFECTS.cabinSensors) && <Habitat layer={layer} />}
         {EFFECTS.cabinFlow && <CabinFlow layer={layer} />}
         {EFFECTS.circadianRing && <CircadianRing layer={layer} />}
-        {EFFECTS.earthLink && <EarthLink />}
+        {EFFECTS.offline && <OfflineTag />}
         {EFFECTS.gravityArrow && <GravityArrow />}
         {EFFECTS.radiationTracks && <RadiationTracks layer={layer} />}
         {EFFECTS.shelter && <Shelter layer={layer} />}
@@ -252,6 +252,7 @@ export function BodyScene({
         <FocusLineTracker lines={focusLines} iconRefs={iconRefs} container={container} />
       </Canvas>
       <LayerSwitch layer={layer} onChange={changeLayer} />
+      {EFFECTS.offline && <OfflineTint />}
       {EFFECTS.solarFlare && <FlareFlash />}
       <FocusLinesSvg lines={focusLines} />
       <ThreatStrip iconRefs={iconRefs} onToggle={onThreatToggle} />

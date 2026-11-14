@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ThreatId } from './contract/types'
+import type { SimEnvironment, ThreatId } from './contract/types'
+import { DISTANCE_DELAY_FULL_SEC, ENVIRONMENTS } from './sim/constants'
 import { BodyScene } from './twin'
 import { Bench } from './Bench'
 import { SCENARIOS, useHealthStore, type ScenarioId } from './twin/mockStore'
@@ -38,6 +39,13 @@ interface DemoStep {
 }
 
 const store = () => useHealthStore.getState()
+
+const ENVIRONMENT_IDS: SimEnvironment[] = ['station', 'transit', 'mars_surface']
+function setEnvironment(id: SimEnvironment) {
+  const commDelaySec = ENVIRONMENTS[id].commDelaySec
+  store().patch({ commDelaySec })
+  store().setThreatLevel('distance', Math.min(commDelaySec / DISTANCE_DELAY_FULL_SEC, 1))
+}
 const critical = SCENARIOS.critical
 
 const DEMO: DemoStep[] = [
@@ -162,6 +170,9 @@ function TestPanel({ demo }: { demo: ReturnType<typeof useDemo> }) {
   const selected = useHealthStore((s) => s.selectedRegion)
   const gravity = useHealthStore((s) => s.gravityField ?? 0)
   const setGravity = useHealthStore((s) => s.setGravityField)
+  const earthLink = useHealthStore((s) => s.earthLink ?? true)
+  const delay = useHealthStore((s) => s.commDelaySec ?? 0)
+  const environment = ENVIRONMENT_IDS.find((e) => ENVIRONMENTS[e].commDelaySec === delay) ?? ''
 
   return (
     <div
@@ -200,6 +211,21 @@ function TestPanel({ demo }: { demo: ReturnType<typeof useDemo> }) {
             {DEV_PANEL.gravity[id]}
           </button>
         ))}
+      </div>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 }}>
+        <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input type="checkbox" checked={earthLink} onChange={(e) => store().patch({ earthLink: e.target.checked })} />
+          {DEV_PANEL.earthLink}
+        </label>
+        {/* Sets the comm delay of that environment (and the distance threat level to match). */}
+        <select value={environment} onChange={(e) => setEnvironment(e.target.value as SimEnvironment)}>
+          {environment === '' && <option value="">{delay} s</option>}
+          {ENVIRONMENT_IDS.map((id) => (
+            <option key={id} value={id}>
+              {DEV_PANEL.environment[id]}
+            </option>
+          ))}
+        </select>
       </div>
       <div>
         {DEV_PANEL.selectedRegion}: {selected ? REGION_LABEL[selected] : DEV_PANEL.none}

@@ -5,7 +5,7 @@ import { useSceneStore } from './sceneStore'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { STATUS_HEX } from './colors'
 import { EFFECTS, THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S } from './config'
-import { RADIATION_LABEL, THREAT_LABEL } from './labels'
+import { EARTH_LABEL, RADIATION_LABEL, THREAT_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 
 // Five threats strip (HTML over the canvas, top center).
@@ -151,6 +151,10 @@ export function ThreatStrip({
   // Dose counter next to the radiation icon while a solar flare is on.
   const flare = useHealthStore((st) => st.activeEvent === 'solar_flare')
   const dose = useHealthStore((st) => st.radiationLevel ?? 0)
+  // Distance shows the link state and delay instead of a level.
+  const link = useHealthStore((st) => st.earthLink ?? true)
+  const delay = useHealthStore((st) => st.commDelaySec ?? 0)
+  const distanceText = link ? EARTH_LABEL.replyIn(delay * 2) : EARTH_LABEL.noLink
   if (!threats) return null
 
   return (
@@ -162,7 +166,7 @@ export function ThreatStrip({
         return (
           <button
             key={id}
-            title={`${THREAT_LABEL[id]}: ${Math.round(level * 100)}%`}
+            title={`${THREAT_LABEL[id]}: ${id === 'distance' ? distanceText : `${Math.round(level * 100)}%`}`}
             style={{
               ...s.threat,
               width: S.slot,
@@ -181,7 +185,9 @@ export function ThreatStrip({
               <ThreatRing id={id} level={level} />
             </span>
             <span>{THREAT_LABEL[id]}</span>
-            <span style={s.threatLevel}>{Math.round(level * 100)}%</span>
+            <span style={{ ...s.threatLevel, ...(id === 'distance' && !link ? s.threatNoLink : null) }}>
+              {id === 'distance' ? distanceText : `${Math.round(level * 100)}%`}
+            </span>
             {id === 'radiation' && flare && EFFECTS.solarFlare && <span style={s.doseBadge}>{RADIATION_LABEL.dose(dose)}</span>}
           </button>
         )

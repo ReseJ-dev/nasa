@@ -67,6 +67,7 @@ export const overlayStyles = {
   threatFocused: { background: 'rgba(79, 163, 255, 0.3)' },
   threatOfSelected: { boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.7)' }, // includes the selected region
   threatLevel: { fontWeight: 600, opacity: 0.85 },
+  threatNoLink: { color: '#ff3b30', opacity: 1 },
   // Full-size SVG over the canvas for lines from the focused icon toward its regions.
   focusLines: { position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' },
   // Cause label between two chain organs (e.g. "CO₂ ↑").
@@ -99,15 +100,6 @@ export const overlayStyles = {
     font: '11px system-ui, sans-serif',
     userSelect: 'none',
     pointerEvents: 'none',
-  },
-  // Label under the small Earth ("Reply in N min").
-  earthLabel: {
-    padding: '2px 7px',
-    borderRadius: 4,
-    background: 'rgba(10, 14, 24, 0.75)',
-    font: '600 11px system-ui, sans-serif',
-    whiteSpace: 'nowrap',
-    userSelect: 'none',
   },
   // "Autonomous mode" above the body when the link to Earth is down.
   autonomyLabel: {
@@ -153,6 +145,8 @@ export const overlayStyles = {
     fontWeight: 600,
     whiteSpace: 'nowrap',
   },
+  // Colder frame while the link to Earth is down (multiplied over the canvas).
+  coldTint: { position: 'absolute', inset: 0, mixBlendMode: 'multiply', pointerEvents: 'none' },
   hint: {
     ...panel,
     left: '50%',

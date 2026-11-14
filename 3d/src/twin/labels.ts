@@ -35,6 +35,8 @@ export const DEV_PANEL = {
   selectedRegion: 'Selected region',
   none: 'none',
   scenario: { healthy: 'Healthy', day60: 'Day 60', critical: 'Crisis' },
+  earthLink: 'Earth link',
+  environment: { station: 'Station', transit: 'Transit', mars_surface: 'Mars' },
   gravity: { zero: '0 g', moon: 'Moon', mars: 'Mars', earth: 'Earth' },
 }
 
@@ -64,6 +66,7 @@ export const EARTH_LABEL = {
   replyIn: (seconds: number) =>
     seconds < 60 ? `Reply in ${Math.round(seconds)} s` : `Reply in ${Math.round(seconds / 60)} min`,
   autonomous: 'Autonomous mode',
+  noLink: 'No link',
 }
 
 // Gravity label next to the g arrow: 0 -> "0 g", 0.16 -> "0.16 g", 1 -> "1 g".
