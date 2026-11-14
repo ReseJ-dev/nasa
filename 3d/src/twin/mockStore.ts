@@ -270,6 +270,11 @@ interface MockState extends HealthState {
   scenario: ScenarioId
   setScenario(id: ScenarioId): void
   setGravityField(g: number): void // dev panel only
+  // Dev demo: write only the fields whose value actually changed (same references stay,
+  // so unchanged arrays like `chain` never trigger re-renders).
+  patch(partial: Partial<HealthState>): void
+  // Dev demo: change one threat's level; the other threats keep their objects.
+  setThreatLevel(id: ThreatId, level: number): void
 }
 
 export const useHealthStore = create<MockState>()((set) => ({
@@ -279,4 +284,17 @@ export const useHealthStore = create<MockState>()((set) => ({
   selectRegion: (id) => set({ selectedRegion: id }),
   setScenario: (id) => set({ ...SCENARIOS[id], scenario: id }),
   setGravityField: (g) => set({ gravityField: g }),
+  patch: (partial) =>
+    set((st) => {
+      const changed: Partial<HealthState> = {}
+      for (const key of Object.keys(partial) as (keyof HealthState)[]) {
+        if (!Object.is(st[key], partial[key])) Object.assign(changed, { [key]: partial[key] })
+      }
+      return changed
+    }),
+  setThreatLevel: (id, level) =>
+    set((st) => {
+      if (!st.threats || st.threats[id].level === level) return {}
+      return { threats: { ...st.threats, [id]: { ...st.threats[id], level } } }
+    }),
 }))
