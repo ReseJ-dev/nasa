@@ -29,6 +29,13 @@ type ScenarioData = Pick<HealthState, 'regions' | 'metrics' | 'boneDensity' | 'c
       | 'co2Level'
       | 'chainLinks'
       | 'threats'
+      | 'threatLinks'
+      | 'missionDay'
+      | 'gravityField'
+      | 'cabinTempC'
+      | 'noiseDb'
+      | 'sleepHours'
+      | 'sleepShiftHours'
     >
   >
 
@@ -101,6 +108,13 @@ const healthy: ScenarioData = {
   fluidShift: 0.1,
   muscleMass: 1,
   co2Level: 0.1,
+  threatLinks: [],
+  missionDay: 0,
+  gravityField: 0,
+  cabinTempC: 22,
+  noiseDb: 55,
+  sleepHours: 8,
+  sleepShiftHours: 0,
   chainLinks: [],
   threats: threats({ radiation: 0.1, isolation: 0.1, gravity: 0.1, distance: 0.1, environment: 0.1 }),
 }
@@ -146,6 +160,13 @@ const day60: ScenarioData = {
   fluidShift: 0.45,
   muscleMass: 0.9,
   co2Level: 0.15,
+  threatLinks: [],
+  missionDay: 60,
+  gravityField: 0,
+  cabinTempC: 23,
+  noiseDb: 60,
+  sleepHours: 6.5,
+  sleepShiftHours: 1.5,
   chainLinks: [{ from: 'muscles', to: 'bones', label: 'less load' }],
   threats: threats(
     { radiation: 0.15, isolation: 0.35, gravity: 0.5, distance: 0.2, environment: 0.15 },
@@ -202,6 +223,17 @@ const critical: ScenarioData = {
   fluidShift: 0.7,
   muscleMass: 0.8,
   co2Level: 0.75,
+  threatLinks: [
+    { from: 'radiation', to: 'isolation', strength: 0.6 }, // shelter time cuts crew contact
+    { from: 'isolation', to: 'environment', strength: 0.7 }, // closed shelter: CO2, heat, noise
+    { from: 'environment', to: 'gravity', strength: 0.3 }, // less exercise in the shelter
+  ],
+  missionDay: 180,
+  gravityField: 0,
+  cabinTempC: 27,
+  noiseDb: 68,
+  sleepHours: 5,
+  sleepShiftHours: 3,
   chainLinks: [
     { from: 'lungs', to: 'brain', label: 'CO₂ ↑' },
     { from: 'brain', to: 'eyes', label: 'intracranial pressure' },
@@ -209,7 +241,7 @@ const critical: ScenarioData = {
   threats: threats(
     { radiation: 0.8, isolation: 0.55, gravity: 0.6, distance: 0.9, environment: 0.7 },
     {
-      radiation: ['immune'],
+      radiation: ['immune', 'brain'],
       environment: ['lungs', 'brain', 'eyes'],
       gravity: ['bones', 'muscles', 'eyes'],
       isolation: ['brain'],
