@@ -7,6 +7,7 @@ import { Body } from './Body'
 import { RegionMesh } from './RegionMesh'
 import { Skeleton } from './Skeleton'
 import { Hint, Legend } from './Overlay'
+import { Callouts } from './Callouts'
 import { REGIONS } from './regions'
 import { useHealthStore } from './store'
 import { BLOOM, CAMERA, RENDER, SCENE, type Layer } from './config'
@@ -112,6 +113,7 @@ export function BodyScene({
             />
           </EffectComposer>
         </Selection>
+        {layer === 'body' && <Callouts />}
         {showFps && <Stats />}
         <OrbitControls
           target={CAMERA.target}

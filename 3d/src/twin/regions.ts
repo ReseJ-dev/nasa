@@ -23,6 +23,9 @@ export interface RegionDef {
   id: RegionId
   label: string
   labelPosition: Vec3 // where the hover label appears
+  // Permanent callout for warning/critical: a line from `anchor` (on the organ)
+  // to `label` (left or right of the body). Fixed per region so labels never overlap.
+  callout: { anchor: Vec3; label: Vec3 }
   parts: RegionPart[]
   heartbeat?: boolean // true = parts scale with heart_rate (see useHeartbeat)
 }
@@ -32,12 +35,14 @@ export const REGIONS: RegionDef[] = [
     id: 'brain',
     label: 'Brain',
     labelPosition: [0, 1.82, 0],
+    callout: { anchor: [0, 1.69, 0], label: [-0.6, 1.8, 0] },
     parts: [{ geometry: new SphereGeometry(0.085, 24, 16), position: [0, 1.69, -0.005], scale: [1, 0.85, 1.1] }],
   },
   {
     id: 'eyes',
     label: 'Eyes',
     labelPosition: [0, 1.66, 0.2],
+    callout: { anchor: [0.04, 1.655, 0.1], label: [0.6, 1.66, 0] },
     parts: [
       { geometry: new SphereGeometry(0.018, 12, 8), position: [-0.04, 1.655, 0.1] },
       { geometry: new SphereGeometry(0.018, 12, 8), position: [0.04, 1.655, 0.1] },
@@ -47,6 +52,7 @@ export const REGIONS: RegionDef[] = [
     id: 'lungs',
     label: 'Lungs',
     labelPosition: [-0.28, 1.4, 0],
+    callout: { anchor: [-0.085, 1.32, 0], label: [-0.6, 1.42, 0] },
     parts: [
       { geometry: new SphereGeometry(0.08, 20, 16), position: [-0.085, 1.32, 0], scale: [1, 1.5, 0.9] },
       { geometry: new SphereGeometry(0.08, 20, 16), position: [0.085, 1.32, 0], scale: [1, 1.5, 0.9] },
@@ -56,6 +62,7 @@ export const REGIONS: RegionDef[] = [
     id: 'heart',
     label: 'Heart',
     labelPosition: [0.25, 1.28, 0.1],
+    callout: { anchor: [0.025, 1.26, 0.06], label: [0.6, 1.3, 0] },
     heartbeat: true,
     parts: [{ geometry: new SphereGeometry(0.05, 20, 16), position: [0.025, 1.26, 0.06], scale: [1, 1.15, 0.9] }],
   },
@@ -63,6 +70,7 @@ export const REGIONS: RegionDef[] = [
     id: 'immune',
     label: 'Immune system',
     labelPosition: [-0.3, 1.05, 0],
+    callout: { anchor: [-0.12, 1.06, -0.02], label: [-0.6, 1.04, 0] },
     parts: [
       // thymus
       { geometry: new SphereGeometry(0.03, 12, 10), position: [0, 1.42, 0.05] },
@@ -74,6 +82,7 @@ export const REGIONS: RegionDef[] = [
     id: 'bones',
     label: 'Bones',
     labelPosition: [0.3, 0.95, 0],
+    callout: { anchor: [0, 0.92, -0.01], label: [0.6, 0.94, 0] },
     parts: [
       // spine
       { geometry: new CylinderGeometry(0.02, 0.02, 0.62, 10), position: [0, 1.2, -0.08] },
@@ -90,6 +99,7 @@ export const REGIONS: RegionDef[] = [
     id: 'muscles',
     label: 'Muscles',
     labelPosition: [0.3, 0.65, 0],
+    callout: { anchor: [0.09, 0.68, 0], label: [0.6, 0.62, 0] },
     parts: [
       // thighs
       { geometry: new CapsuleGeometry(0.055, 0.24, 6, 12), position: [-0.09, 0.68, 0] },

@@ -20,6 +20,23 @@ export const overlayStyles = {
   scale: { display: 'flex', flexDirection: 'column', gap: 4, width: 180 },
   scaleBar: { height: 8, borderRadius: 4 },
   scaleLabels: { display: 'flex', justifyContent: 'space-between' },
+  // Permanent callout label next to the body; `side` decides which edge touches the line end.
+  callout: {
+    display: 'flex',
+    gap: 6,
+    alignItems: 'center',
+    padding: '2px 8px',
+    borderRadius: 4,
+    background: 'rgba(10, 14, 24, 0.85)',
+    color: '#fff',
+    font: '12px system-ui, sans-serif',
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none',
+    userSelect: 'none',
+  },
+  calloutLeft: { transform: 'translate(-100%, -50%)' }, // right edge at the line end
+  calloutRight: { transform: 'translate(0, -50%)' }, // left edge at the line end
+  calloutScore: { fontWeight: 600 },
   hint: {
     ...panel,
     left: '50%',
