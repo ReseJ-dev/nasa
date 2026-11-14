@@ -131,6 +131,28 @@ export const overlayStyles = {
     whiteSpace: 'nowrap',
     userSelect: 'none',
   },
+  // Full-frame flash at the start of a solar flare (opacity animated by FlareFlash).
+  flareFlash: { position: 'absolute', inset: 0, opacity: 0, pointerEvents: 'none' },
+  shelterLabel: {
+    padding: '2px 8px',
+    borderRadius: 4,
+    border: '1px solid #a66cff',
+    background: 'rgba(30, 14, 60, 0.8)',
+    color: '#e4d8ff',
+    font: '600 12px system-ui, sans-serif',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+  },
+  // "Dose: N%" under the radiation icon during a solar flare.
+  doseBadge: {
+    marginTop: 2,
+    padding: '1px 5px',
+    borderRadius: 4,
+    background: 'rgba(166, 108, 255, 0.35)',
+    color: '#f0e8ff',
+    fontWeight: 600,
+    whiteSpace: 'nowrap',
+  },
   hint: {
     ...panel,
     left: '50%',

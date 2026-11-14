@@ -13,7 +13,8 @@ import { ThreatStrip } from './ThreatStrip'
 import { FocusLinesSvg, FocusLineTracker } from './FocusLines'
 import { useSceneStore } from './sceneStore'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
-import { RadiationParticles } from './RadiationParticles'
+import { RadiationTracks } from './RadiationTracks'
+import { FlareFlash, Shelter, useSolarFlareWatcher } from './SolarFlare'
 import { Habitat } from './Habitat'
 import { CabinFlow } from './CabinFlow'
 import { CircadianRing } from './CircadianRing'
@@ -24,7 +25,7 @@ import type { ThreatId } from '../contract/types'
 import { LAYER_LABEL } from './labels'
 import { REGIONS } from './regions'
 import { useHealthStore } from './store'
-import { BLOOM, CAMERA, RADIATION_PARTICLES, RENDER, SCENE, type Layer } from './config'
+import { BLOOM, CAMERA, RADIATION_TRACKS, RENDER, SCENE, type Layer } from './config'
 
 // Dark vertical gradient for the scene background, created once at module load.
 function createBackground() {
@@ -165,6 +166,7 @@ export function BodyScene({
     return () => window.removeEventListener('keydown', onKey)
   }, [controlled, setHoverThreat, setPinnedThreat])
   const focused = useFocusedThreat()
+  useSolarFlareWatcher() // flare effects start only on the transition to 'solar_flare'
   // Same array object until the scenario changes, so organs re-render only on real changes.
   const focus = useHealthStore((s) => (focused ? (s.threats?.[focused].regions ?? null) : null))
   // Shared between the HTML overlay and the Canvas for the focus lines (no React state per frame).
@@ -242,12 +244,14 @@ export function BodyScene({
         <CircadianRing layer={layer} />
         <EarthLink />
         <GravityArrow />
-        {RADIATION_PARTICLES.enabled && <RadiationParticles />}
+        {RADIATION_TRACKS.enabled && <RadiationTracks />}
+        {RADIATION_TRACKS.enabled && <Shelter />}
         {showFps && <Stats />}
         <CameraRig />
         <FocusLineTracker lines={focusLines} iconRefs={iconRefs} container={container} />
       </Canvas>
       <LayerSwitch layer={layer} onChange={changeLayer} />
+      {RADIATION_TRACKS.enabled && <FlareFlash />}
       <FocusLinesSvg lines={focusLines} />
       <ThreatStrip iconRefs={iconRefs} onToggle={onThreatToggle} />
       <Legend layer={layer} />

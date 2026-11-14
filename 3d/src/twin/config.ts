@@ -234,49 +234,57 @@ export const THREAT_COLOR: Record<ThreatId, string> = {
   environment: '#b8927a', // grey-orange
 }
 
-// Radiation visuals: particles, hits (sparks) and the immune shimmer. Driven by radiationLevel.
-// Nothing is shown below THREAT_ACTIVE_THRESHOLD. enabled = false switches all of it off.
-export const RADIATION_PARTICLES = {
-  enabled: true,
-  lerpSpeed: 1.5, // how fast count and speed follow radiationLevel
-  // Particles: they come from the Sun side (the astronaut's right, -x) and fly to +x.
-  maxCount: 300, // at radiationLevel = 1
-  minSpeed: 0.3, // units per second at the threshold
-  maxSpeed: 1.2, // units per second at radiationLevel = 1
-  color: '#e4d8ff', // violet-white
-  size: 0.022,
-  opacity: 0.85,
-  span: 1.1, // enter at x = -span, leave at x = +span
+// Radiation tracks (radiation threat), driven by radiationLevel and useThreatEffect('radiation').
+// Thin long violet lines flying from the Sun side (-x, the astronaut's right) through the body.
+export const RADIATION_TRACKS = {
+  enabled: true, // false = no tracks, hits, shimmer, flare flash or shelter contour
+  capacity: 135, // instances in the one InstancedMesh (room for the x3 flare burst)
+  maxCount: 45, // visible tracks at radiationLevel = 1, focused
+  minSpeed: 1.6, // units per second at low levels
+  maxSpeed: 3.2, // at radiationLevel = 1
+  length: [0.35, 0.7] as [number, number], // random track length
+  thickness: 0.006,
+  color: '#b98bff',
+  opacity: 0.75,
+  span: 1.3, // tracks enter at x = -span and leave at x = +span
   yRange: [0.05, 1.85] as [number, number],
-  zRange: [-0.25, 0.25] as [number, number],
-  // Hits: tiny violet sparks at random points inside the body shell.
-  sparks: {
-    max: 5, // pooled, never more at once
-    maxRate: 6, // sparks per second at radiationLevel = 1
-    life: 0.3, // seconds to fade out
-    size: 0.05,
-    color: '#b57bff',
-  },
-  // Immune region: slight violet shimmer on top of its status color.
-  shimmer: {
-    color: '#a66cff',
-    amount: 0.35, // how far the emissive color moves toward violet (0..1)
-    wobble: 0.15, // shimmer depth around `amount`
-    hz: 2.2,
-  },
+  zRange: [-0.12, 0.12] as [number, number],
+  lerpSpeed: 1.5,
+  // Hits: a short spark where a track enters the body shell (or the shelter wall).
+  sparks: { max: 5, life: 0.3, size: 0.05, color: '#c79bff' },
+  // Immune and brain regions: slight violet shimmer on top of their status color.
+  shimmer: { regions: ['immune', 'brain'] as RegionId[], color: '#a66cff', amount: 0.35, wobble: 0.15, hz: 2.2 },
 }
 
-// Rough volumes inside the body shell (same units as Body.tsx), for random hit points.
-// [min corner, max corner] boxes; each box is picked with the same chance.
-export const BODY_VOLUMES: [Vec3, Vec3][] = [
-  [[-0.06, 1.58, -0.06], [0.06, 1.76, 0.06]], // head
-  [[-0.15, 1.0, -0.08], [0.15, 1.42, 0.08]], // torso
-  [[-0.14, 0.86, -0.08], [0.14, 0.98, 0.08]], // pelvis
-  [[-0.13, 0.15, -0.04], [-0.05, 0.82, 0.04]], // right leg
-  [[0.05, 0.15, -0.04], [0.13, 0.82, 0.04]], // left leg
-  [[-0.32, 0.9, -0.03], [-0.25, 1.38, 0.03]], // right arm
-  [[0.25, 0.9, -0.03], [0.32, 1.38, 0.03]], // left arm
+// Rough body outline for track hits: for a height band, the half width (x) and half depth (z)
+// of the body shell. A track at (y, z) enters the body at x = -halfWidth if |z| < halfDepth.
+export const BODY_PROFILE: { y: [number, number]; halfWidth: number; halfDepth: number }[] = [
+  { y: [1.52, 1.8], halfWidth: 0.12, halfDepth: 0.12 }, // head
+  { y: [1.44, 1.52], halfWidth: 0.055, halfDepth: 0.055 }, // neck
+  { y: [0.98, 1.44], halfWidth: 0.3, halfDepth: 0.11 }, // torso + arms
+  { y: [0.85, 0.98], halfWidth: 0.19, halfDepth: 0.12 }, // pelvis
+  { y: [0.05, 0.85], halfWidth: 0.16, halfDepth: 0.07 }, // legs
 ]
+
+// Solar flare: on the transition of activeEvent to 'solar_flare'.
+export const SOLAR_FLARE = {
+  flashMs: 500, // full-frame white-yellow flash
+  flashColor: 'rgba(255, 246, 214, 0.9)',
+  burstSeconds: 2, // track density x burstFactor for this long
+  burstFactor: 3,
+}
+
+// Shelter (inShelter): translucent capsule around the body; tracks stop at its wall.
+export const SHELTER = {
+  center: [0, 0.95, 0] as Vec3,
+  radius: 0.48, // also the wall the tracks stop at (x = -radius)
+  length: 1.1, // straight part of the capsule
+  color: '#a66cff',
+  rimPower: 2.5,
+  opacity: 0.5, // at the silhouette edge
+  labelPosition: [0.48, 0.12, 0] as Vec3,
+  lerpSpeed: 2,
+}
 
 // Distance from Earth: a small Earth in the top-right corner (drei Hud, pixel units),
 // a dashed link to the body and a packet running along it. Full strength when the

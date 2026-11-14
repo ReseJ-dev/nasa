@@ -68,4 +68,9 @@ export const EARTH_LABEL = {
 // Gravity label next to the g arrow: 0 -> "0 g", 0.16 -> "0.16 g", 1 -> "1 g".
 export const formatG = (g: number) => `${Number(g.toFixed(2))} g`
 
+export const RADIATION_LABEL = {
+  dose: (level: number) => `Dose: ${Math.round(level * 100)}%`,
+  shelter: 'Shelter',
+}
+
 export const HINT = 'Rotate, zoom, click an organ'

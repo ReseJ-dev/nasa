@@ -5,7 +5,7 @@ import { useSceneStore } from './sceneStore'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { STATUS_HEX } from './colors'
 import { THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S } from './config'
-import { THREAT_LABEL } from './labels'
+import { RADIATION_LABEL, THREAT_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 
 // Five threats strip (HTML over the canvas, top center).
@@ -148,6 +148,9 @@ export function ThreatStrip({
   const selected = useHealthStore((st) => st.selectedRegion)
   const setHover = useSceneStore((st) => st.setHoverThreat)
   const focused = useFocusedThreat()
+  // Dose counter next to the radiation icon while a solar flare is on.
+  const flare = useHealthStore((st) => st.activeEvent === 'solar_flare')
+  const dose = useHealthStore((st) => st.radiationLevel ?? 0)
   if (!threats) return null
 
   return (
@@ -179,6 +182,7 @@ export function ThreatStrip({
             </span>
             <span>{THREAT_LABEL[id]}</span>
             <span style={s.threatLevel}>{Math.round(level * 100)}%</span>
+            {id === 'radiation' && flare && <span style={s.doseBadge}>{RADIATION_LABEL.dose(dose)}</span>}
           </button>
         )
       })}
