@@ -17,6 +17,7 @@ import { RadiationParticles } from './RadiationParticles'
 import { Habitat } from './Habitat'
 import { CabinFlow } from './CabinFlow'
 import { CircadianRing } from './CircadianRing'
+import { EarthLink } from './EarthLink'
 import { ChainLinks } from './ChainLinks'
 import type { ThreatId } from '../contract/types'
 import { LAYER_LABEL } from './labels'
@@ -238,6 +239,7 @@ export function BodyScene({
         <Habitat layer={layer} />
         <CabinFlow layer={layer} />
         <CircadianRing layer={layer} />
+        <EarthLink />
         {RADIATION_PARTICLES.enabled && <RadiationParticles />}
         {showFps && <Stats />}
         <CameraRig />

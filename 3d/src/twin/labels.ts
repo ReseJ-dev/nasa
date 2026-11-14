@@ -57,4 +57,11 @@ export const CIRCADIAN_LABEL = {
   shift: 'shift',
 }
 
+export const EARTH_LABEL = {
+  // reply = signal there and back (2 x commDelaySec)
+  replyIn: (seconds: number) =>
+    seconds < 60 ? `Reply in ${Math.round(seconds)} s` : `Reply in ${Math.round(seconds / 60)} min`,
+  autonomous: 'Autonomous mode',
+}
+
 export const HINT = 'Rotate, zoom, click an organ'
