@@ -1,15 +1,16 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import type { ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
-import { MeshStandardMaterial } from 'three'
+import { MeshStandardMaterial, type Group } from 'three'
 import { useHealthStore } from './mockStore'
 import { STATUS_COLOR } from './colors'
 import { REGION } from './config'
+import { useHeartbeat } from './hooks/useHeartbeat'
 import { useHover } from './hooks/useHover'
 import { useStatusColor } from './hooks/useStatusColor'
 import type { RegionDef } from './regions'
 
-// One health region: behavior only (color, hover, click). Shapes come from regions.ts.
+// One health region: behavior only (color, pulse, heartbeat, hover, click). Shapes come from regions.ts.
 export function RegionMesh({ def }: { def: RegionDef }) {
   const status = useHealthStore((s) => s.regions[def.id].status)
   const isSelected = useHealthStore((s) => s.selectedRegion === def.id)
@@ -31,6 +32,10 @@ export function RegionMesh({ def }: { def: RegionDef }) {
   const glow = hovered ? REGION.emissive.hover : isSelected ? REGION.emissive.selected : REGION.emissive.base
   useStatusColor(material, status, glow)
 
+  // Wrapper group of every part, used by the heartbeat.
+  const partRefs = useRef<(Group | null)[]>([])
+  useHeartbeat(partRefs, def.heartbeat === true)
+
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation() // do not also select an organ behind this one
     selectRegion(def.id)
@@ -39,14 +44,16 @@ export function RegionMesh({ def }: { def: RegionDef }) {
   return (
     <group name={def.id} onPointerOver={onPointerOver} onPointerOut={onPointerOut} onClick={onClick}>
       {def.parts.map((part, i) => (
-        <mesh
+        // The wrapper group sits at the part's center, so scaling it (heartbeat) keeps the part in place.
+        <group
           key={i}
-          geometry={part.geometry}
-          material={material}
           position={part.position}
-          rotation={part.rotation}
-          scale={part.scale}
-        />
+          ref={(g) => {
+            partRefs.current[i] = g
+          }}
+        >
+          <mesh geometry={part.geometry} material={material} rotation={part.rotation} scale={part.scale} />
+        </group>
       ))}
       {hovered && (
         <Html position={def.labelPosition} center style={{ pointerEvents: 'none' }}>
