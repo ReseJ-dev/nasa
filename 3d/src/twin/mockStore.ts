@@ -96,7 +96,7 @@ const day60: ScenarioData = {
   earthLink: true,
   activeEvent: 'none',
   fluidShift: 0.5,
-  chainLinks: [{ from: 'muscles', to: 'bones', label: 'меньше нагрузки' }],
+  chainLinks: [{ from: 'muscles', to: 'bones', label: 'less load' }],
 }
 
 // Day 180, demo scenario: solar flare, crew in the shelter, CO2 rises, sleep drops.
@@ -147,7 +147,7 @@ const critical: ScenarioData = {
   fluidShift: 0.7,
   chainLinks: [
     { from: 'lungs', to: 'brain', label: 'CO₂ ↑' },
-    { from: 'brain', to: 'eyes', label: 'внутричерепное давление' },
+    { from: 'brain', to: 'eyes', label: 'intracranial pressure' },
   ],
 }
 
