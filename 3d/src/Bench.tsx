@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ThreatId } from './contract/types'
 import { BodyScene } from './twin'
 import type { Layer } from './twin/config'
-import { useHealthStore, type ScenarioId } from './twin/mockStore'
+import { useHealthStore, type ScenarioId } from './twin/store'
 
 // DEV TOOL, not part of the twin: FPS benchmark. Open the page with ?bench.
 // Steps through scenario x layer x focus, waits for the scene to settle, counts frames with
