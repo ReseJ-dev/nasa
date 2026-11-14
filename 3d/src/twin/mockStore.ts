@@ -269,6 +269,7 @@ export const BONE_PARTS: BonePart[] = Object.keys(healthy.boneDensity) as BonePa
 interface MockState extends HealthState {
   scenario: ScenarioId
   setScenario(id: ScenarioId): void
+  setGravityField(g: number): void // dev panel only
 }
 
 export const useHealthStore = create<MockState>()((set) => ({
@@ -277,4 +278,5 @@ export const useHealthStore = create<MockState>()((set) => ({
   selectedRegion: null,
   selectRegion: (id) => set({ selectedRegion: id }),
   setScenario: (id) => set({ ...SCENARIOS[id], scenario: id }),
+  setGravityField: (g) => set({ gravityField: g }),
 }))

@@ -1,6 +1,9 @@
 import { BodyScene } from './twin'
 import { useHealthStore, type ScenarioId } from './twin/mockStore'
 import { DEV_PANEL, REGION_LABEL } from './twin/labels'
+import { GRAVITY_FIELDS } from './twin/config'
+
+const GRAVITY_BUTTONS = ['zero', 'moon', 'mars', 'earth'] as const
 
 // TEMPORARY test panel: switch scenarios and show the selected region.
 const SCENARIO_BUTTONS: ScenarioId[] = ['healthy', 'day60', 'critical']
@@ -9,6 +12,8 @@ function TestPanel() {
   const scenario = useHealthStore((s) => s.scenario)
   const setScenario = useHealthStore((s) => s.setScenario)
   const selected = useHealthStore((s) => s.selectedRegion)
+  const gravity = useHealthStore((s) => s.gravityField ?? 0)
+  const setGravity = useHealthStore((s) => s.setGravityField)
 
   return (
     <div
@@ -31,6 +36,17 @@ function TestPanel() {
             style={{ fontWeight: scenario === id ? 'bold' : 'normal' }}
           >
             {DEV_PANEL.scenario[id]}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        {GRAVITY_BUTTONS.map((id) => (
+          <button
+            key={id}
+            onClick={() => setGravity(GRAVITY_FIELDS[id])}
+            style={{ fontWeight: gravity === GRAVITY_FIELDS[id] ? 'bold' : 'normal' }}
+          >
+            {DEV_PANEL.gravity[id]}
           </button>
         ))}
       </div>

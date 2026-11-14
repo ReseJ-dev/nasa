@@ -311,3 +311,49 @@ export const EARTH_LINK = {
   autonomyLabelTop: 128, // px from the top, centered: below the threats strip, above the head
   lerpSpeed: 2.5,
 }
+
+// Gravity threat.
+// Preset gravity fields in g (gravityField in the store is a number).
+export const GRAVITY_FIELDS = { zero: 0, moon: 0.16, mars: 0.38, earth: 1 }
+
+// Vertical g arrow next to the body (viewer's left, between the arm and the left callouts).
+export const GRAVITY_ARROW = {
+  position: [-0.45, 1.02, 0.1] as Vec3, // top of the arrow; the label sits just above it
+  lengthPerG: 0.65, // arrow length at 1 g
+  minLength: 0.1, // shortest visible arrow (any field > 0)
+  shaftRadius: 0.012,
+  headRadius: 0.035,
+  headLength: 0.07,
+  color: '#a8eef7', // THREAT_COLOR.gravity
+  lerpSpeed: 4,
+  dropHeight: 0.35, // landing: the arrow falls into place from this much higher
+  dropSeconds: 0.6,
+}
+
+// Landing moment (gravityField from 0 to Mars or Earth): the weakest bone shows through
+// the shell and flashes, and its fracture-risk label shows even in body mode.
+export const LANDING = {
+  seconds: 4,
+  boneOpacity: 0.9, // weakest bone opacity during the landing moment (body mode)
+  flashHz: 2.5,
+  flashIntensity: 1.2, // red emissive at the flash peak
+}
+
+// Fluid shift (microgravity): vertical tint in the body shell, feet -> head, by fluidShift.
+export const FLUID_SHIFT = {
+  headColor: '#ff7aa8', // fluid gathers in the head: warm, puffy
+  feetY: 0.1,
+  headY: 1.8,
+  strength: 0.55, // max blend toward headColor at the head with fluidShift = 1
+  lerpSpeed: 2,
+  // SANS: faint glow at the eyes region from this fluidShift up.
+  eyesFrom: 0.6,
+  eyesGlow: 0.6, // extra emissive at fluidShift = 1
+}
+
+// Muscle mass: thigh and calf parts get thinner (x and z) as muscleMass drops.
+export const MUSCLE_MASS = {
+  thinning: 1.5, // thickness = 1 - (1 - muscleMass) * thinning, e.g. 0.8 -> 0.7
+  minThickness: 0.4,
+  lerpSpeed: 2,
+}

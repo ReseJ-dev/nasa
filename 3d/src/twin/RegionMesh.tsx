@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import type { ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { Select } from '@react-three/postprocessing'
-import { MeshStandardMaterial, type Group } from 'three'
+import { MeshStandardMaterial, type Group, type Mesh } from 'three'
 import { useHealthStore } from './store'
 import { STATUS_COLOR } from './colors'
 import { HIDDEN_IN_SKELETON, LAYERS, REGION, type Layer } from './config'
@@ -12,6 +12,8 @@ import { useChainGlow } from './hooks/useChainGlow'
 import { useHeartbeat } from './hooks/useHeartbeat'
 import { useHover } from './hooks/useHover'
 import { useStatusColor } from './hooks/useStatusColor'
+import { useSansGlow } from './hooks/useSansGlow'
+import { useMuscleMass } from './hooks/useMuscleMass'
 import { SHIMMER_COLOR, useRadiationShimmer } from './hooks/useRadiationShimmer'
 import type { RegionDef } from './regions'
 import type { RegionId } from '../contract/types'
@@ -54,13 +56,17 @@ export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer
   // Must run before useStatusColor so its value is fresh in the same frame.
   const chainGlow = useChainGlow(def.id)
   const shimmer = useRadiationShimmer(def.id)
+  const sansGlow = useSansGlow(def.id, layer)
   // Selection dim wins (darker) over the threat dim.
   const brightness = otherSelected ? REGION.dimmedBrightness : outOfThreat ? REGION.threatDimmedBrightness : 1
-  useStatusColor(material, status, glow, chainGlow, brightness, { color: SHIMMER_COLOR, amount: shimmer })
+  useStatusColor(material, status, glow, [chainGlow, sansGlow], brightness, { color: SHIMMER_COLOR, amount: shimmer })
 
   // Wrapper group of every part, used by the heartbeat.
   const partRefs = useRef<(Group | null)[]>([])
   useHeartbeat(partRefs, def.heartbeat === true)
+  // Leg muscle meshes (thighs, calves): thinner with lower muscleMass.
+  const thinRefs = useRef<(Mesh | null)[]>([])
+  useMuscleMass(thinRefs, def.parts.some((p) => p.thin))
 
   // Bloom only unhealthy organs, and only in body mode (in skeleton mode organs are dimmed).
   const bloom = status !== 'ok' && layer === 'body'
@@ -87,7 +93,15 @@ export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer
               partRefs.current[i] = g
             }}
           >
-            <mesh geometry={part.geometry} material={material} rotation={part.rotation} scale={part.scale} />
+            <mesh
+              geometry={part.geometry}
+              material={material}
+              rotation={part.rotation}
+              scale={part.scale}
+              ref={(m) => {
+                if (part.thin) thinRefs.current[i] = m
+              }}
+            />
           </group>
         ))}
       </Select>

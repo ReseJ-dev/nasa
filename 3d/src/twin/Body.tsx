@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import {
   Color,
   FrontSide,
@@ -9,7 +9,9 @@ import {
   NotEqualStencilFunc,
   ReplaceStencilOp,
 } from 'three'
-import { BODY_SHELL, LAYERS, type Layer } from './config'
+import { BODY_SHELL, FLUID_SHIFT, LAYERS, type Layer } from './config'
+import { useHealthStore } from './store'
+import { useThreatEffect } from './hooks/useThreatEffect'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
 
 // Translucent body shell built from primitives. No organs here.
@@ -39,7 +41,19 @@ function createShellMaterial() {
     stencilFunc: NotEqualStencilFunc,
     stencilZPass: ReplaceStencilOp,
   })
+  // Fluid shift strength, lerped by Body in useFrame (shared with the compiled shader).
+  const fluid = { value: 0 }
+  material.userData.fluid = fluid
   material.onBeforeCompile = (shader) => {
+    shader.uniforms.uFluid = fluid
+    shader.uniforms.uFluidColor = { value: new Color(FLUID_SHIFT.headColor) }
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\n        varying float vFluidY;')
+      .replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        vFluidY = (modelMatrix * vec4(transformed, 1.0)).y; // world height`,
+      )
     shader.uniforms.uRimColor = { value: new Color(BODY_SHELL.rimColor) }
     shader.uniforms.uRimPower = { value: BODY_SHELL.rimPower }
     shader.uniforms.uRimIntensity = { value: BODY_SHELL.rimIntensity }
@@ -53,7 +67,10 @@ function createShellMaterial() {
         uniform float uRimPower;
         uniform float uRimIntensity;
         uniform float uCenterAlpha;
-        uniform float uEdgeAlpha;`,
+        uniform float uEdgeAlpha;
+        uniform float uFluid;
+        uniform vec3 uFluidColor;
+        varying float vFluidY;`,
       )
       .replace(
         '#include <opaque_fragment>',
@@ -61,6 +78,11 @@ function createShellMaterial() {
         float fresnel = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), uRimPower);
         outgoingLight = mix(outgoingLight, uRimColor * uRimIntensity, fresnel);
         diffuseColor.a = clamp(diffuseColor.a * mix(uCenterAlpha, uEdgeAlpha, fresnel), 0.0, 1.0);
+        // fluid shift: tint grows from the feet to the head
+        float fluidH = smoothstep(${FLUID_SHIFT.feetY.toFixed(2)}, ${FLUID_SHIFT.headY.toFixed(2)}, vFluidY);
+        float fluidK = uFluid * fluidH * ${FLUID_SHIFT.strength.toFixed(2)};
+        outgoingLight = mix(outgoingLight, uFluidColor * (0.6 + fresnel), fluidK);
+        diffuseColor.a = clamp(diffuseColor.a + fluidK * 0.12, 0.0, 1.0);
         #include <opaque_fragment>`,
       )
   }
@@ -87,6 +109,18 @@ export function Body({ layer }: { layer: Layer }) {
   // One shared material for every body part, created once (not on every render).
   const material = useMemo(createShellMaterial, [])
   useFadeOpacity(material, LAYERS[layer].shell)
+
+  // Fluid shift tint: body mode only, scaled by the gravity threat's strength.
+  const fluidShift = useHealthStore((s) => s.fluidShift ?? 0)
+  const gravityEffect = useThreatEffect('gravity')
+  const fluidGoal = useRef(0)
+  useLayoutEffect(() => {
+    fluidGoal.current = layer === 'body' ? fluidShift * gravityEffect : 0
+  }, [layer, fluidShift, gravityEffect])
+  useFrame((_, delta) => {
+    const u = material.userData.fluid as { value: number }
+    u.value += (fluidGoal.current - u.value) * (1 - Math.exp(-delta * FLUID_SHIFT.lerpSpeed))
+  })
 
   const gl = useThree((s) => s.gl)
   useLayoutEffect(() => {
