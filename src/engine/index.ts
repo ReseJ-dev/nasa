@@ -1,0 +1,124 @@
+import type { BonePart, ChainLink, HealthState, Metric, RegionId, RegionState } from '../../3d/src/contract/types'
+import { ADVICE } from './advice.ts'
+
+export interface MissionInputs {
+  co2Ppm: number
+  sleepHours: number
+  /** Cumulative dose, supplied by the caller in mSv. */
+  radiationMsv: number
+  /** Average unloading from mission start, 0 = Earth-like load, 1 = microgravity. */
+  microgravity: number
+  /** Current isolation index, from 0 to 1. */
+  isolation: number
+  /** Optional headward fluid shift index, from 0 to 1. */
+  fluidShift?: number
+}
+
+export interface Exercise {
+  /** Average fractions of the demo training plan completed since mission start, from 0 to 1. */
+  aerobic: number
+  resistance: number
+}
+
+export type ComputedHealthState =
+  Pick<HealthState, 'regions' | 'metrics' | 'boneDensity' | 'chain'> &
+  Required<Pick<HealthState, 'radiationLevel' | 'fluidShift' | 'chainLinks'>>
+
+// Relative density loss per 30 days of full unloading without exercise.
+// NASA reports ~1–1.5%/month in weight-bearing bones during four-to-six-month missions.
+const MONTHLY_BONE_LOSS = {
+  skull: 0.0005,
+  spine: 0.0125,
+  ribs: 0.003,
+  arm_left: 0.0025,
+  arm_right: 0.0025,
+  pelvis: 0.015,
+  leg_left: 0.013,
+  leg_right: 0.013,
+} satisfies Record<BonePart, number>
+
+function clamp(value: number, max = 1): number {
+  return Number.isNaN(value) ? 0 : Math.max(0, Math.min(max, value))
+}
+
+function metric(id: string, label: string, value: number, unit: string): Metric {
+  return { id, label, value, unit }
+}
+
+function region(id: RegionId, penalty: number, ...metrics: Metric[]): RegionState {
+  const score = Math.round(100 - clamp(penalty, 100))
+  const [guidance, source] = ADVICE[id]
+  return {
+    id,
+    // Status boundaries classify demo scores for the visualization.
+    status: score >= 80 ? 'ok' : score >= 50 ? 'warning' : 'critical',
+    score,
+    metrics: metrics.map(({ id: metricId }) => metricId),
+    advice: [`${guidance} Источник NASA HRP и материалы NASA: ${source}. Не медицинская рекомендация.`],
+  }
+}
+
+function displayLink(co2Stress: number, fluidShift: number): ChainLink[] {
+  // One link fits the current display contract. Choose the larger demo signal,
+  // with CO₂ first on ties. A shared region does not connect the two mechanisms.
+  if (Math.max(co2Stress, fluidShift) < 0.25) return []
+  if (co2Stress >= fluidShift) {
+    return [{ from: 'lungs', to: 'brain', label: 'Повышенный CO₂ в кабине связан с риском головной боли' }]
+  }
+  return [{ from: 'brain', to: 'eyes', label: 'Сдвиг жидкостей к голове — исследуемая гипотеза SANS' }]
+}
+
+/** Computes a demo snapshot at elapsed mission day 0 or later. */
+export function computeState(day: number, inputs: Readonly<MissionInputs>, exercise: Readonly<Exercise>): ComputedHealthState {
+  const days = clamp(day, Number.MAX_VALUE)
+  const unloading = clamp(inputs.microgravity)
+  const unloadedMonths = days / 30 * unloading
+  const resistance = clamp(exercise.resistance)
+  const aerobic = clamp(exercise.aerobic)
+  const co2 = metric('co2_ppm', 'Cabin CO₂', clamp(inputs.co2Ppm, 1_000_000), 'ppm')
+  const sleep = metric('sleep_hours', 'Sleep', clamp(inputs.sleepHours, 24), 'h')
+  const dose = metric('radiation_msv', 'Cumulative dose (demo)', clamp(inputs.radiationMsv, Number.MAX_VALUE), 'mSv')
+
+  // These scales and exercise effects tune the demo presentation. The NASA
+  // sources support the direction of effects, while the model supplies the magnitudes.
+  const co2Stress = clamp((co2.value - 2500) / 4500)
+  const sleepDeficit = clamp((8 - sleep.value) / 6)
+  const isolation = clamp(inputs.isolation)
+  const radiationLevel = clamp(dose.value / 250)
+  const fluidShift = clamp(inputs.fluidShift ?? unloading * (1 - Math.exp(-days / 45)))
+  const deconditioning = clamp(unloadedMonths / 6) * (1 - 0.65 * aerobic)
+  const cognitiveStress = clamp(0.5 * sleepDeficit + 0.25 * isolation + 0.25 * co2Stress)
+
+  const boneExposure = unloadedMonths * (1 - 0.65 * resistance)
+  const boneDensity = Object.fromEntries(
+    Object.entries(MONTHLY_BONE_LOSS).map(([part, rate]) => [part, clamp(1 - rate * boneExposure)]),
+  ) as Record<BonePart, number>
+  const loadBearingDensity = (boneDensity.spine + boneDensity.pelvis + boneDensity.leg_left + boneDensity.leg_right) / 4
+  const boneLoss = metric('bone_loss_pct', 'Weight-bearing bone density loss (demo)', (1 - loadBearingDensity) * 100, '%')
+  const muscleLoss = metric('muscle_loss_pct', 'Muscle loss (demo)', 100 * clamp(0.03 * unloadedMonths * (1 - 0.7 * resistance)), '%')
+  const heartRate = metric('heart_rate', 'Heart rate (demo)', Math.round(64 + 30 * deconditioning), 'bpm')
+  const reaction = metric('reaction_ms', 'Reaction time (demo)', Math.round(260 + 180 * cognitiveStress), 'ms')
+  const vision = metric('vision_score', 'Visual acuity (demo)', 1 - 0.35 * fluidShift, '')
+  const glucose = metric('glucose', 'Glucose (demo)', 5 + 3 * clamp(0.5 * deconditioning + 0.5 * sleepDeficit), 'mmol/L')
+
+  const chainLinks = displayLink(co2Stress, fluidShift)
+  const link = chainLinks[0]
+  return {
+    regions: {
+      heart: region('heart', 60 * deconditioning, heartRate),
+      brain: region('brain', 80 * cognitiveStress + 15 * fluidShift, sleep, reaction, co2),
+      bones: region('bones', 7 * boneLoss.value, boneLoss),
+      muscles: region('muscles', 4 * muscleLoss.value, muscleLoss),
+      eyes: region('eyes', 60 * fluidShift, vision),
+      immune: region('immune', 60 * radiationLevel, dose),
+      lungs: region('lungs', 75 * co2Stress, co2),
+      metabolism: region('metabolism', 40 * clamp(glucose.value - 5, 3) / 3, glucose),
+    },
+    metrics: [heartRate, sleep, reaction, co2, dose, boneLoss, muscleLoss, vision, glucose],
+    boneDensity,
+    radiationLevel,
+    fluidShift,
+    chain: link ? [link.from, link.to] : [],
+    chainLinks,
+  }
+}
