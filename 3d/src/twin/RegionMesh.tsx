@@ -4,7 +4,8 @@ import { Html } from '@react-three/drei'
 import { MeshStandardMaterial, type Group } from 'three'
 import { useHealthStore } from './mockStore'
 import { STATUS_COLOR } from './colors'
-import { REGION } from './config'
+import { LAYERS, REGION, type Layer } from './config'
+import { useFadeOpacity } from './hooks/useFadeOpacity'
 import { useChainGlow } from './hooks/useChainGlow'
 import { useHeartbeat } from './hooks/useHeartbeat'
 import { useHover } from './hooks/useHover'
@@ -12,7 +13,7 @@ import { useStatusColor } from './hooks/useStatusColor'
 import type { RegionDef } from './regions'
 
 // One health region: behavior only (color, pulse, chain, heartbeat, hover, click). Shapes come from regions.ts.
-export function RegionMesh({ def }: { def: RegionDef }) {
+export function RegionMesh({ def, layer }: { def: RegionDef; layer: Layer }) {
   const status = useHealthStore((s) => s.regions[def.id].status)
   const isSelected = useHealthStore((s) => s.selectedRegion === def.id)
   const selectRegion = useHealthStore((s) => s.selectRegion)
@@ -26,9 +27,12 @@ export function RegionMesh({ def }: { def: RegionDef }) {
         emissive: STATUS_COLOR.ok.clone(),
         emissiveIntensity: REGION.emissive.base,
         roughness: REGION.roughness,
+        transparent: false, // useFadeOpacity turns it on when organs are dimmed
+        opacity: LAYERS.body.organs,
       }),
     [],
   )
+  useFadeOpacity(material, LAYERS[layer].organs)
 
   const glow = hovered ? REGION.emissive.hover : isSelected ? REGION.emissive.selected : REGION.emissive.base
   // Must run before useStatusColor so its value is fresh in the same frame.

@@ -24,19 +24,24 @@ export const SCENE = {
 // Translucent body shell
 export const BODY_SHELL = {
   color: '#9fc4e8',
-  opacity: 0.25,
   roughness: 0.35,
   clearcoat: 0.6,
   clearcoatRoughness: 0.3,
 }
 
-// Skeleton (neutral, before density colors). Slightly see-through so organs
-// inside the skull and ribs stay visible.
+// Skeleton (neutral, before density colors)
 export const SKELETON = {
   color: '#ece8df', // bone white
-  opacity: 0.6,
   roughness: 0.6,
 }
+
+// View layers: "body" (organs) and "skeleton". Opacity of each layer in each mode.
+export type Layer = 'body' | 'skeleton'
+export const LAYERS: Record<Layer, { shell: number; skeleton: number; organs: number }> = {
+  body: { shell: 0.25, skeleton: 0, organs: 1 }, // skeleton hidden
+  skeleton: { shell: 0.06, skeleton: 0.9, organs: 0.12 }, // shell almost gone, organs dimmed
+}
+export const LAYER_FADE_SPEED = 4 // how fast layers fade (higher = faster, ~0.7 s at 4)
 
 // Heartbeat: the heart mesh scales in a "lub-dub, pause" rhythm.
 export const HEART = {

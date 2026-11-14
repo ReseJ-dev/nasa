@@ -1,17 +1,18 @@
 import { useMemo } from 'react'
 import { MeshPhysicalMaterial, FrontSide } from 'three'
-import { BODY_SHELL } from './config'
+import { BODY_SHELL, LAYERS, type Layer } from './config'
+import { useFadeOpacity } from './hooks/useFadeOpacity'
 
 // Translucent body shell built from primitives. No organs here.
 // Units are roughly meters: feet at y = 0, top of head at y ≈ 1.8.
-export function Body() {
+export function Body({ layer }: { layer: Layer }) {
   // One shared material for every body part, created once (not on every render).
   const material = useMemo(
     () =>
       new MeshPhysicalMaterial({
         color: BODY_SHELL.color,
         transparent: true,
-        opacity: BODY_SHELL.opacity,
+        opacity: LAYERS.body.shell,
         roughness: BODY_SHELL.roughness,
         metalness: 0,
         clearcoat: BODY_SHELL.clearcoat,
@@ -21,6 +22,7 @@ export function Body() {
       }),
     [],
   )
+  useFadeOpacity(material, LAYERS[layer].shell)
 
   return (
     <group name="body">
