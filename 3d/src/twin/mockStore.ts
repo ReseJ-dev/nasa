@@ -1,11 +1,14 @@
 // TEMPORARY mock store for developing the 3D scene alone.
 // Will be replaced by the real store from the engine. Do not import it outside twin/.
 import { create } from 'zustand'
-import type { BonePart, HealthState, Metric, RegionId, RegionState, Status } from '../contract/types'
+import type { Baseline, BonePart, HealthState, Metric, RegionId, RegionState, Status } from '../contract/types'
 
 export type ScenarioId = 'healthy' | 'day60' | 'critical'
 
-type ScenarioData = Pick<HealthState, 'regions' | 'metrics' | 'boneDensity' | 'chain'>
+type ScenarioData = Pick<HealthState, 'regions' | 'metrics' | 'boneDensity' | 'chain'> &
+  Required<
+    Pick<HealthState, 'radiationLevel' | 'commDelaySec' | 'earthLink' | 'activeEvent' | 'fluidShift' | 'chainLinks'>
+  >
 
 // Small helper to keep scenario tables short.
 function region(
@@ -47,6 +50,12 @@ const healthy: ScenarioData = {
     skull: 1, spine: 1, ribs: 1, arm_left: 1, arm_right: 1, pelvis: 1, leg_left: 1, leg_right: 1,
   },
   chain: [],
+  radiationLevel: 0.1,
+  commDelaySec: 2,
+  earthLink: true,
+  activeEvent: 'none',
+  fluidShift: 0.3,
+  chainLinks: [],
 }
 
 // Day 60: microgravity starts to show in bones, muscles and eyes.
@@ -82,6 +91,12 @@ const day60: ScenarioData = {
     pelvis: 0.93, leg_left: 0.94, leg_right: 0.95,
   },
   chain: ['muscles', 'bones'],
+  radiationLevel: 0.35,
+  commDelaySec: 240,
+  earthLink: true,
+  activeEvent: 'none',
+  fluidShift: 0.5,
+  chainLinks: [{ from: 'muscles', to: 'bones', label: 'меньше нагрузки' }],
 }
 
 // Day 180, demo scenario: solar flare, crew in the shelter, CO2 rises, sleep drops.
@@ -125,9 +140,30 @@ const critical: ScenarioData = {
     pelvis: 0.79, leg_left: 0.82, leg_right: 0.83,
   },
   chain: ['lungs', 'brain', 'eyes'],
+  radiationLevel: 0.8,
+  commDelaySec: 720,
+  earthLink: false,
+  activeEvent: 'solar_flare',
+  fluidShift: 0.7,
+  chainLinks: [
+    { from: 'lungs', to: 'brain', label: 'CO₂ ↑' },
+    { from: 'brain', to: 'eyes', label: 'внутричерепное давление' },
+  ],
 }
 
-export const SCENARIOS: Record<ScenarioId, ScenarioData> = { healthy, day60, critical }
+// Day-0 state, shared by every scenario for comparison.
+const baseline: Baseline = {
+  statuses: Object.fromEntries(
+    Object.values(healthy.regions).map((r) => [r.id, r.status]),
+  ) as Record<RegionId, Status>,
+  boneDensity: { ...healthy.boneDensity },
+}
+
+export const SCENARIOS: Record<ScenarioId, ScenarioData & Pick<HealthState, 'baseline'>> = {
+  healthy: { ...healthy, baseline },
+  day60: { ...day60, baseline },
+  critical: { ...critical, baseline },
+}
 
 // Keeps the compiler checking that every BonePart is covered above.
 export const BONE_PARTS: BonePart[] = Object.keys(healthy.boneDensity) as BonePart[]
