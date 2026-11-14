@@ -105,6 +105,25 @@ export const CHAIN = {
   hold: 0.35, // extra emissive that stays while the organ is in the chain
 }
 
+// Cause labels between chain organs (from chainLinks).
+export const CHAIN_LABEL = {
+  zOffset: 0.25, // in front of the body, so the label does not sit inside the organs
+  fadeMs: 400, // fade-in time when the label's organ lights up
+}
+
+// Closed-environment haze around the head, driven by co2Level.
+export const CO2_HAZE = {
+  center: [0, 1.68, 0.02] as Vec3, // head center
+  radius: 0.27,
+  lowColor: '#8a8f96', // tint just above the threshold (neutral grey)
+  // high values blend toward THREAT_COLOR.environment (grey-orange)
+  minOpacity: 0.2, // at the threshold
+  maxOpacity: 0.65, // at co2Level = 1
+  noiseScale: 9, // size of the haze blobs (higher = smaller)
+  driftSpeed: 0.35, // slow upward drift
+  lerpSpeed: 2, // how fast opacity and tint follow co2Level
+}
+
 // Organ material and animation
 export const REGION = {
   roughness: 0.5,
