@@ -35,6 +35,15 @@ export const SKELETON = {
   roughness: 0.6,
 }
 
+// Bone color by density (0..1, 1 = normal). Display only: the engine decides the values.
+// 1 -> bone white, warnAt -> yellow, criticalAt and below -> red; smooth blend in between.
+export const BONE_DENSITY = {
+  warnAt: 0.93,
+  criticalAt: 0.8,
+  lerpSpeed: 4, // how fast bone color follows a density change
+  fractureLabel: 'Fracture risk at landing', // shown at the weakest bone part
+}
+
 // View layers: "body" (organs) and "skeleton". Opacity of each layer in each mode.
 export type Layer = 'body' | 'skeleton'
 export const LAYERS: Record<Layer, { shell: number; skeleton: number; organs: number }> = {
