@@ -20,6 +20,8 @@ import { CabinFlow } from './CabinFlow'
 import { CircadianRing } from './CircadianRing'
 import { IsolationStage } from './isolationStage'
 import { ReactionImpulse } from './ReactionImpulse'
+import { ActivityBars } from './ActivityBars'
+import { MoodDots } from './MoodDots'
 import { OfflineTag, OfflineTint } from './Offline'
 import { GravityArrow } from './GravityArrow'
 import { ChainLinks } from './ChainLinks'
@@ -248,6 +250,8 @@ export function BodyScene({
         <IsolationStage layer={layer} />
         {EFFECTS.circadianRing && <CircadianRing />}
         {EFFECTS.reactionImpulse && <ReactionImpulse />}
+        {EFFECTS.activityBars && <ActivityBars />}
+        {EFFECTS.moodDots && <MoodDots />}
         {EFFECTS.offline && <OfflineTag />}
         {EFFECTS.gravityArrow && <GravityArrow />}
         {EFFECTS.radiationTracks && <RadiationTracks layer={layer} />}
