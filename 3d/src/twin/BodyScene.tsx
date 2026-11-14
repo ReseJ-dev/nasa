@@ -19,6 +19,7 @@ import { Habitat } from './Habitat'
 import { CabinFlow } from './CabinFlow'
 import { CircadianRing } from './CircadianRing'
 import { IsolationStage } from './isolationStage'
+import { ReactionImpulse } from './ReactionImpulse'
 import { OfflineTag, OfflineTint } from './Offline'
 import { GravityArrow } from './GravityArrow'
 import { ChainLinks } from './ChainLinks'
@@ -246,6 +247,7 @@ export function BodyScene({
         {/* Isolation visuals: the stage driver first, then the elements that read it. */}
         <IsolationStage layer={layer} />
         {EFFECTS.circadianRing && <CircadianRing />}
+        {EFFECTS.reactionImpulse && <ReactionImpulse />}
         {EFFECTS.offline && <OfflineTag />}
         {EFFECTS.gravityArrow && <GravityArrow />}
         {EFFECTS.radiationTracks && <RadiationTracks layer={layer} />}
