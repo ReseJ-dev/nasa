@@ -30,6 +30,14 @@ export const BODY_SHELL = {
   clearcoatRoughness: 0.3,
 }
 
+// Skeleton (neutral, before density colors). Slightly see-through so organs
+// inside the skull and ribs stay visible.
+export const SKELETON = {
+  color: '#ece8df', // bone white
+  opacity: 0.6,
+  roughness: 0.6,
+}
+
 // Heartbeat: the heart mesh scales in a "lub-dub, pause" rhythm.
 export const HEART = {
   metricId: 'heart_rate', // Metric.id in the store

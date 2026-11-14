@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { Body } from './Body'
 import { RegionMesh } from './RegionMesh'
+import { Skeleton } from './Skeleton'
 import { REGIONS } from './regions'
 import { useHealthStore } from './mockStore'
 import { CAMERA, SCENE } from './config'
@@ -23,6 +24,7 @@ export function BodyScene() {
         {REGIONS.map((def) => (
           <RegionMesh key={def.id} def={def} />
         ))}
+        <Skeleton />
         <Body />
         <OrbitControls
           target={CAMERA.target}
