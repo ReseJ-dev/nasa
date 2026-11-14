@@ -5,7 +5,8 @@ import { Select } from '@react-three/postprocessing'
 import { MeshStandardMaterial, type Group } from 'three'
 import { useHealthStore } from './store'
 import { STATUS_COLOR } from './colors'
-import { LAYERS, REGION, type Layer } from './config'
+import { HIDDEN_IN_SKELETON, LAYERS, REGION, type Layer } from './config'
+import { REGION_LABEL } from './labels'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
 import { useChainGlow } from './hooks/useChainGlow'
 import { useHeartbeat } from './hooks/useHeartbeat'
@@ -18,7 +19,9 @@ export function RegionMesh({ def, layer }: { def: RegionDef; layer: Layer }) {
   const status = useHealthStore((s) => s.regions[def.id].status)
   const isSelected = useHealthStore((s) => s.selectedRegion === def.id)
   const selectRegion = useHealthStore((s) => s.selectRegion)
-  const { hovered, onPointerOver, onPointerOut } = useHover()
+  // Only the body layer is interactive: in skeleton mode organs cannot be hovered or clicked.
+  const interactive = layer === 'body'
+  const { hovered, onPointerOver, onPointerOut } = useHover(interactive)
 
   // One material for all parts of this region, created once.
   const material = useMemo(
@@ -33,7 +36,8 @@ export function RegionMesh({ def, layer }: { def: RegionDef; layer: Layer }) {
       }),
     [],
   )
-  useFadeOpacity(material, LAYERS[layer].organs)
+  const hidden = layer === 'skeleton' && HIDDEN_IN_SKELETON.includes(def.id)
+  useFadeOpacity(material, hidden ? 0 : LAYERS[layer].organs)
 
   const glow = hovered ? REGION.emissive.hover : isSelected ? REGION.emissive.selected : REGION.emissive.base[status]
   // Must run before useStatusColor so its value is fresh in the same frame.
@@ -53,7 +57,12 @@ export function RegionMesh({ def, layer }: { def: RegionDef; layer: Layer }) {
   }
 
   return (
-    <group name={def.id} onPointerOver={onPointerOver} onPointerOut={onPointerOut} onClick={onClick}>
+    <group
+      name={def.id}
+      onPointerOver={interactive ? onPointerOver : undefined}
+      onPointerOut={interactive ? onPointerOut : undefined}
+      onClick={interactive ? onClick : undefined}
+    >
       <Select enabled={bloom}>
         {def.parts.map((part, i) => (
           // The wrapper group sits at the part's center, so scaling it (heartbeat) keeps the part in place.
@@ -80,7 +89,7 @@ export function RegionMesh({ def, layer }: { def: RegionDef; layer: Layer }) {
               whiteSpace: 'nowrap',
             }}
           >
-            {def.label}
+            {REGION_LABEL[def.id]}
           </div>
         </Html>
       )}

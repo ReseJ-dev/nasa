@@ -1,5 +1,5 @@
 // All tunable numbers of the 3D scene in one place.
-import type { Status } from '../contract/types'
+import type { RegionId, Status } from '../contract/types'
 
 type Vec3 = [number, number, number]
 
@@ -67,7 +67,6 @@ export const BONE_DENSITY = {
   warnAt: 0.93,
   criticalAt: 0.8,
   lerpSpeed: 4, // how fast bone color follows a density change
-  fractureLabel: 'Fracture risk at landing', // shown at the weakest bone part
 }
 
 // The fracture label shows only if the weakest part's density is below this.
@@ -78,8 +77,11 @@ export const FRACTURE_LABEL_THRESHOLD = 0.9
 export type Layer = 'body' | 'skeleton'
 export const LAYERS: Record<Layer, { shell: number; skeleton: number; organs: number }> = {
   body: { shell: 0.25, skeleton: 0, organs: 1 }, // skeleton hidden
-  skeleton: { shell: 0.06, skeleton: 0.9, organs: 0.12 }, // shell almost gone, organs dimmed
+  skeleton: { shell: 0.06, skeleton: 0.9, organs: 0.08 }, // shell almost gone, organs faint, only bones in focus
 }
+// In skeleton mode these regions are hidden completely (they overlap the bones);
+// the other organs fade to LAYERS.skeleton.organs and cannot be hovered or clicked.
+export const HIDDEN_IN_SKELETON: RegionId[] = ['muscles', 'bones']
 export const LAYER_FADE_SPEED = 4 // how fast layers fade (higher = faster, ~0.7 s at 4)
 
 // Heartbeat: the heart mesh scales in a "lub-dub, pause" rhythm.

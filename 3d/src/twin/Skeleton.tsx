@@ -19,6 +19,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { BonePart } from '../contract/types'
 import { BONE_DENSITY, FRACTURE_LABEL_THRESHOLD, LAYERS, SKELETON, type Layer } from './config'
 import { boneDensityColor } from './colors'
+import { FRACTURE_LABEL } from './labels'
 import { useHealthStore } from './store'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
 
@@ -187,7 +188,7 @@ function FractureLabel({ part }: { part: BonePart }) {
           whiteSpace: 'nowrap',
         }}
       >
-        {BONE_DENSITY.fractureLabel}
+        {FRACTURE_LABEL}
       </div>
     </Html>
   )

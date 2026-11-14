@@ -22,4 +22,18 @@ export const DENSITY_LABEL = {
   low: 'низкая плотность',
 }
 
+export const LAYER_LABEL = {
+  body: 'Тело',
+  skeleton: 'Скелет',
+}
+
+export const FRACTURE_LABEL = 'Риск перелома при посадке' // shown at the weakest bone part
+
+// Temporary dev test panel in App.tsx (mock scenarios).
+export const DEV_PANEL = {
+  selectedRegion: 'Выбранная зона',
+  none: 'нет',
+  scenario: { healthy: 'Здоров', day60: 'День 60', critical: 'Кризис' },
+}
+
 export const HINT = 'Вращай, приближай, кликни на орган'
