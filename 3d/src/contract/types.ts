@@ -65,7 +65,10 @@ export interface HealthState {
   commDelaySec?: number // one-way signal delay to Earth, seconds
   earthLink?: boolean // false = no connection to Earth
   activeEvent?: 'none' | 'solar_flare'
+  inShelter?: boolean // crew is in the radiation shelter
   fluidShift?: number // 0..1, how much body fluid moved toward the head
+  muscleMass?: number // 0..1, 1 = norm
+  co2Level?: number // 0..1, cabin CO2
   chainLinks?: ChainLink[] // cause labels between neighbouring chain organs
   baseline?: Baseline // day-0 region statuses and bone density
   threats?: Record<ThreatId, ThreatState> // the five threats, level and affected regions
