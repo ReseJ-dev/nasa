@@ -164,17 +164,94 @@ export const SENSORS = {
   noise: { angle: -1.0, y: 0.3, warnAt: 60, criticalAt: 65 }, // dB
 }
 
-// Circadian ring near the brain (isolation): 24 h circle with the sleep sector.
-export const CIRCADIAN = {
-  position: [0.34, 1.98, 0] as Vec3,
-  size: 64, // px
-  normalBedtime: 23, // hour the sleep sector starts when sleepShiftHours = 0
-  // status: warning if sleep < warnSleep or shift > warnShift; critical if sleep < critSleep or shift >= critShift
-  warnSleep: 6,
-  warnShift: 2,
-  critSleep: 5,
-  critShift: 3,
+// ---- Isolation and confinement visuals -------------------------------------------------
+// One designed set: circadian ring (sleep, light), reaction impulse (alertness), activity bars,
+// mood dots. Everything is thin additive lines in the hologram style, no panels.
+// Display only: statuses come from `alerts` in the store, never from thresholds here.
+export const ISOLATION = {
+  line: '#8fa6d0', // the dull isolation blue, lifted so 2 px lines keep contrast on the dark background
+  renderOrder: 11, // after the body shell, so the lines stay crisp on top of it
+  minLine: 0.0035, // tube radius of the thinnest lines: about 2.5 px wide at the default camera, 1080p
+  // Staged fade-in when isolation gets the focus: ring -> impulse -> bars -> labels.
+  fadeIn: 0.6, // seconds for one element
+  stagger: 0.2, // seconds between two elements
+  fadeOut: 0.4,
+  valueLerp: 3.5, // how fast shown values follow the store (arc length, rotation, bars, numbers)
+  colorLerp: 4,
+  // Camera while isolation is pinned: a slight push-in that keeps the whole figure in frame
+  // (ring at the head, readout at the hand, bars on the floor). For a head-and-shoulders
+  // framing use position [0, 1.72, 1.75] and target [0, 1.6, 0] (the hand and the bars leave the frame).
+  camera: { position: [0, 1.3, 2.86] as Vec3, target: [0, 1.06, 0] as Vec3 },
+  dimmedCallout: 0.2, // callouts of regions outside the focused threat
 }
+
+// Circadian ring around the head: a 24-hour clock seen from above, clockwise.
+export const CIRCADIAN = {
+  center: [0, 1.7, 0] as Vec3,
+  radius: 0.27,
+  tilt: 0.6, // radians toward the camera (front edge down), so the ring reads as a circle
+  frontHour: 3, // hour at the front of the ring: the middle of a normal night
+  normalBedtime: 23, // the sleep arc starts here when sleepShiftHours = 0
+  lightStartHour: 9, // the bright-light arc starts here; length = brightLightMin
+  outlineRest: 0.45, // outline opacity when isolation is not focused (the only visible part then)
+  outlineFocused: 0.9,
+  sleepTube: 0.011, // tube radius of the sleep arc
+  lightTube: 0.007,
+  ghostTube: 0.005,
+  ghostOffset: 0.03, // the norm arc sits on a slightly larger radius, behind the sleep arc
+  ghostOpacity: 0.4,
+  sleepColor: '#5b7cff', // soft blue while there is no sleep alert
+  lightColor: '#ffc977', // warm light
+  tick: { length: 0.036, longLength: 0.06, width: 0.007 }, // every 3 h; 0 h and 12 h are longer
+  linkOpacity: 0.55, // line from the sleep arc to the brain while an isolation alert is active
+  sleepLabel: [0.34, 1.8, 0] as Vec3, // right of the ring: below the threats strip, above the eyes callout
+  moodLabel: [-0.34, 1.62, 0] as Vec3, // left of the ring: below the brain callout line, above the lungs callout
+}
+
+// Reaction impulse: light seen -> button pressed (NASA Reaction Self-Test), along the body.
+export const IMPULSE = {
+  // eyes -> brain -> brainstem -> shoulder -> elbow -> hand (the astronaut's left arm, viewer's right)
+  path: [
+    [0.04, 1.655, 0.1],
+    [0, 1.7, -0.01],
+    [0, 1.56, -0.02],
+    [0.09, 1.46, 0],
+    [0.235, 1.43, 0],
+    [0.275, 1.14, 0],
+    [0.315, 0.83, 0.01],
+  ] as Vec3[],
+  period: 3, // seconds between two impulses
+  baseTravel: 0.85, // seconds eyes -> hand at the baseline reaction time; scales with reactionMs / baseline
+  maxTravel: 2.4,
+  tail: 0.16, // length of the glowing tail, as a fraction of the path
+  pathOpacity: 0.22, // the faint path itself
+  headSize: 0.075,
+  color: '#d6e4ff',
+  lapsesFull: 10, // reactionLapses at which 2 of 3 impulses fade out halfway
+  maxLapseShare: 0.67,
+  lapseAt: [0.4, 0.62] as [number, number], // a lapsed impulse fades between these path fractions
+  press: { seconds: 0.5, size: 0.24 }, // flash at the hand when the impulse arrives
+  label: [0.45, 0.79, 0] as Vec3, // right of the hand, between the bones and muscles callouts
+}
+
+// Activity: last 7 days as thin bars on a floor ring under the feet.
+export const ACTIVITY = {
+  ringRadius: 0.62,
+  z: 0.6, // the row of bars stands at the front of the floor ring
+  spacing: 0.075,
+  barWidth: 0.034,
+  barDepth: 0.008,
+  normHeight: 0.12, // bar height at the personal baseline
+  maxRatio: 1.2, // bars are capped at 120 % of the baseline
+  pastOpacity: 0.5,
+  todayOpacity: 1,
+  ringOpacity: 0.35,
+  normOpacity: 0.4, // thin line at the baseline height
+  label: [0.36, 0.07, 0.6] as Vec3,
+  shellGlowDrop: 0.6, // body shell rim glow multiplier while the activity alert is on (hypokinesis)
+}
+
+export const MOOD = { dots: 5, dotSize: 9 }
 
 // Organ material and animation
 export const REGION = {
@@ -218,7 +295,11 @@ export const EFFECTS = {
   cabinFog: true, // fog inside the module (environment)
   cabinSensors: true, // CO2 / temperature / noise chips (environment)
   cabinFlow: true, // air flow into the nose and lungs (environment)
-  circadianRing: true, // sleep ring near the brain (isolation)
+  circadianRing: true, // 24 h sleep ring around the head (isolation)
+  reactionImpulse: true, // eyes -> hand pulse (isolation)
+  activityBars: true, // 7-day bars on the floor ring (isolation)
+  moodDots: true, // 5-dot mood indicator (isolation)
+  hypokinesis: true, // dimmer shell glow while the activity alert is on (isolation)
   offline: true, // 'Autonomous mode' tag + colder frame when earthLink is false (distance)
   gravityArrow: true, // g arrow + landing moment (gravity)
   fluidShift: true, // shell tint feet -> head (gravity)
@@ -231,6 +312,8 @@ export const THREAT_ACTIVE_THRESHOLD = 0.3
 
 // Strength of an active threat's 3D effect while it is NOT focused (and no demo): a faint background.
 export const THREAT_BACKGROUND_EMPHASIS = 0.3
+// The same while ANOTHER threat is focused: one accent at a time.
+export const THREAT_DIMMED_EMPHASIS = 0.2
 
 // Threats strip layout (px) and its lines.
 export const THREAT_STRIP = {

@@ -18,6 +18,7 @@ import { FlareFlash, Shelter, useSolarFlareWatcher } from './SolarFlare'
 import { Habitat } from './Habitat'
 import { CabinFlow } from './CabinFlow'
 import { CircadianRing } from './CircadianRing'
+import { IsolationStage } from './isolationStage'
 import { OfflineTag, OfflineTint } from './Offline'
 import { GravityArrow } from './GravityArrow'
 import { ChainLinks } from './ChainLinks'
@@ -242,7 +243,9 @@ export function BodyScene({
         {/* Threat effects, each behind its own flag in config.ts (EFFECTS). */}
         {(EFFECTS.habitatModule || EFFECTS.cabinFog || EFFECTS.cabinSensors) && <Habitat layer={layer} />}
         {EFFECTS.cabinFlow && <CabinFlow layer={layer} />}
-        {EFFECTS.circadianRing && <CircadianRing layer={layer} />}
+        {/* Isolation visuals: the stage driver first, then the elements that read it. */}
+        <IsolationStage layer={layer} />
+        {EFFECTS.circadianRing && <CircadianRing />}
         {EFFECTS.offline && <OfflineTag />}
         {EFFECTS.gravityArrow && <GravityArrow />}
         {EFFECTS.radiationTracks && <RadiationTracks layer={layer} />}
