@@ -5,6 +5,8 @@ import type { Status } from '../contract/types'
 import { useHealthStore } from './store'
 import { STATUS_HEX } from './colors'
 import { REGION_LABEL } from './labels'
+import { ISOLATION } from './config'
+import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { overlayStyles as s } from './overlayStyles'
 import { REGIONS, type RegionDef } from './regions'
 
@@ -43,11 +45,16 @@ function Callout({ def, visible }: { def: RegionDef; visible: boolean }) {
     return l
   }, [def.id])
 
+  // One accent at a time: while a threat is focused, callouts of regions outside it step back
+  // (label at 20 %, line hidden), so the focused threat's own labels have room.
+  const focused = useFocusedThreat()
+  const dimmed = useHealthStore((st) => focused !== null && !(st.threats?.[focused].regions.includes(def.id) ?? true))
+
   const shown = visible && status !== 'ok'
   useLayoutEffect(() => {
     line.material = LINE_MATERIAL[status]
-    line.visible = shown
-  }, [line, status, shown])
+    line.visible = shown && !dimmed
+  }, [line, status, shown, dimmed])
 
   const color = STATUS_HEX[status]
   const side = def.callout.label[0] < 0 ? s.calloutLeft : s.calloutRight
@@ -55,7 +62,15 @@ function Callout({ def, visible }: { def: RegionDef; visible: boolean }) {
   return (
     <group name={`${def.id}_callout`}>
       <primitive object={line} />
-      <Html position={def.callout.label} style={{ pointerEvents: 'none', display: shown ? 'block' : 'none' }}>
+      <Html
+        position={def.callout.label}
+        style={{
+          pointerEvents: 'none',
+          display: shown ? 'block' : 'none',
+          opacity: dimmed ? ISOLATION.dimmedCallout : 1,
+          transition: 'opacity 0.4s ease',
+        }}
+      >
         <div style={{ ...s.callout, ...side, border: `1px solid ${color}` }}>
           {REGION_LABEL[def.id]}
           <span style={{ ...s.calloutScore, color }}>{Math.round(score)}</span>
@@ -69,6 +84,10 @@ function Callout({ def, visible }: { def: RegionDef; visible: boolean }) {
 export function Callouts({ visible }: { visible: boolean }) {
   return (
     <group name="callouts">
+      {/* Workaround: the first <Html> mounted in the scene never renders its content (seen with
+          drei 10 + React 19, dev and production), which left the brain callout empty.
+          This empty one takes that slot. */}
+      <Html style={{ display: 'none' }} />
       {REGIONS.map((def) => (
         <Callout key={def.id} def={def} visible={visible} />
       ))}

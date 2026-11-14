@@ -13,6 +13,7 @@ import { useHeartbeat } from './hooks/useHeartbeat'
 import { useHover } from './hooks/useHover'
 import { useStatusColor } from './hooks/useStatusColor'
 import { useSansGlow } from './hooks/useSansGlow'
+import { useIsolationGlow } from './hooks/useIsolationGlow'
 import { useMuscleMass } from './hooks/useMuscleMass'
 import { SHIMMER_COLOR, useRadiationShimmer } from './hooks/useRadiationShimmer'
 import type { RegionDef } from './regions'
@@ -57,9 +58,10 @@ export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer
   const chainGlow = useChainGlow(def.id)
   const shimmer = useRadiationShimmer(def.id)
   const sansGlow = useSansGlow(def.id, layer)
+  const isolationGlow = useIsolationGlow(def.id)
   // Selection dim wins (darker) over the threat dim.
   const brightness = otherSelected ? REGION.dimmedBrightness : outOfThreat ? REGION.threatDimmedBrightness : 1
-  useStatusColor(material, status, glow, [chainGlow, sansGlow], brightness, { color: SHIMMER_COLOR, amount: shimmer })
+  useStatusColor(material, status, glow, [chainGlow, sansGlow, isolationGlow], brightness, { color: SHIMMER_COLOR, amount: shimmer })
 
   // Wrapper group of every part, used by the heartbeat.
   const partRefs = useRef<(Group | null)[]>([])

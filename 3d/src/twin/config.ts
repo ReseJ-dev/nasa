@@ -178,10 +178,11 @@ export const ISOLATION = {
   fadeOut: 0.4,
   valueLerp: 3.5, // how fast shown values follow the store (arc length, rotation, bars, numbers)
   colorLerp: 4,
-  // Camera while isolation is pinned: a slight push-in that keeps the whole figure in frame
+  // Camera while isolation is pinned: it rises a little and looks slightly down, so the ring
+  // reads as a circle and the floor bars open up, with the whole figure still in frame
   // (ring at the head, readout at the hand, bars on the floor). For a head-and-shoulders
   // framing use position [0, 1.72, 1.75] and target [0, 1.6, 0] (the hand and the bars leave the frame).
-  camera: { position: [0, 1.3, 2.86] as Vec3, target: [0, 1.06, 0] as Vec3 },
+  camera: { position: [0, 1.4, 3.12] as Vec3, target: [0, 0.96, 0] as Vec3 },
   dimmedCallout: 0.2, // callouts of regions outside the focused threat
 }
 
@@ -204,7 +205,7 @@ export const CIRCADIAN = {
   lightColor: '#ffc977', // warm light
   tick: { length: 0.036, longLength: 0.06, width: 0.007 }, // every 3 h; 0 h and 12 h are longer
   linkOpacity: 0.55, // line from the sleep arc to the brain while an isolation alert is active
-  sleepLabel: [0.34, 1.8, 0] as Vec3, // right of the ring: below the threats strip, above the eyes callout
+  sleepLabel: [0.4, 1.75, 0] as Vec3, // right of the ring: below the threats strip, above the eyes callout
   moodLabel: [-0.34, 1.62, 0] as Vec3, // left of the ring: below the brain callout line, above the lungs callout
 }
 
@@ -236,8 +237,8 @@ export const IMPULSE = {
 
 // Activity: last 7 days as thin bars on a floor ring under the feet.
 export const ACTIVITY = {
-  ringRadius: 0.62,
-  z: 0.6, // the row of bars stands at the front of the floor ring
+  ringRadius: 0.5,
+  z: 0.48, // the row of bars stands at the front of the floor ring
   spacing: 0.075,
   barWidth: 0.034,
   barDepth: 0.008,
@@ -247,7 +248,7 @@ export const ACTIVITY = {
   todayOpacity: 1,
   ringOpacity: 0.35,
   normOpacity: 0.4, // thin line at the baseline height
-  label: [0.36, 0.07, 0.6] as Vec3,
+  label: [0.34, 0.07, 0.48] as Vec3,
   shellGlowDrop: 0.6, // body shell rim glow multiplier while the activity alert is on (hypokinesis)
 }
 
