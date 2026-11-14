@@ -35,6 +35,14 @@ export const SKELETON = {
   roughness: 0.6,
 }
 
+// Bloom glow, applied only to warning/critical regions in body mode.
+export const BLOOM = {
+  intensity: 0.8, // moderate glow strength
+  luminanceThreshold: 0.05, // almost everything on a selected organ glows
+  luminanceSmoothing: 0.3,
+  radius: 0.6, // glow spread (0..1)
+}
+
 // Bone color by density (0..1, 1 = normal). Display only: the engine decides the values.
 // 1 -> bone white, warnAt -> yellow, criticalAt and below -> red; smooth blend in between.
 export const BONE_DENSITY = {

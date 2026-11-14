@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
+import { EffectComposer, Selection, SelectiveBloom } from '@react-three/postprocessing'
+import type { AmbientLight, DirectionalLight } from 'three'
 import { Body } from './Body'
 import { RegionMesh } from './RegionMesh'
 import { Skeleton } from './Skeleton'
 import { REGIONS } from './regions'
 import { useHealthStore } from './mockStore'
-import { CAMERA, SCENE, type Layer } from './config'
+import { BLOOM, CAMERA, SCENE, type Layer } from './config'
 
 const LAYER_LABEL: Record<Layer, string> = { body: 'Body', skeleton: 'Skeleton' }
 
@@ -48,6 +50,10 @@ function LayerSwitch({ layer, onChange }: { layer: Layer; onChange(l: Layer): vo
 export function BodyScene() {
   const selectRegion = useHealthStore((s) => s.selectRegion)
   const [layer, setLayer] = useState<Layer>('body') // changes only on button click
+  // SelectiveBloom re-lights the selected organs, so it needs the scene lights.
+  const ambient = useRef<AmbientLight>(null)
+  const keyLight = useRef<DirectionalLight>(null)
+  const rimLight = useRef<DirectionalLight>(null)
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -56,14 +62,27 @@ export function BodyScene() {
         onPointerMissed={() => selectRegion(null)} // click on empty space clears selection
       >
         <color attach="background" args={[SCENE.background]} />
-        <ambientLight intensity={SCENE.ambientIntensity} />
-        <directionalLight position={SCENE.keyLight.position} intensity={SCENE.keyLight.intensity} />
-        <directionalLight position={SCENE.rimLight.position} intensity={SCENE.rimLight.intensity} />
-        {REGIONS.map((def) => (
-          <RegionMesh key={def.id} def={def} layer={layer} />
-        ))}
-        <Skeleton layer={layer} />
-        <Body layer={layer} />
+        <ambientLight ref={ambient} intensity={SCENE.ambientIntensity} />
+        <directionalLight ref={keyLight} position={SCENE.keyLight.position} intensity={SCENE.keyLight.intensity} />
+        <directionalLight ref={rimLight} position={SCENE.rimLight.position} intensity={SCENE.rimLight.intensity} />
+        {/* Selection collects the organs marked with <Select enabled> in RegionMesh. */}
+        <Selection>
+          {REGIONS.map((def) => (
+            <RegionMesh key={def.id} def={def} layer={layer} />
+          ))}
+          <Skeleton layer={layer} />
+          <Body layer={layer} />
+          <EffectComposer>
+            <SelectiveBloom
+              lights={[ambient, keyLight, rimLight]}
+              intensity={BLOOM.intensity}
+              luminanceThreshold={BLOOM.luminanceThreshold}
+              luminanceSmoothing={BLOOM.luminanceSmoothing}
+              radius={BLOOM.radius}
+              mipmapBlur
+            />
+          </EffectComposer>
+        </Selection>
         <OrbitControls
           target={CAMERA.target}
           enablePan={false}
