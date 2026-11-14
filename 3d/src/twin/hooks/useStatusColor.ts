@@ -9,8 +9,10 @@ import { REGION } from '../config'
 // the status color and the requested glow strength, and adds a sine pulse
 // for warning/critical. `extraGlow` (optional) is added on top, e.g. the chain glow.
 // `brightness` (0..1) scales color and glow, e.g. to dim organs that are not selected.
+// `tint` (optional) moves only the emissive color toward tint.color by tint.amount, e.g. the radiation shimmer.
 // No setState per frame.
-const goal = new Color() // scratch color, reused every frame
+const goal = new Color() // scratch colors, reused every frame
+const emissiveGoal = new Color()
 
 export function useStatusColor(
   material: MeshStandardMaterial,
@@ -18,6 +20,7 @@ export function useStatusColor(
   glow: number,
   extraGlow?: RefObject<number>,
   brightness = 1,
+  tint?: { color: Color; amount: RefObject<number> },
 ) {
   // Latest targets, read inside useFrame without re-subscribing.
   const target = useRef({ status, glow, brightness })
@@ -33,7 +36,10 @@ export function useStatusColor(
     const k = 1 - Math.exp(-delta * REGION.lerpSpeed) // same smoothness at any FPS
     goal.copy(STATUS_COLOR[status]).multiplyScalar(brightness)
     material.color.lerp(goal, k)
-    material.emissive.lerp(goal, k)
+    emissiveGoal.copy(goal)
+    const tintAmount = tint?.amount.current ?? 0
+    if (tintAmount > 0) emissiveGoal.lerp(tint!.color, tintAmount)
+    material.emissive.lerp(emissiveGoal, k)
 
     const pulse = REGION.pulse[status]
     const s = smooth.current

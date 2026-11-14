@@ -167,17 +167,46 @@ export const THREAT_COLOR: Record<ThreatId, string> = {
   environment: '#b8927a', // grey-orange
 }
 
-// Optional radiation particles flowing through the body. Count and speed follow threats.radiation.level.
+// Radiation visuals: particles, hits (sparks) and the immune shimmer. Driven by radiationLevel.
+// Nothing is shown below THREAT_ACTIVE_THRESHOLD. enabled = false switches all of it off.
 export const RADIATION_PARTICLES = {
-  enabled: true, // false = no particles at all
-  maxCount: 300, // at level 1
-  minSpeed: 0.15, // units per second at level 0
-  maxSpeed: 0.9, // units per second at level 1
+  enabled: true,
+  lerpSpeed: 1.5, // how fast count and speed follow radiationLevel
+  // Particles: they come from the Sun side (the astronaut's right, -x) and fly to +x.
+  maxCount: 300, // at radiationLevel = 1
+  minSpeed: 0.3, // units per second at the threshold
+  maxSpeed: 1.2, // units per second at radiationLevel = 1
   color: '#e4d8ff', // violet-white
-  size: 0.018,
-  opacity: 0.8,
-  // Box the particles fly through: they enter at x = -span and leave at x = +span.
-  span: 1.1,
+  size: 0.022,
+  opacity: 0.85,
+  span: 1.1, // enter at x = -span, leave at x = +span
   yRange: [0.05, 1.85] as [number, number],
   zRange: [-0.25, 0.25] as [number, number],
+  // Hits: tiny violet sparks at random points inside the body shell.
+  sparks: {
+    max: 5, // pooled, never more at once
+    maxRate: 6, // sparks per second at radiationLevel = 1
+    life: 0.3, // seconds to fade out
+    size: 0.05,
+    color: '#b57bff',
+  },
+  // Immune region: slight violet shimmer on top of its status color.
+  shimmer: {
+    color: '#a66cff',
+    amount: 0.35, // how far the emissive color moves toward violet (0..1)
+    wobble: 0.15, // shimmer depth around `amount`
+    hz: 2.2,
+  },
 }
+
+// Rough volumes inside the body shell (same units as Body.tsx), for random hit points.
+// [min corner, max corner] boxes; each box is picked with the same chance.
+export const BODY_VOLUMES: [Vec3, Vec3][] = [
+  [[-0.06, 1.58, -0.06], [0.06, 1.76, 0.06]], // head
+  [[-0.15, 1.0, -0.08], [0.15, 1.42, 0.08]], // torso
+  [[-0.14, 0.86, -0.08], [0.14, 0.98, 0.08]], // pelvis
+  [[-0.13, 0.15, -0.04], [-0.05, 0.82, 0.04]], // right leg
+  [[0.05, 0.15, -0.04], [0.13, 0.82, 0.04]], // left leg
+  [[-0.32, 0.9, -0.03], [-0.25, 1.38, 0.03]], // right arm
+  [[0.25, 0.9, -0.03], [0.32, 1.38, 0.03]], // left arm
+]
