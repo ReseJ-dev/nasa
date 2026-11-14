@@ -8,6 +8,7 @@ import { RegionMesh } from './RegionMesh'
 import { Skeleton } from './Skeleton'
 import { Hint, Legend } from './Overlay'
 import { Callouts } from './Callouts'
+import { LAYER_LABEL } from './labels'
 import { REGIONS } from './regions'
 import { useHealthStore } from './store'
 import { BLOOM, CAMERA, RENDER, SCENE, type Layer } from './config'
@@ -66,10 +67,6 @@ function StudioEnvironment() {
   )
 }
 
-const LAYER_LABEL: Record<Layer, string> = {
-  body: 'Body',
-  skeleton: 'Skeleton',
-}
 
 // "Body / Skeleton" switch shown over the top-right corner of the scene.
 function LayerSwitch({ layer, onChange }: { layer: Layer; onChange(l: Layer): void }) {

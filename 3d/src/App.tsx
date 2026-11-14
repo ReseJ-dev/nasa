@@ -1,5 +1,6 @@
 import { BodyScene } from './twin'
 import { useHealthStore, type ScenarioId } from './twin/mockStore'
+import { DEV_PANEL, REGION_LABEL } from './twin/labels'
 
 // TEMPORARY test panel: switch scenarios and show the selected region.
 const SCENARIO_BUTTONS: ScenarioId[] = ['healthy', 'day60', 'critical']
@@ -29,11 +30,13 @@ function TestPanel() {
             onClick={() => setScenario(id)}
             style={{ fontWeight: scenario === id ? 'bold' : 'normal' }}
           >
-            {id}
+            {DEV_PANEL.scenario[id]}
           </button>
         ))}
       </div>
-      <div>Selected region: {selected ?? 'none'}</div>
+      <div>
+        {DEV_PANEL.selectedRegion}: {selected ? REGION_LABEL[selected] : DEV_PANEL.none}
+      </div>
     </div>
   )
 }
