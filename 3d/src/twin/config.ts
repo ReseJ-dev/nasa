@@ -111,6 +111,7 @@ export const REGION = {
   // How fast color and glow follow their target (higher = faster, ~0.5 s at 6).
   lerpSpeed: 6,
   dimmedBrightness: 0.15, // color/glow of non-selected organs while a region is selected
+  threatDimmedBrightness: 0.2, // organs outside the highlighted threat's regions
   // Emissive glow strength in each state. Base glow depends on the status:
   // ok organs stay dim, warning/critical stand out.
   emissive: {
