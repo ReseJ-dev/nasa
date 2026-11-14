@@ -7,7 +7,7 @@ import { REGION } from '../config'
 
 // Every frame, smoothly moves the material's color and glow toward
 // the status color and the requested glow strength, and adds a sine pulse
-// for warning/critical. `extraGlow` (optional) is added on top, e.g. the chain glow.
+// for warning/critical. `extraGlow` (optional) refs are added on top, e.g. the chain and SANS glow.
 // `brightness` (0..1) scales color and glow, e.g. to dim organs that are not selected.
 // `tint` (optional) moves only the emissive color toward tint.color by tint.amount, e.g. the radiation shimmer.
 // No setState per frame.
@@ -18,7 +18,7 @@ export function useStatusColor(
   material: MeshStandardMaterial,
   status: Status,
   glow: number,
-  extraGlow?: RefObject<number>,
+  extraGlow: RefObject<number>[] = [],
   brightness = 1,
   tint?: { color: Color; amount: RefObject<number> },
 ) {
@@ -52,6 +52,8 @@ export function useStatusColor(
     s.phase += delta * s.hz * Math.PI * 2
     // wave goes 0..1 and back, so the glow never drops below the base value
     const wave = 0.5 + 0.5 * Math.sin(s.phase)
-    material.emissiveIntensity = (s.glow + s.amplitude * wave + (extraGlow?.current ?? 0)) * s.brightness
+    let extra = 0
+    for (const g of extraGlow) extra += g.current ?? 0
+    material.emissiveIntensity = (s.glow + s.amplitude * wave + extra) * s.brightness
   })
 }

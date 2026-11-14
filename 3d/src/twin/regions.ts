@@ -17,6 +17,7 @@ export interface RegionPart {
   position: Vec3
   rotation?: Vec3
   scale?: Vec3
+  thin?: boolean // leg muscle: gets thinner (x, z) with muscleMass
 }
 
 export interface RegionDef {
@@ -94,8 +95,11 @@ export const REGIONS: RegionDef[] = [
     callout: { anchor: [0.09, 0.68, 0], label: [0.6, 0.62, 0] },
     parts: [
       // thighs
-      { geometry: new CapsuleGeometry(0.055, 0.24, 6, 12), position: [-0.09, 0.68, 0] },
-      { geometry: new CapsuleGeometry(0.055, 0.24, 6, 12), position: [0.09, 0.68, 0] },
+      { geometry: new CapsuleGeometry(0.055, 0.24, 6, 12), position: [-0.09, 0.68, 0], thin: true },
+      { geometry: new CapsuleGeometry(0.055, 0.24, 6, 12), position: [0.09, 0.68, 0], thin: true },
+      // calves (a bit behind the shin)
+      { geometry: new CapsuleGeometry(0.04, 0.2, 6, 12), position: [-0.09, 0.3, -0.012], thin: true },
+      { geometry: new CapsuleGeometry(0.04, 0.2, 6, 12), position: [0.09, 0.3, -0.012], thin: true },
       // upper arms
       { geometry: new CapsuleGeometry(0.033, 0.2, 6, 12), position: [-0.26, 1.29, 0], rotation: [0, 0, -0.12] },
       { geometry: new CapsuleGeometry(0.033, 0.2, 6, 12), position: [0.26, 1.29, 0], rotation: [0, 0, 0.12] },

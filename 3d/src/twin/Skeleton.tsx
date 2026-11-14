@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import {
@@ -17,11 +17,12 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { BonePart } from '../contract/types'
-import { BONE_DENSITY, FRACTURE_LABEL_THRESHOLD, LAYERS, SKELETON, type Layer } from './config'
-import { boneDensityColor } from './colors'
+import { BONE_DENSITY, FRACTURE_LABEL_THRESHOLD, LANDING, LAYERS, SKELETON, type Layer } from './config'
+import { boneDensityColor, STATUS_HEX } from './colors'
 import { FRACTURE_LABEL } from './labels'
 import { useHealthStore } from './store'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
+import { useSceneStore } from './sceneStore'
 
 // Skeleton built from primitives, one mesh per BonePart (mesh name = BonePart).
 // Each part is colored by boneDensity from the store; the weakest part gets a fracture-risk label.
@@ -146,7 +147,9 @@ const LABEL_POSITION: Record<BonePart, Vec3> = {
 }
 
 // One bone part: own material, color follows its density, fades with the layer.
-function BoneMesh({ part, layer }: { part: BonePart; layer: Layer }) {
+// landing = true: this is the weakest part during the landing moment: it shows through the
+// shell even in body mode and flashes red.
+function BoneMesh({ part, layer, landing }: { part: BonePart; layer: Layer; landing: boolean }) {
   const density = useHealthStore((s) => s.boneDensity[part])
 
   const material = useMemo(
@@ -156,10 +159,18 @@ function BoneMesh({ part, layer }: { part: BonePart; layer: Layer }) {
         roughness: SKELETON.roughness,
         transparent: true,
         opacity: LAYERS.body.skeleton,
+        emissive: STATUS_HEX.critical,
+        emissiveIntensity: 0,
       }),
     [],
   )
-  useFadeOpacity(material, LAYERS[layer].skeleton)
+  useFadeOpacity(material, landing ? Math.max(LANDING.boneOpacity, LAYERS[layer].skeleton) : LAYERS[layer].skeleton)
+  const landingRef = useRef(landing)
+  const flashTime = useRef(0)
+  useLayoutEffect(() => {
+    landingRef.current = landing
+    flashTime.current = 0
+  }, [landing])
 
   // Target color, updated only when density changes (no objects created per frame).
   const target = useMemo(() => new Color(SKELETON.color), [])
@@ -169,6 +180,15 @@ function BoneMesh({ part, layer }: { part: BonePart; layer: Layer }) {
 
   useFrame((_, delta) => {
     material.color.lerp(target, 1 - Math.exp(-delta * BONE_DENSITY.lerpSpeed))
+    if (landingRef.current) {
+      // red flash pulses that fade out over the landing moment
+      flashTime.current += delta
+      const fade = Math.max(0, 1 - flashTime.current / LANDING.seconds)
+      material.emissiveIntensity =
+        LANDING.flashIntensity * fade * (0.5 + 0.5 * Math.cos(flashTime.current * LANDING.flashHz * Math.PI * 2))
+    } else if (material.emissiveIntensity > 0) {
+      material.emissiveIntensity = Math.max(0, material.emissiveIntensity - delta * 3)
+    }
   })
 
   return <mesh name={part} geometry={BONE_GEOMETRY[part]} material={material} />
@@ -207,12 +227,14 @@ export function Skeleton({ layer }: { layer: Layer }) {
   // Selects just a name, so Skeleton re-renders only when the weakest part changes
   // (each BoneMesh subscribes to its own density).
   const weakest = useHealthStore((s) => weakestPart(s.boneDensity))
-  const showLabel = layer === 'skeleton' && weakest !== null
+  // Landing moment: the label shows even in body mode.
+  const landing = useSceneStore((s) => s.landing)
+  const showLabel = (layer === 'skeleton' || landing) && weakest !== null
 
   return (
     <group name="skeleton">
       {BONE_PARTS.map((part) => (
-        <BoneMesh key={part} part={part} layer={layer} />
+        <BoneMesh key={part} part={part} layer={layer} landing={landing && part === weakest} />
       ))}
       {showLabel && <FractureLabel part={weakest} />}
     </group>

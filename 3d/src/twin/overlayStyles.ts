@@ -121,6 +121,16 @@ export const overlayStyles = {
     whiteSpace: 'nowrap',
     userSelect: 'none',
   },
+  // Label above the g arrow ("0 g", "0.38 g").
+  gravityLabel: {
+    padding: '1px 6px',
+    borderRadius: 4,
+    background: 'rgba(10, 14, 24, 0.75)',
+    color: '#a8eef7',
+    font: '600 12px system-ui, sans-serif',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+  },
   hint: {
     ...panel,
     left: '50%',
