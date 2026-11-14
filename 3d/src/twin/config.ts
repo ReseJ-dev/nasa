@@ -40,6 +40,15 @@ export const HEART = {
   dub: { at: 0.24, width: 0.045, strength: 0.55 }, // second, weaker one; the rest is a pause
 }
 
+// Cause chain: organs from `chain` light up one after another.
+export const CHAIN = {
+  stepDelay: 0.4, // seconds between two organs in the chain
+  rise: 0.15, // seconds for an organ to fully light up
+  flash: 1.2, // extra emissive right when an organ lights up, then fades
+  flashDecay: 0.35, // seconds for the flash to fade (time constant)
+  hold: 0.35, // extra emissive that stays while the organ is in the chain
+}
+
 // Organ material and animation
 export const REGION = {
   roughness: 0.5,
