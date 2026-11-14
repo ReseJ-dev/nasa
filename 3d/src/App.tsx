@@ -3,7 +3,9 @@ import type { SimEnvironment, ThreatId } from './contract/types'
 import { DISTANCE_DELAY_FULL_SEC, ENVIRONMENTS } from './sim/constants'
 import { BodyScene } from './twin'
 import { Bench } from './Bench'
-import { SCENARIOS, useHealthStore, type ScenarioId } from './twin/mockStore'
+import { SCENARIOS } from './twin/mockStore'
+import { useHealthStore, type ScenarioId } from './twin/store'
+import { HealthDashboard } from './ui/HealthDashboard'
 import { DEV_PANEL, REGION_LABEL } from './twin/labels'
 import { GRAVITY_FIELDS, type Layer } from './twin/config'
 
@@ -320,7 +322,8 @@ function TestPanel({ demo }: { demo: ReturnType<typeof useDemo> }) {
 export default function App() {
   // Dev tool: FPS benchmark at ?bench (see Bench.tsx).
   if (location.search.includes('bench')) return <Bench />
-  return <DevPage />
+  if (params.has('dev') || params.has('preset') || params.has('focus') || params.has('layer')) return <DevPage />
+  return <HealthDashboard><BodyScene /></HealthDashboard>
 }
 
 function DevPage() {
