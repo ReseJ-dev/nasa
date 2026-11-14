@@ -100,6 +100,27 @@ export const overlayStyles = {
     userSelect: 'none',
     pointerEvents: 'none',
   },
+  // Label under the small Earth ("Reply in N min").
+  earthLabel: {
+    padding: '2px 7px',
+    borderRadius: 4,
+    background: 'rgba(10, 14, 24, 0.75)',
+    font: '600 11px system-ui, sans-serif',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+  },
+  // "Autonomous mode" above the body when the link to Earth is down.
+  autonomyLabel: {
+    padding: '3px 10px',
+    borderRadius: 4,
+    border: '1px solid #ff3b30',
+    background: 'rgba(120, 16, 10, 0.8)',
+    color: '#fff',
+    font: '600 13px system-ui, sans-serif',
+    letterSpacing: 0.5,
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+  },
   hint: {
     ...panel,
     left: '50%',
