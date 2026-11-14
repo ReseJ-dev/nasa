@@ -1,8 +1,11 @@
-import { useMemo } from 'react'
+import { useLayoutEffect, useMemo } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { Html } from '@react-three/drei'
 import {
   BoxGeometry,
   BufferGeometry,
   CapsuleGeometry,
+  Color,
   CylinderGeometry,
   Euler,
   Matrix4,
@@ -14,10 +17,13 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { BonePart } from '../contract/types'
-import { LAYERS, SKELETON, type Layer } from './config'
+import { BONE_DENSITY, LAYERS, SKELETON, type Layer } from './config'
+import { boneDensityColor } from './colors'
+import { useHealthStore } from './mockStore'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
 
 // Skeleton built from primitives, one mesh per BonePart (mesh name = BonePart).
+// Each part is colored by boneDensity from the store; the weakest part gets a fracture-risk label.
 // Same units as Body.tsx: feet at y = 0. The astronaut faces +z (the camera),
 // so their LEFT side is at +x (the viewer's right).
 
@@ -126,8 +132,22 @@ const BONE_GEOMETRY: Record<BonePart, BufferGeometry> = {
 
 const BONE_PARTS = Object.keys(BONE_GEOMETRY) as BonePart[]
 
-export function Skeleton({ layer }: { layer: Layer }) {
-  // One neutral material for now; density colors come later.
+// Where the "fracture risk" label appears for each part (outside the body, to the side).
+const LABEL_POSITION: Record<BonePart, Vec3> = {
+  skull: [0.25, 1.75, 0],
+  spine: [0.25, 1.2, -0.08],
+  ribs: [0.3, 1.32, 0],
+  arm_left: [0.5, 1.05, 0],
+  arm_right: [-0.5, 1.05, 0],
+  pelvis: [0.3, 0.92, 0],
+  leg_left: [0.3, 0.45, 0],
+  leg_right: [-0.3, 0.45, 0],
+}
+
+// One bone part: own material, color follows its density, fades with the layer.
+function BoneMesh({ part, layer }: { part: BonePart; layer: Layer }) {
+  const density = useHealthStore((s) => s.boneDensity[part])
+
   const material = useMemo(
     () =>
       new MeshStandardMaterial({
@@ -140,11 +160,53 @@ export function Skeleton({ layer }: { layer: Layer }) {
   )
   useFadeOpacity(material, LAYERS[layer].skeleton)
 
+  // Target color, updated only when density changes (no objects created per frame).
+  const target = useMemo(() => new Color(SKELETON.color), [])
+  useLayoutEffect(() => {
+    boneDensityColor(density, target)
+  }, [density, target])
+
+  useFrame((_, delta) => {
+    material.color.lerp(target, 1 - Math.exp(-delta * BONE_DENSITY.lerpSpeed))
+  })
+
+  return <mesh name={part} geometry={BONE_GEOMETRY[part]} material={material} />
+}
+
+function FractureLabel({ part }: { part: BonePart }) {
+  return (
+    <Html position={LABEL_POSITION[part]} center style={{ pointerEvents: 'none' }}>
+      <div
+        style={{
+          padding: '3px 8px',
+          borderRadius: 4,
+          background: 'rgba(120, 16, 10, 0.85)',
+          border: '1px solid #ff3b30',
+          color: '#fff',
+          font: '13px system-ui, sans-serif',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {BONE_DENSITY.fractureLabel}
+      </div>
+    </Html>
+  )
+}
+
+export function Skeleton({ layer }: { layer: Layer }) {
+  const boneDensity = useHealthStore((s) => s.boneDensity)
+
+  // Weakest part = lowest density. Only labeled if it is below normal.
+  let weakest: BonePart = BONE_PARTS[0]
+  for (const part of BONE_PARTS) if (boneDensity[part] < boneDensity[weakest]) weakest = part
+  const showLabel = layer === 'skeleton' && boneDensity[weakest] < 1
+
   return (
     <group name="skeleton">
       {BONE_PARTS.map((part) => (
-        <mesh key={part} name={part} geometry={BONE_GEOMETRY[part]} material={material} />
+        <BoneMesh key={part} part={part} layer={layer} />
       ))}
+      {showLabel && <FractureLabel part={weakest} />}
     </group>
   )
 }
