@@ -111,17 +111,69 @@ export const CHAIN_LABEL = {
   fadeMs: 400, // fade-in time when the label's organ lights up
 }
 
-// Closed-environment haze around the head, driven by co2Level.
-export const CO2_HAZE = {
-  center: [0, 1.68, 0.02] as Vec3, // head center
-  radius: 0.27,
-  lowColor: '#8a8f96', // tint just above the threshold (neutral grey)
+// Habitat module around the body (isolation + closed environment threats).
+// Every part is scaled by useThreatEffect: full when its threat is focused (or demo), faint otherwise.
+export const HABITAT = {
+  // Wireframe module (isolation): rings and ribs, one LineSegments object.
+  yBottom: 0.02,
+  yTop: 2.05,
+  rings: 5,
+  ribs: 12,
+  segments: 64, // per ring
+  radiusMax: 0.95, // at the active threshold
+  radiusMin: 0.55, // at isolation level 1: the walls close in
+  colorLow: '#5f7396', // dull blue (THREAT_COLOR.isolation)
+  colorHigh: '#26314a', // darker, colder at high isolation
+  maxOpacity: 0.35,
+  lerpSpeed: 2,
+}
+
+// Fog inside the module (environment), driven by co2Level.
+export const CABIN_FOG = {
+  radius: 0.92, // fraction of the module radius
+  lowColor: '#8a8f96', // just above the threshold (neutral grey)
   // high values blend toward THREAT_COLOR.environment (grey-orange)
-  minOpacity: 0.2, // at the threshold
-  maxOpacity: 0.65, // at co2Level = 1
-  noiseScale: 9, // size of the haze blobs (higher = smaller)
-  driftSpeed: 0.35, // slow upward drift
-  lerpSpeed: 2, // how fast opacity and tint follow co2Level
+  minOpacity: 0.06, // at the threshold
+  maxOpacity: 0.3, // at co2Level = 1
+  noiseScale: 3.5, // size of the fog blobs (higher = smaller)
+  driftSpeed: 0.25,
+  lerpSpeed: 2,
+}
+
+// Flow of stale air from the fog into the nose and lungs: the start of the chain lungs -> brain -> eyes.
+export const CABIN_FLOW = {
+  path: [
+    [-0.62, 1.25, 0.45],
+    [-0.3, 1.58, 0.35],
+    [0, 1.63, 0.16], // nose
+    [-0.04, 1.47, 0.07],
+    [-0.085, 1.32, 0], // lungs
+  ] as Vec3[],
+  pulses: 7, // moving dots on the path
+  loopSeconds: 2.6, // one dot travels the whole path in this time
+  size: 0.035,
+  color: '#ffb27a',
+  lineOpacity: 0.25, // the faint path itself
+}
+
+// Cabin sensors on the module wall (environment). angle: around the body, 0 = in front,
+// negative = the viewer's left. Low on the wall, below the left-side callouts.
+export const SENSORS = {
+  co2: { angle: -1.0, y: 0.8, warnAt: 0.4, criticalAt: 0.7 }, // co2Level 0..1, shown in %
+  temp: { angle: -1.0, y: 0.55, warnAt: 25, criticalAt: 27 }, // °C
+  noise: { angle: -1.0, y: 0.3, warnAt: 60, criticalAt: 65 }, // dB
+}
+
+// Circadian ring near the brain (isolation): 24 h circle with the sleep sector.
+export const CIRCADIAN = {
+  position: [0.34, 1.98, 0] as Vec3,
+  size: 64, // px
+  normalBedtime: 23, // hour the sleep sector starts when sleepShiftHours = 0
+  // status: warning if sleep < warnSleep or shift > warnShift; critical if sleep < critSleep or shift >= critShift
+  warnSleep: 6,
+  warnShift: 2,
+  critSleep: 5,
+  critShift: 3,
 }
 
 // Organ material and animation
