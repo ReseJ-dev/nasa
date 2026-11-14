@@ -1,0 +1,23 @@
+.sound-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #c5d5e8;
+  font: 12px/1.4 system-ui, sans-serif;
+}
+
+.sound-controls button {
+  border: 1px solid #355269;
+  border-radius: 6px;
+  padding: 5px 9px;
+  background: #101e2c;
+  color: #eef5ff;
+  cursor: pointer;
+}
+
+.sound-controls button[aria-pressed="true"] { border-color: #73d6e8; }
+.sound-controls :focus-visible { outline: 2px solid #73d6e8; outline-offset: 2px; }
+.sound-controls label { display: flex; align-items: center; gap: 5px; }
+.sound-controls input { width: 72px; accent-color: #73d6e8; }
