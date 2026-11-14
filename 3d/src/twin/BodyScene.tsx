@@ -6,6 +6,7 @@ import type { AmbientLight, DirectionalLight } from 'three'
 import { Body } from './Body'
 import { RegionMesh } from './RegionMesh'
 import { Skeleton } from './Skeleton'
+import { Hint, Legend } from './Overlay'
 import { REGIONS } from './regions'
 import { useHealthStore } from './store'
 import { BLOOM, CAMERA, RENDER, SCENE, type Layer } from './config'
@@ -64,6 +65,9 @@ export function BodyScene({
   const selectRegion = useHealthStore((s) => s.selectRegion)
   const [ownLayer, setOwnLayer] = useState<Layer>('body') // used only when `layer` is not passed
   const layer = layerProp ?? ownLayer
+  // Hint disappears after the first pointer interaction with the canvas (set once).
+  const [hintVisible, setHintVisible] = useState(true)
+  const hideHint = () => setHintVisible(false)
   const changeLayer = (l: Layer) => {
     if (layerProp === undefined) setOwnLayer(l)
     onLayerChange?.(l)
@@ -83,6 +87,8 @@ export function BodyScene({
         dpr={RENDER.dpr}
         gl={{ antialias: false }} // EffectComposer does the anti-aliasing (multisampling)
         onPointerMissed={clearSelection} // click on empty space clears selection
+        onPointerDown={hintVisible ? hideHint : undefined}
+        onWheel={hintVisible ? hideHint : undefined}
       >
         <color attach="background" args={[SCENE.background]} />
         <ambientLight ref={ambient} intensity={SCENE.ambientIntensity} />
@@ -117,6 +123,8 @@ export function BodyScene({
         />
       </Canvas>
       <LayerSwitch layer={layer} onChange={changeLayer} />
+      <Legend layer={layer} />
+      <Hint visible={hintVisible} />
     </div>
   )
 }
