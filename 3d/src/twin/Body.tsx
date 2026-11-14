@@ -9,7 +9,8 @@ import {
   NotEqualStencilFunc,
   ReplaceStencilOp,
 } from 'three'
-import { BODY_SHELL, EFFECTS, FLUID_SHIFT, LAYERS, type Layer } from './config'
+import { ACTIVITY, BODY_SHELL, EFFECTS, FLUID_SHIFT, LAYERS, type Layer } from './config'
+import { useAlertStatus } from './isolationStage'
 import { useHealthStore } from './store'
 import { useThreatEffect } from './hooks/useThreatEffect'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
@@ -44,6 +45,9 @@ function createShellMaterial() {
   // Fluid shift strength, lerped by Body in useFrame (shared with the compiled shader).
   const fluid = { value: 0 }
   material.userData.fluid = fluid
+  // Rim glow strength, lowered by Body while the activity alert is on (hypokinesis).
+  const rim = { value: BODY_SHELL.rimIntensity }
+  material.userData.rim = rim
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uFluid = fluid
     shader.uniforms.uFluidColor = { value: new Color(FLUID_SHIFT.headColor) }
@@ -56,7 +60,7 @@ function createShellMaterial() {
       )
     shader.uniforms.uRimColor = { value: new Color(BODY_SHELL.rimColor) }
     shader.uniforms.uRimPower = { value: BODY_SHELL.rimPower }
-    shader.uniforms.uRimIntensity = { value: BODY_SHELL.rimIntensity }
+    shader.uniforms.uRimIntensity = rim
     shader.uniforms.uCenterAlpha = { value: BODY_SHELL.centerAlpha }
     shader.uniforms.uEdgeAlpha = { value: BODY_SHELL.edgeAlpha }
     shader.fragmentShader = shader.fragmentShader
@@ -117,9 +121,18 @@ export function Body({ layer }: { layer: Layer }) {
   useLayoutEffect(() => {
     fluidGoal.current = EFFECTS.fluidShift && layer === 'body' ? fluidShift * gravityEffect : 0
   }, [layer, fluidShift, gravityEffect])
+  // Hypokinesis: the shell glows a little less while the engine reports an activity alert.
+  const lowActivity = useAlertStatus('activity') !== 'ok'
+  const rimGoal = useRef(BODY_SHELL.rimIntensity)
+  useLayoutEffect(() => {
+    rimGoal.current = BODY_SHELL.rimIntensity * (EFFECTS.hypokinesis && lowActivity ? ACTIVITY.shellGlowDrop : 1)
+  }, [lowActivity])
   useFrame((_, delta) => {
+    const k = 1 - Math.exp(-delta * FLUID_SHIFT.lerpSpeed)
     const u = material.userData.fluid as { value: number }
-    u.value += (fluidGoal.current - u.value) * (1 - Math.exp(-delta * FLUID_SHIFT.lerpSpeed))
+    u.value += (fluidGoal.current - u.value) * k
+    const rim = material.userData.rim as { value: number }
+    rim.value += (rimGoal.current - rim.value) * k
   })
 
   const gl = useThree((s) => s.gl)
