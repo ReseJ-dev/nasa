@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Color } from 'three'
 import type { RegionId } from '../../contract/types'
-import { RADIATION_TRACKS as P, REGION } from '../config'
+import { EFFECTS, RADIATION_TRACKS as P, REGION } from '../config'
 import { useThreatEffect } from './useThreatEffect'
 
 export const SHIMMER_COLOR = new Color(P.shimmer.color)
@@ -10,10 +10,10 @@ export const SHIMMER_COLOR = new Color(P.shimmer.color)
 // Violet shimmer for the immune and brain regions while the radiation threat is active
 // (full when focused or in demo, faint otherwise: see useThreatEffect).
 // Returns a ref with how far the emissive color should move toward SHIMMER_COLOR (0..1);
-// always 0 for other regions or when RADIATION_TRACKS.enabled is false.
+// always 0 for other regions or when EFFECTS.radiationShimmer is false.
 // Must be called before useStatusColor, which reads the ref in the same frame.
 export function useRadiationShimmer(id: RegionId) {
-  const applies = P.enabled && P.shimmer.regions.includes(id)
+  const applies = EFFECTS.radiationShimmer && P.shimmer.regions.includes(id)
   const emphasis = useThreatEffect('radiation')
   const target = applies ? emphasis : 0
   const targetRef = useRef(target)

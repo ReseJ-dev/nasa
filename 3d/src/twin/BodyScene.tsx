@@ -25,7 +25,7 @@ import type { ThreatId } from '../contract/types'
 import { LAYER_LABEL } from './labels'
 import { REGIONS } from './regions'
 import { useHealthStore } from './store'
-import { BLOOM, CAMERA, RADIATION_TRACKS, RENDER, SCENE, type Layer } from './config'
+import { BLOOM, CAMERA, EFFECTS, RENDER, SCENE, type Layer } from './config'
 
 // Dark vertical gradient for the scene background, created once at module load.
 function createBackground() {
@@ -239,19 +239,20 @@ export function BodyScene({
         </Selection>
         <Callouts visible={layer === 'body'} />
         <ChainLinks visible={layer === 'body'} />
-        <Habitat layer={layer} />
-        <CabinFlow layer={layer} />
-        <CircadianRing layer={layer} />
-        <EarthLink />
-        <GravityArrow />
-        {RADIATION_TRACKS.enabled && <RadiationTracks />}
-        {RADIATION_TRACKS.enabled && <Shelter />}
+        {/* Threat effects, each behind its own flag in config.ts (EFFECTS). */}
+        {(EFFECTS.habitatModule || EFFECTS.cabinFog || EFFECTS.cabinSensors) && <Habitat layer={layer} />}
+        {EFFECTS.cabinFlow && <CabinFlow layer={layer} />}
+        {EFFECTS.circadianRing && <CircadianRing layer={layer} />}
+        {EFFECTS.earthLink && <EarthLink />}
+        {EFFECTS.gravityArrow && <GravityArrow />}
+        {EFFECTS.radiationTracks && <RadiationTracks layer={layer} />}
+        {EFFECTS.shelter && <Shelter layer={layer} />}
         {showFps && <Stats />}
         <CameraRig />
         <FocusLineTracker lines={focusLines} iconRefs={iconRefs} container={container} />
       </Canvas>
       <LayerSwitch layer={layer} onChange={changeLayer} />
-      {RADIATION_TRACKS.enabled && <FlareFlash />}
+      {EFFECTS.solarFlare && <FlareFlash />}
       <FocusLinesSvg lines={focusLines} />
       <ThreatStrip iconRefs={iconRefs} onToggle={onThreatToggle} />
       <Legend layer={layer} />

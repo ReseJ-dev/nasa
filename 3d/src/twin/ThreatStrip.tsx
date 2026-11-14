@@ -4,7 +4,7 @@ import { useHealthStore } from './store'
 import { useSceneStore } from './sceneStore'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { STATUS_HEX } from './colors'
-import { THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S } from './config'
+import { EFFECTS, THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S } from './config'
 import { RADIATION_LABEL, THREAT_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 
@@ -182,7 +182,7 @@ export function ThreatStrip({
             </span>
             <span>{THREAT_LABEL[id]}</span>
             <span style={s.threatLevel}>{Math.round(level * 100)}%</span>
-            {id === 'radiation' && flare && <span style={s.doseBadge}>{RADIATION_LABEL.dose(dose)}</span>}
+            {id === 'radiation' && flare && EFFECTS.solarFlare && <span style={s.doseBadge}>{RADIATION_LABEL.dose(dose)}</span>}
           </button>
         )
       })}

@@ -14,7 +14,7 @@ import {
 import { useHealthStore } from './store'
 import { useSceneStore } from './sceneStore'
 import { useThreatEffect } from './hooks/useThreatEffect'
-import { BODY_PROFILE, RADIATION_TRACKS as T, SHELTER, SOLAR_FLARE } from './config'
+import { BODY_PROFILE, EFFECTS, RADIATION_TRACKS as T, SHELTER, SOLAR_FLARE, type Layer } from './config'
 import { DOT_TEXTURE } from './textures'
 
 // Radiation tracks: thin long violet lines from the Sun side (-x) through the body,
@@ -88,7 +88,8 @@ function createSparks() {
   return group
 }
 
-export function RadiationTracks() {
+// Hidden in skeleton mode.
+export function RadiationTracks({ layer }: { layer: Layer }) {
   const level = useHealthStore((st) => st.radiationLevel ?? 0)
   const inShelter = useHealthStore((st) => st.inShelter ?? false)
   const effect = useThreatEffect('radiation')
@@ -96,8 +97,12 @@ export function RadiationTracks() {
 
   const goal = useRef({ level: 0, burst: 1, shelter: 0 })
   useLayoutEffect(() => {
-    goal.current = { level: level * effect, burst: burst ? SOLAR_FLARE.burstFactor : 1, shelter: inShelter ? 1 : 0 }
-  }, [level, effect, burst, inShelter])
+    goal.current = {
+      level: layer === 'body' ? level * effect : 0,
+      burst: burst && EFFECTS.solarFlare ? SOLAR_FLARE.burstFactor : 1,
+      shelter: inShelter && EFFECTS.shelter ? 1 : 0,
+    }
+  }, [level, effect, burst, inShelter, layer])
 
   const tracks = useMemo(createTracks, [])
   const sparks = useMemo(createSparks, [])

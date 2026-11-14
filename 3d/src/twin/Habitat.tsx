@@ -17,7 +17,7 @@ import type { Status } from '../contract/types'
 import { useHealthStore } from './store'
 import { useThreatEffect } from './hooks/useThreatEffect'
 import { STATUS_HEX } from './colors'
-import { CABIN_FOG as F, HABITAT as H, SENSORS, THREAT_ACTIVE_THRESHOLD, THREAT_COLOR, type Layer } from './config'
+import { CABIN_FOG as F, EFFECTS, HABITAT as H, SENSORS, THREAT_ACTIVE_THRESHOLD, THREAT_COLOR, type Layer } from './config'
 import { SENSOR_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 
@@ -164,8 +164,8 @@ export function Habitat({ layer }: { layer: Layer }) {
     goal.current = {
       radius: H.radiusMax + (H.radiusMin - H.radiusMax) * iso,
       iso,
-      moduleOpacity: H.maxOpacity * isoEmphasis,
-      fogOpacity: (F.minOpacity + (F.maxOpacity - F.minOpacity) * fogT) * envEmphasis,
+      moduleOpacity: EFFECTS.habitatModule ? H.maxOpacity * isoEmphasis : 0,
+      fogOpacity: EFFECTS.cabinFog ? (F.minOpacity + (F.maxOpacity - F.minOpacity) * fogT) * envEmphasis : 0,
       fogT,
     }
   }, [isolation, co2, isoEmphasis, envEmphasis])
@@ -203,7 +203,7 @@ export function Habitat({ layer }: { layer: Layer }) {
   })
 
   // Sensors: same visibility rule as the fog (environment), faint or full.
-  const sensorOpacity = envEmphasis
+  const sensorOpacity = EFFECTS.cabinSensors ? envEmphasis : 0
   return (
     <primitive object={group}>
       <primitive object={lines} />

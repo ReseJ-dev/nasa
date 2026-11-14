@@ -206,6 +206,26 @@ export const THREAT_LEVEL = {
   criticalAt: 0.7,
 }
 
+// One switch per threat effect: false = the effect is not mounted at all.
+// Rule for all of them (see useThreatEffect): hidden below THREAT_ACTIVE_THRESHOLD,
+// full strength only for the focused threat (or demo), faint background otherwise.
+export const EFFECTS = {
+  radiationTracks: true, // tracks + hit sparks
+  radiationShimmer: true, // violet shimmer on immune and brain
+  solarFlare: true, // flash + track burst + dose badge
+  shelter: true, // shelter capsule
+  habitatModule: true, // wireframe module (isolation)
+  cabinFog: true, // fog inside the module (environment)
+  cabinSensors: true, // CO2 / temperature / noise chips (environment)
+  cabinFlow: true, // air flow into the nose and lungs (environment)
+  circadianRing: true, // sleep ring near the brain (isolation)
+  earthLink: true, // small Earth, link line, packet, cold tint (distance)
+  gravityArrow: true, // g arrow + landing moment (gravity)
+  fluidShift: true, // shell tint feet -> head (gravity)
+  sansGlow: true, // eyes glow at high fluid shift (gravity)
+  muscleMass: true, // thinner leg muscles (gravity)
+}
+
 // A threat counts as active from this level (0..1).
 export const THREAT_ACTIVE_THRESHOLD = 0.3
 
@@ -237,7 +257,6 @@ export const THREAT_COLOR: Record<ThreatId, string> = {
 // Radiation tracks (radiation threat), driven by radiationLevel and useThreatEffect('radiation').
 // Thin long violet lines flying from the Sun side (-x, the astronaut's right) through the body.
 export const RADIATION_TRACKS = {
-  enabled: true, // false = no tracks, hits, shimmer, flare flash or shelter contour
   capacity: 135, // instances in the one InstancedMesh (room for the x3 flare burst)
   maxCount: 45, // visible tracks at radiationLevel = 1, focused
   minSpeed: 1.6, // units per second at low levels

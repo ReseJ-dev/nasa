@@ -1,4 +1,5 @@
 import { BodyScene } from './twin'
+import { Bench } from './Bench'
 import { useHealthStore, type ScenarioId } from './twin/mockStore'
 import { DEV_PANEL, REGION_LABEL } from './twin/labels'
 import { GRAVITY_FIELDS } from './twin/config'
@@ -58,6 +59,8 @@ function TestPanel() {
 }
 
 export default function App() {
+  // Dev tool: FPS benchmark at ?bench (see Bench.tsx).
+  if (location.search.includes('bench')) return <Bench />
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
       <BodyScene showFps />
