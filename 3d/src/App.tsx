@@ -1,5 +1,5 @@
 import { BodyScene } from './twin'
-import { useHealthStore, type ScenarioId } from './twin/mockStore'
+import { useHealthStore, type ScenarioId } from './twin/store'
 
 // TEMPORARY test panel: switch scenarios and show the selected region.
 const SCENARIO_BUTTONS: ScenarioId[] = ['healthy', 'day60', 'critical']
