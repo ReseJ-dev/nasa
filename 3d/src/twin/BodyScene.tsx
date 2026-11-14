@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Environment, Lightformer, OrbitControls, Stars, Stats } from '@react-three/drei'
+import { Environment, Lightformer, Stars, Stats } from '@react-three/drei'
 import { EffectComposer, Selection, SelectiveBloom } from '@react-three/postprocessing'
 import { CanvasTexture, SRGBColorSpace, type AmbientLight, type DirectionalLight } from 'three'
 import { Body } from './Body'
@@ -8,6 +8,7 @@ import { RegionMesh } from './RegionMesh'
 import { Skeleton } from './Skeleton'
 import { Hint, Legend } from './Overlay'
 import { Callouts } from './Callouts'
+import { CameraRig } from './CameraRig'
 import { LAYER_LABEL } from './labels'
 import { REGIONS } from './regions'
 import { useHealthStore } from './store'
@@ -186,14 +187,7 @@ export function BodyScene({
         </Selection>
         <Callouts visible={layer === 'body'} />
         {showFps && <Stats />}
-        <OrbitControls
-          target={CAMERA.target}
-          enablePan={false}
-          minDistance={CAMERA.minDistance}
-          maxDistance={CAMERA.maxDistance}
-          minPolarAngle={CAMERA.minPolarAngle}
-          maxPolarAngle={CAMERA.maxPolarAngle}
-        />
+        <CameraRig />
       </Canvas>
       <LayerSwitch layer={layer} onChange={changeLayer} />
       <Legend layer={layer} />
