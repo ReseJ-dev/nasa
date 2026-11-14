@@ -14,7 +14,8 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { BonePart } from '../contract/types'
-import { SKELETON } from './config'
+import { LAYERS, SKELETON, type Layer } from './config'
+import { useFadeOpacity } from './hooks/useFadeOpacity'
 
 // Skeleton built from primitives, one mesh per BonePart (mesh name = BonePart).
 // Same units as Body.tsx: feet at y = 0. The astronaut faces +z (the camera),
@@ -125,7 +126,7 @@ const BONE_GEOMETRY: Record<BonePart, BufferGeometry> = {
 
 const BONE_PARTS = Object.keys(BONE_GEOMETRY) as BonePart[]
 
-export function Skeleton() {
+export function Skeleton({ layer }: { layer: Layer }) {
   // One neutral material for now; density colors come later.
   const material = useMemo(
     () =>
@@ -133,10 +134,11 @@ export function Skeleton() {
         color: SKELETON.color,
         roughness: SKELETON.roughness,
         transparent: true,
-        opacity: SKELETON.opacity,
+        opacity: LAYERS.body.skeleton,
       }),
     [],
   )
+  useFadeOpacity(material, LAYERS[layer].skeleton)
 
   return (
     <group name="skeleton">
