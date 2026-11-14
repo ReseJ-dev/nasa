@@ -5,7 +5,7 @@ import { Select } from '@react-three/postprocessing'
 import { MeshStandardMaterial, type Group, type Mesh } from 'three'
 import { useHealthStore } from './store'
 import { STATUS_COLOR } from './colors'
-import { HIDDEN_IN_SKELETON, LAYERS, REGION, type Layer } from './config'
+import { EFFECTS, HIDDEN_IN_SKELETON, LAYERS, REGION, type Layer } from './config'
 import { REGION_LABEL } from './labels'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
 import { useChainGlow } from './hooks/useChainGlow'
@@ -66,7 +66,7 @@ export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer
   useHeartbeat(partRefs, def.heartbeat === true)
   // Leg muscle meshes (thighs, calves): thinner with lower muscleMass.
   const thinRefs = useRef<(Mesh | null)[]>([])
-  useMuscleMass(thinRefs, def.parts.some((p) => p.thin))
+  useMuscleMass(thinRefs, EFFECTS.muscleMass && def.parts.some((p) => p.thin))
 
   // Bloom only unhealthy organs, and only in body mode (in skeleton mode organs are dimmed).
   const bloom = status !== 'ok' && layer === 'body'

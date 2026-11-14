@@ -6,6 +6,7 @@ import { useHealthStore } from './store'
 import { useSceneStore } from './sceneStore'
 import { GRAVITY_ARROW as A, GRAVITY_FIELDS } from './config'
 import { formatG } from './labels'
+import { useThreatEffect } from './hooks/useThreatEffect'
 import { overlayStyles as s } from './overlayStyles'
 
 // Gravity threat: a vertical g arrow next to the body, pointing down.
@@ -20,6 +21,14 @@ const isLanding = (prev: number, next: number) =>
 export function GravityArrow() {
   const g = useHealthStore((st) => st.gravityField ?? 0)
   const triggerLanding = useSceneStore((st) => st.triggerLanding)
+  // Threat rule: hidden below the threshold, faint unless focused / demo; full during a landing.
+  const landing = useSceneStore((st) => st.landing)
+  const effect = useThreatEffect('gravity')
+  const strength = landing ? 1 : effect
+  const strengthRef = useRef(strength)
+  useLayoutEffect(() => {
+    strengthRef.current = strength
+  }, [strength])
 
   const goal = useRef(0) // arrow length goal
   const drop = useRef(1) // 0 = start of the drop animation, 1 = settled
@@ -53,7 +62,7 @@ export function GravityArrow() {
     const k = 1 - Math.exp(-delta * A.lerpSpeed)
     length.current += (goal.current - length.current) * k
     const len = length.current
-    group.visible = len > 0.01
+    group.visible = len > 0.01 && strengthRef.current > 0.01
     if (!group.visible) return
 
     // Drop animation: fall from dropHeight with an ease-out, fade in at the same time.
@@ -61,7 +70,7 @@ export function GravityArrow() {
     const t = drop.current
     const ease = 1 - (1 - t) * (1 - t) * (1 - t)
     group.position.y = A.position[1] + A.dropHeight * (1 - ease)
-    material.opacity = 0.9 * ease
+    material.opacity = 0.9 * ease * strengthRef.current
 
     // Shaft from the top down, head at the bottom end.
     const shaftLen = Math.max(len - A.headLength, 0.001)
@@ -73,7 +82,11 @@ export function GravityArrow() {
   return (
     <>
       <primitive object={group} />
-      <Html position={[A.position[0], A.position[1] + 0.06, A.position[2]]} center style={{ pointerEvents: 'none' }}>
+      <Html
+        position={[A.position[0], A.position[1] + 0.06, A.position[2]]}
+        center
+        style={{ pointerEvents: 'none', opacity: strength, display: strength > 0 ? 'block' : 'none' }}
+      >
         <div style={s.gravityLabel}>{formatG(g)}</div>
       </Html>
     </>

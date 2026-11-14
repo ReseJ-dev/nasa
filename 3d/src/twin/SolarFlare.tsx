@@ -4,7 +4,8 @@ import { Html } from '@react-three/drei'
 import { CapsuleGeometry, Color, Mesh, ShaderMaterial } from 'three'
 import { useHealthStore } from './store'
 import { useSceneStore } from './sceneStore'
-import { SHELTER as S, SOLAR_FLARE } from './config'
+import { SHELTER as S, SOLAR_FLARE, type Layer } from './config'
+import { useThreatEffect } from './hooks/useThreatEffect'
 import { RADIATION_LABEL } from './labels'
 import { overlayStyles as st } from './overlayStyles'
 
@@ -56,12 +57,16 @@ const fragment = /* glsl */ `
   }
 `
 
-export function Shelter() {
+// Radiation-threat rule: faint unless radiation is focused (or demo), hidden when inactive
+// or in skeleton mode.
+export function Shelter({ layer }: { layer: Layer }) {
   const inShelter = useHealthStore((s) => s.inShelter ?? false)
+  const effect = useThreatEffect('radiation')
+  const strength = inShelter && layer === 'body' ? effect : 0
   const goal = useRef(0)
   useLayoutEffect(() => {
-    goal.current = inShelter ? S.opacity : 0
-  }, [inShelter])
+    goal.current = S.opacity * strength
+  }, [strength])
 
   const mesh = useMemo(() => {
     const m = new Mesh(
@@ -93,9 +98,9 @@ export function Shelter() {
   return (
     <>
       <primitive object={mesh} />
-      {inShelter && (
+      {strength > 0 && (
         <Html position={S.labelPosition} center style={{ pointerEvents: 'none' }}>
-          <div style={st.shelterLabel}>{RADIATION_LABEL.shelter}</div>
+          <div style={{ ...st.shelterLabel, opacity: Math.max(strength, 0.5) }}>{RADIATION_LABEL.shelter}</div>
         </Html>
       )}
     </>

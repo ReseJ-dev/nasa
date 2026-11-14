@@ -9,7 +9,7 @@ import {
   NotEqualStencilFunc,
   ReplaceStencilOp,
 } from 'three'
-import { BODY_SHELL, FLUID_SHIFT, LAYERS, type Layer } from './config'
+import { BODY_SHELL, EFFECTS, FLUID_SHIFT, LAYERS, type Layer } from './config'
 import { useHealthStore } from './store'
 import { useThreatEffect } from './hooks/useThreatEffect'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
@@ -115,7 +115,7 @@ export function Body({ layer }: { layer: Layer }) {
   const gravityEffect = useThreatEffect('gravity')
   const fluidGoal = useRef(0)
   useLayoutEffect(() => {
-    fluidGoal.current = layer === 'body' ? fluidShift * gravityEffect : 0
+    fluidGoal.current = EFFECTS.fluidShift && layer === 'body' ? fluidShift * gravityEffect : 0
   }, [layer, fluidShift, gravityEffect])
   useFrame((_, delta) => {
     const u = material.userData.fluid as { value: number }

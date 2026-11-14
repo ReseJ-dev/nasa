@@ -17,9 +17,8 @@ import {
 } from 'three'
 import type { Line2 } from 'three-stdlib'
 import { useHealthStore } from './store'
-import { useSceneStore } from './sceneStore'
-import { useFocusedThreat } from './hooks/useFocusedThreat'
-import { EARTH_LINK as E, THREAT_BACKGROUND_EMPHASIS } from './config'
+import { useThreatEffect } from './hooks/useThreatEffect'
+import { EARTH_LINK as E } from './config'
 import { EARTH_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 
@@ -110,9 +109,10 @@ function EarthHudScene({ mainCamera }: { mainCamera: Camera }) {
   const missionDay = useHealthStore((st) => st.missionDay ?? 0)
   const delay = useHealthStore((st) => st.commDelaySec ?? 0)
   const link = useHealthStore((st) => st.earthLink ?? true)
-  const focused = useFocusedThreat() === 'distance'
-  const demo = useSceneStore((st) => st.demo)
-  const strength = !link || focused || demo ? 1 : THREAT_BACKGROUND_EMPHASIS
+  // Threat rule (useThreatEffect): hidden below the threshold, faint unless focused / demo.
+  // A lost link always shows at full strength.
+  const effect = useThreatEffect('distance')
+  const strength = !link ? 1 : effect
 
   // Goals for useFrame, updated only when inputs change.
   const goal = useRef({ far: 0, strength, broken: 0, travel: 1 })
@@ -201,9 +201,17 @@ function EarthHudScene({ mainCamera }: { mainCamera: Camera }) {
     const eu = earth.material.uniforms
     eu.uBrightness.value = 1 + (E.dimBrightness - 1) * sm.broken
     eu.uOpacity.value = sm.strength
+    const shown = sm.strength > 0.01
+    earth.visible = shown
+    if (segA.current) segA.current.visible = shown
+    if (segB.current) segB.current.visible = shown
+    if (label.current) label.current.visible = shown
     label.current?.position.set(ex, ey - r - 14, 0)
     autonomy.current?.position.set(0, size.height / 2 - E.autonomyLabelTop, 0)
-    if (labelEl.current) labelEl.current.style.opacity = String(sm.strength)
+    if (labelEl.current) {
+      labelEl.current.style.opacity = String(sm.strength)
+      labelEl.current.style.display = shown ? 'block' : 'none'
+    }
 
     // Body end of the line: the shoulder projected with the main camera, in pixels.
     v.set(...E.bodyPoint).project(mainCamera)
@@ -234,7 +242,7 @@ function EarthHudScene({ mainCamera }: { mainCamera: Camera }) {
     packet.position.set(mx(sx, bx, sm.packet), mx(sy, by, sm.packet), 1)
     packet.scale.setScalar(E.packetRadius)
     packet.material.opacity = sm.strength * (1 - sm.broken)
-    packet.visible = packet.material.opacity > 0.01
+    packet.visible = shown && packet.material.opacity > 0.01
 
     // Colder frame while the link is down.
     tint.scale.set(size.width, size.height, 1)
