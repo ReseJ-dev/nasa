@@ -18,7 +18,7 @@ interface Case {
 const FOCUS: Record<ScenarioId, ThreatId[]> = {
   healthy: ['radiation'],
   day60: ['gravity'],
-  critical: ['radiation', 'environment'],
+  critical: ['radiation', 'environment', 'isolation'],
 }
 const CASES: Case[] = (['healthy', 'day60', 'critical'] as ScenarioId[]).flatMap((scenario) =>
   (['body', 'skeleton'] as Layer[]).flatMap((layer) =>
