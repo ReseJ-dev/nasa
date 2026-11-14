@@ -17,6 +17,9 @@ const DEMO_LABEL = {
   button: 'Demo',
   stop: 'Stop demo (Esc)',
   hotkey: 'D',
+  isolation: 'Isolation step',
+  isolationHotkey: 'I',
+  isolationCaption: 'Isolation: sleep, alertness and activity break down',
 }
 
 // ---- Scripted demo -------------------------------------------------------------------
@@ -30,12 +33,15 @@ interface DemoView {
   caption: string
 }
 
+// Lets a step schedule its own later writes; the demo clears them on stop.
+type Schedule = (fn: () => void, ms: number) => void
+
 interface DemoStep {
   at: number // seconds from the start
   caption: string
   focus?: ThreatId | null // undefined = keep
   layer?: Layer
-  run?: () => void
+  run?: (schedule: Schedule) => void
 }
 
 const store = () => useHealthStore.getState()
@@ -47,6 +53,56 @@ function setEnvironment(id: SimEnvironment) {
   store().setThreatLevel('distance', Math.min(commDelaySec / DISTANCE_DELAY_FULL_SEC, 1))
 }
 const critical = SCENARIOS.critical
+
+// ---- Isolation step ------------------------------------------------------------------
+// The presentation moment: from healthy values, over ISOLATION_STEP.rampS seconds sleep shrinks
+// (8 h -> 5 h), the sleep arc rotates by 3 h, the reaction readout climbs and the last two
+// activity bars drop; then the alerts appear and the brain lights up.
+// Only scripted values move here (healthy preset -> critical preset); the alerts and the brain
+// state are the ones the simulation computed for the critical preset. The twin smooths every
+// value itself, so a few writes per second look continuous.
+const ISOLATION_STEP = {
+  leadS: 1.4, // the elements fade in first (ring -> impulse -> bars -> labels)
+  rampS: 4,
+  frameMs: 200,
+  alertAfterS: 0.4, // pause between the end of the ramp and the alert
+}
+const mix = (a: number, b: number, t: number) => a + (b - a) * t
+
+function isolationFrame(t: number) {
+  const a = SCENARIOS.healthy
+  const b = critical
+  const e = t * t * (3 - 2 * t) // ease in and out
+  store().patch({
+    sleepHours: mix(a.sleepHours, b.sleepHours, e),
+    sleepShiftHours: mix(a.sleepShiftHours, b.sleepShiftHours, e),
+    brightLightMin: mix(a.brightLightMin, b.brightLightMin, e),
+    reactionMs: mix(a.reactionMs, b.reactionMs, e),
+    reactionLapses: Math.round(mix(a.reactionLapses, b.reactionLapses, e)),
+    mood: mix(a.mood, b.mood, e),
+    activityMin: mix(a.activityMin, b.activityMin, e),
+    history: b.history.map((day, i) => ({
+      sleepHours: mix(a.history[i].sleepHours, day.sleepHours, e),
+      activityMin: mix(a.history[i].activityMin, day.activityMin, e),
+    })),
+  })
+}
+
+function runIsolationStep(schedule: Schedule) {
+  isolationFrame(0)
+  store().patch({ alerts: SCENARIOS.healthy.alerts })
+  const frames = Math.round((ISOLATION_STEP.rampS * 1000) / ISOLATION_STEP.frameMs)
+  const lead = ISOLATION_STEP.leadS * 1000
+  for (let i = 1; i <= frames; i++) schedule(() => isolationFrame(i / frames), lead + i * ISOLATION_STEP.frameMs)
+  schedule(
+    () => {
+      store().setThreatLevel('isolation', critical.threats.isolation.level)
+      // only the brain changes; the other regions keep their objects
+      store().patch({ alerts: critical.alerts, regions: { ...store().regions, brain: critical.regions.brain } })
+    },
+    lead + (ISOLATION_STEP.rampS + ISOLATION_STEP.alertAfterS) * 1000,
+  )
+}
 
 const DEMO: DemoStep[] = [
   { at: 0, caption: 'Healthy crew, day 0', focus: null, layer: 'body', run: () => store().setScenario('healthy') },
@@ -63,13 +119,14 @@ const DEMO: DemoStep[] = [
     at: 9,
     caption: 'Crew in the shelter: isolation grows',
     focus: 'isolation',
-    run: () => {
-      store().setThreatLevel('isolation', 0.7)
-      store().patch({ inShelter: true, sleepHours: critical.sleepHours, sleepShiftHours: critical.sleepShiftHours })
+    run: (schedule) => {
+      store().setThreatLevel('isolation', 0.5)
+      store().patch({ inShelter: true })
+      runIsolationStep(schedule) // about 6 s; the next step waits for it
     },
   },
   {
-    at: 15,
+    at: 18,
     caption: 'CO₂ builds up in the closed cabin',
     focus: 'environment',
     run: () => {
@@ -87,7 +144,7 @@ const DEMO: DemoStep[] = [
     },
   },
   {
-    at: 22,
+    at: 25,
     caption: 'Earth is not answering',
     focus: 'distance',
     run: () => {
@@ -96,7 +153,7 @@ const DEMO: DemoStep[] = [
     },
   },
   {
-    at: 28,
+    at: 31,
     caption: 'Microgravity: fluid shift and muscle loss',
     focus: 'gravity',
     run: () => {
@@ -109,13 +166,13 @@ const DEMO: DemoStep[] = [
     },
   },
   {
-    at: 32,
+    at: 35,
     caption: 'Landing: 1 g',
     layer: 'skeleton',
     run: () => store().patch({ gravityField: GRAVITY_FIELDS.earth }),
   },
   {
-    at: 40,
+    at: 43,
     caption: 'How the threats feed each other',
     focus: null,
     layer: 'body',
@@ -123,9 +180,16 @@ const DEMO: DemoStep[] = [
   },
 ]
 
+// Dev deep link, e.g. ?preset=critical&focus=isolation&layer=skeleton (handy for screenshots).
+const params = new URLSearchParams(location.search)
+const START_PRESET = SCENARIO_BUTTONS.find((id) => id === params.get('preset'))
+const START_FOCUS = (Object.keys(SCENARIOS.healthy.threats) as ThreatId[]).find((id) => id === params.get('focus')) ?? null
+const START_LAYER: Layer = params.get('layer') === 'skeleton' ? 'skeleton' : 'body'
+if (START_PRESET) store().setScenario(START_PRESET)
+
 function useDemo() {
   const [running, setRunning] = useState(false)
-  const [view, setView] = useState<DemoView>({ focus: null, layer: 'body', caption: '' })
+  const [view, setView] = useState<DemoView>({ focus: START_FOCUS, layer: START_LAYER, caption: '' })
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const clear = () => {
@@ -140,13 +204,28 @@ function useDemo() {
     setView({ focus: null, layer: 'body', caption: '' })
   }, [])
 
+  const schedule = useCallback<Schedule>((fn, ms) => {
+    timers.current.push(setTimeout(fn, ms))
+  }, [])
+
+  // The isolation step on its own: healthy values, isolation in focus, then the ramp.
+  const startIsolation = useCallback(() => {
+    clear()
+    setRunning(true)
+    store().setScenario('healthy')
+    setView({ focus: 'isolation', layer: 'body', caption: DEMO_LABEL.isolationCaption })
+    runIsolationStep(schedule)
+    const total = ISOLATION_STEP.leadS + ISOLATION_STEP.rampS + ISOLATION_STEP.alertAfterS
+    schedule(() => setRunning(false), total * 1000) // step over, view stays
+  }, [schedule])
+
   const start = useCallback(() => {
     clear()
     setRunning(true)
     for (const step of DEMO) {
       timers.current.push(
         setTimeout(() => {
-          step.run?.()
+          step.run?.(schedule)
           setView((v) => ({
             focus: step.focus === undefined ? v.focus : step.focus,
             layer: step.layer ?? v.layer,
@@ -156,10 +235,10 @@ function useDemo() {
         }, step.at * 1000),
       )
     }
-  }, [])
+  }, [schedule])
 
   useEffect(() => clear, [])
-  return { running, view, setView, start, stop }
+  return { running, view, setView, start, startIsolation, stop }
 }
 
 // ---- Dev page ------------------------------------------------------------------------
@@ -199,6 +278,9 @@ function TestPanel({ demo }: { demo: ReturnType<typeof useDemo> }) {
         ))}
         <button onClick={demo.running ? demo.stop : demo.start} title={`${DEMO_LABEL.hotkey} / Esc`}>
           {demo.running ? DEMO_LABEL.stop : `${DEMO_LABEL.button} (${DEMO_LABEL.hotkey})`}
+        </button>
+        <button onClick={demo.startIsolation} title={DEMO_LABEL.isolationHotkey}>
+          {DEMO_LABEL.isolation} ({DEMO_LABEL.isolationHotkey})
         </button>
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
@@ -243,18 +325,20 @@ export default function App() {
 
 function DevPage() {
   const demo = useDemo()
-  const { start, stop, setView } = demo
+  const { start, startIsolation, stop, setView } = demo
 
-  // Hotkeys: D starts (or restarts) the demo, Esc stops it and resets to healthy.
+  // Hotkeys: D starts (or restarts) the demo, I plays the isolation step alone,
+  // Esc stops either and resets to healthy.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return
       if (e.key === 'd' || e.key === 'D') start()
+      if (e.key === 'i' || e.key === 'I') startIsolation()
       if (e.key === 'Escape') stop()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [start, stop])
+  }, [start, startIsolation, stop])
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
