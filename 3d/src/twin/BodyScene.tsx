@@ -14,7 +14,9 @@ import { FocusLinesSvg, FocusLineTracker } from './FocusLines'
 import { useSceneStore } from './sceneStore'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { RadiationParticles } from './RadiationParticles'
-import { CO2Haze } from './CO2Haze'
+import { Habitat } from './Habitat'
+import { CabinFlow } from './CabinFlow'
+import { CircadianRing } from './CircadianRing'
 import { ChainLinks } from './ChainLinks'
 import type { ThreatId } from '../contract/types'
 import { LAYER_LABEL } from './labels'
@@ -233,7 +235,9 @@ export function BodyScene({
         </Selection>
         <Callouts visible={layer === 'body'} />
         <ChainLinks visible={layer === 'body'} />
-        <CO2Haze layer={layer} />
+        <Habitat layer={layer} />
+        <CabinFlow layer={layer} />
+        <CircadianRing layer={layer} />
         {RADIATION_PARTICLES.enabled && <RadiationParticles />}
         {showFps && <Stats />}
         <CameraRig />

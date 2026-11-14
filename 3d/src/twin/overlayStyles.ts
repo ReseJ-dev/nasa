@@ -80,6 +80,26 @@ export const overlayStyles = {
     whiteSpace: 'nowrap',
     opacity: 0, // faded in by ChainLinks
   },
+  // Cabin sensor chip on the habitat wall.
+  sensor: {
+    padding: '2px 7px',
+    borderRadius: 4,
+    border: '1px solid',
+    background: 'rgba(10, 14, 24, 0.8)',
+    font: '600 11px system-ui, sans-serif',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+  },
+  // Circadian ring near the brain.
+  circadian: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    color: '#fff',
+    font: '11px system-ui, sans-serif',
+    userSelect: 'none',
+    pointerEvents: 'none',
+  },
   hint: {
     ...panel,
     left: '50%',

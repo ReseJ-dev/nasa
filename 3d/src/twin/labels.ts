@@ -44,4 +44,17 @@ export const THREAT_LABEL: Record<ThreatId, string> = {
   environment: 'Environment',
 }
 
+export const SENSOR_LABEL = {
+  co2: 'CO₂',
+  temp: '°C',
+  noise: 'Noise',
+  noiseUnit: 'dB',
+}
+
+export const CIRCADIAN_LABEL = {
+  sleep: 'Sleep',
+  hours: 'h',
+  shift: 'shift',
+}
+
 export const HINT = 'Rotate, zoom, click an organ'
