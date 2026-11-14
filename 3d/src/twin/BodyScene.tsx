@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { OrbitControls, Stats } from '@react-three/drei'
 import { EffectComposer, Selection, SelectiveBloom } from '@react-three/postprocessing'
 import type { AmbientLight, DirectionalLight } from 'three'
 import { Body } from './Body'
@@ -8,7 +8,7 @@ import { RegionMesh } from './RegionMesh'
 import { Skeleton } from './Skeleton'
 import { REGIONS } from './regions'
 import { useHealthStore } from './mockStore'
-import { BLOOM, CAMERA, SCENE, type Layer } from './config'
+import { BLOOM, CAMERA, RENDER, SCENE, type Layer } from './config'
 
 const LAYER_LABEL: Record<Layer, string> = { body: 'Body', skeleton: 'Skeleton' }
 
@@ -46,20 +46,27 @@ function LayerSwitch({ layer, onChange }: { layer: Layer; onChange(l: Layer): vo
   )
 }
 
-// The only export for teammate 2. Fills its parent container completely.
-export function BodyScene() {
+// The only export for teammate 2. Fills its parent container completely
+// (Canvas follows the container size automatically, also on window resize).
+// showFps: dev-only FPS counter in the top-left corner.
+export function BodyScene({ showFps = false }: { showFps?: boolean }) {
   const selectRegion = useHealthStore((s) => s.selectRegion)
   const [layer, setLayer] = useState<Layer>('body') // changes only on button click
   // SelectiveBloom re-lights the selected organs, so it needs the scene lights.
   const ambient = useRef<AmbientLight>(null)
   const keyLight = useRef<DirectionalLight>(null)
   const rimLight = useRef<DirectionalLight>(null)
+  // Same array on every render, so SelectiveBloom does not re-attach lights.
+  const bloomLights = useMemo(() => [ambient, keyLight, rimLight], [])
+  const clearSelection = useMemo(() => () => selectRegion(null), [selectRegion])
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas
         camera={{ position: CAMERA.position, fov: CAMERA.fov }}
-        onPointerMissed={() => selectRegion(null)} // click on empty space clears selection
+        dpr={RENDER.dpr}
+        gl={{ antialias: false }} // EffectComposer does the anti-aliasing (multisampling)
+        onPointerMissed={clearSelection} // click on empty space clears selection
       >
         <color attach="background" args={[SCENE.background]} />
         <ambientLight ref={ambient} intensity={SCENE.ambientIntensity} />
@@ -72,9 +79,9 @@ export function BodyScene() {
           ))}
           <Skeleton layer={layer} />
           <Body layer={layer} />
-          <EffectComposer>
+          <EffectComposer multisampling={RENDER.multisampling}>
             <SelectiveBloom
-              lights={[ambient, keyLight, rimLight]}
+              lights={bloomLights}
               intensity={BLOOM.intensity}
               luminanceThreshold={BLOOM.luminanceThreshold}
               luminanceSmoothing={BLOOM.luminanceSmoothing}
@@ -83,6 +90,7 @@ export function BodyScene() {
             />
           </EffectComposer>
         </Selection>
+        {showFps && <Stats />}
         <OrbitControls
           target={CAMERA.target}
           enablePan={false}

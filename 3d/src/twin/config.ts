@@ -13,6 +13,12 @@ export const CAMERA = {
   maxPolarAngle: Math.PI * 0.75, // cannot look from straight below
 }
 
+// Rendering quality vs speed
+export const RENDER = {
+  dpr: [1, 1.5] as [number, number], // pixel ratio range: caps 4K/Retina screens at 1.5x
+  multisampling: 4, // anti-aliasing samples in the post-processing pass (default 8 is heavy)
+}
+
 // Scene background and lights
 export const SCENE = {
   background: '#05070d',

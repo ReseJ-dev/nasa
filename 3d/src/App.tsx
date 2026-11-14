@@ -13,7 +13,7 @@ function TestPanel() {
     <div
       style={{
         position: 'absolute',
-        top: 16,
+        bottom: 16, // top-left is taken by the FPS counter
         left: 16,
         padding: 12,
         borderRadius: 8,
@@ -41,7 +41,7 @@ function TestPanel() {
 export default function App() {
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
-      <BodyScene />
+      <BodyScene showFps />
       <TestPanel />
     </div>
   )

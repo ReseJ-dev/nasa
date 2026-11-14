@@ -14,8 +14,9 @@ function bump(p: number, b: { at: number; width: number; strength: number }) {
 // Does nothing when `enabled` is false. Only touches objects in useFrame, no setState.
 export function useHeartbeat(targets: RefObject<(Object3D | null)[]>, enabled: boolean) {
   // Re-renders only when the heart rate number changes, not every frame.
-  const bpm = useHealthStore(
-    (s) => s.metrics.find((m) => m.id === HEART.metricId)?.value ?? HEART.defaultBpm,
+  // Disabled regions select a constant, so they never re-render on heart rate changes.
+  const bpm = useHealthStore((s) =>
+    enabled ? (s.metrics.find((m) => m.id === HEART.metricId)?.value ?? HEART.defaultBpm) : 0,
   )
   const phase = useRef(0) // position inside the current beat, 0..1
 
