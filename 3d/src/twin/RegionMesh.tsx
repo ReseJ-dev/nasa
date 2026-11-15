@@ -7,6 +7,7 @@ import { useHealthStore } from './store'
 import { STATUS_COLOR } from './colors'
 import { EFFECTS, HIDDEN_IN_SKELETON, LAYERS, REGION, type Layer } from './config'
 import { REGION_LABEL } from './labels'
+import { overlayStyles as overlay } from './overlayStyles'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
 import { useChainGlow } from './hooks/useChainGlow'
 import { useHeartbeat } from './hooks/useHeartbeat'
@@ -109,16 +110,7 @@ export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer
       </Select>
       {hovered && (
         <Html position={def.labelPosition} center style={{ pointerEvents: 'none' }}>
-          <div
-            style={{
-              padding: '2px 8px',
-              borderRadius: 4,
-              background: 'rgba(10, 14, 24, 0.85)',
-              color: '#fff',
-              font: '13px system-ui, sans-serif',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <div style={overlay.hoverLabel}>
             {REGION_LABEL[def.id]}
           </div>
         </Html>

@@ -11,7 +11,7 @@ const STATUSES: Status[] = ['ok', 'warning', 'critical']
 // Same colors as the bones: bone white -> yellow -> red as density drops.
 const DENSITY_GRADIENT = `linear-gradient(to right, ${SKELETON.color}, ${STATUS_HEX.warning}, ${STATUS_HEX.critical})`
 
-// Bottom-right legend: status colors in body mode, density scale in skeleton mode.
+// Top-left legend (the bottom corners belong to the floor effects and the hint): status colors in body mode, density scale in skeleton mode.
 export function Legend({ layer }: { layer: Layer }) {
   if (layer === 'skeleton') {
     return (
