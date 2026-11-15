@@ -71,6 +71,11 @@
 .alert-summary[data-level="critical"] { border-color: var(--st-critical-line); background: var(--st-critical-bg); }
 .alert-summary[data-level="warning"] { border-color: rgba(245, 194, 66, 0.5); }
 .top-button { font-weight: 650; color: var(--text-1); }
+/* Tiny speaker icon: muted (dim, crossed) or on (accent) */
+.sound-icon { align-self: center; display: grid; place-items: center; width: 2rem; height: 2rem; padding: 0; color: var(--text-3); background: none; border: 1px solid transparent; border-radius: var(--r-1); }
+.sound-icon svg { width: 1.2rem; height: 1.2rem; }
+.sound-icon:hover { border-color: var(--line-strong); }
+.sound-icon[aria-pressed="true"] { color: var(--accent); }
 .top-button[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent-line); }
 .earth-toggle[data-online="false"] { border-color: var(--hz-distance); }
 .earth-toggle[data-online="false"] span { color: var(--hz-distance); }
@@ -156,6 +161,9 @@
 .status-more summary:hover { background: var(--bg-inset); }
 .status-more ul { list-style: none; display: grid; gap: var(--sp-2); margin: var(--sp-2) 0 0; padding: 0; }
 
+/* Demo caption: one line at the bottom of the stage while the scripted demo runs */
+.demo-caption { position: absolute; left: 50%; bottom: var(--sp-3); z-index: 10; transform: translateX(-50%); margin: 0; padding: var(--sp-1) var(--sp-4); max-width: calc(100% - 2rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs-title); font-weight: 600; color: var(--text-1); background: var(--bg-overlay); border: 1px solid var(--line-strong); border-radius: var(--r-pill); pointer-events: none; }
+
 /* ---- Forecast drawer: slides over the bottom edge of the stage, closed by default ---- */
 .forecast-drawer { position: absolute; left: var(--sp-3); right: var(--sp-3); bottom: var(--sp-3); z-index: 15; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: var(--r-3); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); animation: drawer-up 0.2s ease-out; }
 @keyframes drawer-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
@@ -220,6 +228,10 @@
 .health-card .preset-note { margin: var(--sp-2) 0 0; font-size: var(--fs-caption); color: var(--text-3); }
 .control-room .control-inputs { grid-template-columns: minmax(0, 1fr); }
 .control-row { display: grid; gap: var(--sp-3); }
+.control-demo { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.control-demo button { padding: var(--sp-1) var(--sp-3); background: var(--bg-inset); border: 1px solid var(--line-strong); border-radius: var(--r-1); }
+.control-demo button:hover { border-color: var(--accent-line); }
+.control-demo button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 .control-row .earth-toggle { justify-self: start; }
 .control-checkin { width: 100%; }
 /* Modal for the daily check-in (manual items) */

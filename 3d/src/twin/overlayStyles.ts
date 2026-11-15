@@ -72,7 +72,7 @@ export const overlayStyles = {
   threatName: { fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   threatFocused: { background: 'var(--bg-raised)' },
   threatOfSelected: { boxShadow: 'inset 0 -2px 0 var(--accent)' }, // includes the selected region: underline
-  threatLevel: { color: 'var(--text-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  threatLevel: { color: 'var(--text-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' },
   threatNoLink: { color: 'var(--st-critical-text)', fontWeight: 700 },
   // Root of the scene: threats row on top, 3D stage below.
   root: { position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' },
