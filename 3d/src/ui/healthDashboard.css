@@ -437,3 +437,8 @@
 .live-vital input { width: 100%; accent-color: var(--accent); }
 .live-vital b { text-align: right; color: var(--text-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .live-vital small { color: var(--text-3); font-weight: 450; }
+
+/* Solar flare on demand (Control room) */
+.flare-button { width: 100%; margin-top: var(--sp-2); padding: var(--sp-2) var(--sp-3); font-weight: 650; color: #f0e8ff; background: rgba(166, 108, 255, 0.18); border: 1px solid var(--hz-radiation); border-radius: var(--r-2); cursor: pointer; }
+.flare-button:hover { background: rgba(166, 108, 255, 0.3); }
+.flare-button[aria-pressed="true"] { background: var(--bg-inset); color: var(--text-1); border-style: dashed; }

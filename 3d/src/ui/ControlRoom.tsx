@@ -3,6 +3,7 @@ import { CheckInPanel } from './CheckInPanel'
 import { EarthLinkToggle, MissionControls } from './ControlBar'
 import { HealthMetrics } from './MetricsCards'
 import { LiveVitals } from './LiveVitals'
+import { endSolarFlare, startSolarFlare } from '../solarFlare'
 import { loadPreset, useIsCustom } from './presetState'
 import { SoundControls } from './SoundControls'
 
@@ -25,6 +26,9 @@ const TEXT = {
   checkIn: 'Daily check-in',
   checkInNote: 'Manual items that sensors cannot capture: mood, reaction test, glucose, blood pressure.',
   closeCheckIn: 'Close check-in',
+  flare: 'Solar flare',
+  endFlare: 'End solar flare',
+  flareNote: 'Flare on top of the current state: dose rises, crew goes to the shelter.',
 }
 
 // The highlight is on a preset only while the inputs still are that preset's; after any change
@@ -43,6 +47,19 @@ function Presets() {
         {custom && <span className="preset-custom" aria-current="true" title={TEXT.customNote}>{TEXT.custom}</span>}
       </div>
       {custom && <p className="preset-note">{TEXT.customNote}</p>}
+    </>
+  )
+}
+
+// Solar flare on demand: starts from whatever is on screen now; a second click ends it.
+function FlareButton() {
+  const active = useHealthStore((s) => s.activeEvent === 'solar_flare')
+  return (
+    <>
+      <button type="button" className="flare-button" aria-pressed={active} onClick={active ? endSolarFlare : startSolarFlare}>
+        {active ? TEXT.endFlare : TEXT.flare}
+      </button>
+      <p className="preset-note">{TEXT.flareNote}</p>
     </>
   )
 }
@@ -103,6 +120,7 @@ export function ControlRoom({
             <button type="button" onClick={demo.startIsolation}>{demo.label.isolation} ({demo.label.isolationHotkey})</button>
             <button type="button" onClick={demo.stop}>{TEXT.reset}</button>
           </div>
+          <FlareButton />
         </section>
         <section className="health-card" aria-labelledby="cr-mission">
           <h3 id="cr-mission">{TEXT.mission}</h3>
