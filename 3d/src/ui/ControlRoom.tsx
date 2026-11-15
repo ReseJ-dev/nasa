@@ -15,6 +15,8 @@ const TEXT = {
   note: 'Demo controls. In a mission this data comes from sensors.',
   close: 'Close control room (C)',
   scenario: 'Scenario',
+  demo: 'Scripted demo',
+  reset: 'Reset (Esc)',
   mission: 'Mission',
   link: 'Earth link and sound',
   custom: 'Custom',
@@ -44,6 +46,14 @@ function Presets() {
   )
 }
 
+export interface DemoControls {
+  running: boolean
+  start(): void
+  startIsolation(): void
+  stop(): void
+  label: { button: string; hotkey: string; isolation: string; isolationHotkey: string }
+}
+
 // The check-in form and the 30 s reaction test, in a modal.
 function CheckInModal({ onClose }: { onClose(): void }) {
   return (
@@ -63,10 +73,12 @@ export function ControlRoom({
   onClose,
   checkInOpen,
   onCheckIn,
+  demo,
 }: {
   onClose(): void
   checkInOpen: boolean
   onCheckIn(open: boolean): void
+  demo: DemoControls
 }) {
   return (
     <>
@@ -81,6 +93,14 @@ export function ControlRoom({
         <section className="health-card" aria-labelledby="cr-scenario">
           <h3 id="cr-scenario">{TEXT.scenario}</h3>
           <Presets />
+        </section>
+        <section className="health-card" aria-labelledby="cr-demo">
+          <h3 id="cr-demo">{TEXT.demo}</h3>
+          <div className="control-demo">
+            <button type="button" aria-pressed={demo.running} onClick={demo.start}>{demo.label.button} ({demo.label.hotkey})</button>
+            <button type="button" onClick={demo.startIsolation}>{demo.label.isolation} ({demo.label.isolationHotkey})</button>
+            <button type="button" onClick={demo.stop}>{TEXT.reset}</button>
+          </div>
         </section>
         <section className="health-card" aria-labelledby="cr-mission">
           <h3 id="cr-mission">{TEXT.mission}</h3>

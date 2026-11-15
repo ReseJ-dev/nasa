@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { DEMO_LABEL, useDemo } from '../demo'
 import type { RegionId } from '../contract/types'
 import { BodyScene } from '../twin'
 import { STATUS_HEX } from '../twin/colors'
@@ -7,6 +8,7 @@ import { useHealthStore } from '../twin/store'
 import { CriticalBanner, useAlertItems } from './AlertsPanel'
 import { Forecast, MAX_DAY } from './ControlBar'
 import { ControlRoom } from './ControlRoom'
+import { useSound } from './sound'
 import { StatusNow } from './StatusNow'
 import { ZonePanel } from './ZonePanel'
 import '../twin/theme'
@@ -34,11 +36,29 @@ const TEXT = {
   forecast: 'Forecast',
   closeForecast: 'Close forecast',
   systems: 'Body systems',
+  soundOn: 'Sound on (click to mute)',
+  soundOff: 'Sound muted (click to unmute)',
+}
+
+// Tiny speaker icon: the only sound control in presentation mode (the slider is in the Control room).
+function SoundIcon() {
+  const enabled = useSound((s) => s.enabled)
+  const setEnabled = useSound((s) => s.setEnabled)
+  const label = enabled ? TEXT.soundOn : TEXT.soundOff
+  return (
+    <button type="button" className="sound-icon" aria-pressed={enabled} aria-label={label} title={label} onClick={() => setEnabled(!enabled)}>
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 7.5h3l4-3.5v12l-4-3.5H3z" fill="currentColor" stroke="none" />
+        {enabled ? <path d="M13 7a4.2 4.2 0 0 1 0 6M15.3 4.8a7.4 7.4 0 0 1 0 10.4" /> : <path d="M13 7.5l5 5M18 7.5l-5 5" />}
+      </svg>
+    </button>
+  )
 }
 
 // Read-only chips: mission day, Earth link, solar flare (only while active), alert counts.
 function TopBar({ forecastOpen, onForecast }: { forecastOpen: boolean; onForecast(): void }) {
-  const day = useHealthStore((s) => s.day)
+  // missionDay is the day the scene shows (the scripted demo moves it); same as `day` otherwise.
+  const day = useHealthStore((s) => s.missionDay ?? s.day)
   const flare = useHealthStore((s) => s.activeEvent === 'solar_flare')
   const online = useHealthStore((s) => s.earthLink ?? true)
   const reply = useHealthStore((s) => (s.commDelaySec ?? 0) * 2) // there and back
@@ -79,6 +99,7 @@ function TopBar({ forecastOpen, onForecast }: { forecastOpen: boolean; onForecas
         <button type="button" className="top-button" aria-pressed={forecastOpen} onClick={onForecast}>
           {TEXT.forecast}
         </button>
+        <SoundIcon />
       </div>
     </header>
   )
@@ -138,22 +159,57 @@ export function HealthDashboard() {
   const [controlOpen, setControlOpen] = useState(START_IN_CONTROL)
   const [checkInOpen, setCheckInOpen] = useState(false)
 
-  // Keys: C toggles the Control room.
+  // The scripted demo drives the layer and the focused threat, so both are controlled here.
+  const demo = useDemo()
+  const { start, startIsolation, stop, setView } = demo
+  const { layer, focus, caption } = demo.view
+
+  // Browsers allow audio only after a user gesture: the first key press or click unmutes.
+  useEffect(() => {
+    const unlock = (e: Event) => {
+      // a first click on a sound control is that control's own decision
+      if (e.target instanceof Element && e.target.closest('.sound-icon, .sound-controls')) return
+      useSound.getState().setEnabled(true)
+    }
+    const options = { once: true, capture: true }
+    window.addEventListener('keydown', unlock, options)
+    window.addEventListener('pointerdown', unlock, options)
+    return () => {
+      window.removeEventListener('keydown', unlock, options)
+      window.removeEventListener('pointerdown', unlock, options)
+    }
+  }, [])
+
+  // Keys: C Control room, D demo, I isolation step, Esc stops the demo and resets to Healthy.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (typing(e) || e.ctrlKey || e.metaKey || e.altKey || checkInOpen) return
-      if (e.key.toLowerCase() === 'c') setControlOpen((o) => !o)
+      const key = e.key.toLowerCase()
+      if (key === 'c') setControlOpen((o) => !o)
+      else if (key === 'd') start()
+      else if (key === 'i') startIsolation()
+      else if (key === 'escape') {
+        stop()
+        useHealthStore.getState().selectRegion(null)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [checkInOpen])
+  }, [checkInOpen, start, startIsolation, stop])
 
   return (
     <main className="health-dashboard" data-control={controlOpen}>
       <TopBar forecastOpen={forecastOpen} onForecast={() => setForecastOpen((o) => !o)} />
       <div className="health-layout">
         <section className="health-scene" aria-label="Interactive astronaut model">
-          <BodyScene compact />
+          <BodyScene
+            compact
+            layer={layer}
+            onLayerChange={(l) => setView((v) => ({ ...v, layer: l }))}
+            focusedThreat={focus}
+            onThreatClick={(id) => setView((v) => ({ ...v, focus: v.focus === id ? null : id }))}
+          />
+          {caption && <p className="demo-caption" role="status">{caption}</p>}
           {forecastOpen && <ForecastDrawer onClose={() => setForecastOpen(false)} />}
         </section>
         <aside className="health-column">
@@ -165,7 +221,12 @@ export function HealthDashboard() {
           {selected ? <ZonePanel /> : <StatusNow />}
         </aside>
         {controlOpen && (
-          <ControlRoom onClose={() => setControlOpen(false)} checkInOpen={checkInOpen} onCheckIn={setCheckInOpen} />
+          <ControlRoom
+            onClose={() => setControlOpen(false)}
+            checkInOpen={checkInOpen}
+            onCheckIn={setCheckInOpen}
+            demo={{ running: demo.running, start, startIsolation, stop, label: DEMO_LABEL }}
+          />
         )}
       </div>
     </main>
