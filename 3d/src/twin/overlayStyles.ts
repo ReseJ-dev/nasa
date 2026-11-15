@@ -132,6 +132,19 @@ export const overlayStyles = {
     whiteSpace: 'nowrap',
     opacity: 0, // faded in by ChainLinks
   },
+  // Small second line under a chain label: "project model".
+  chainNote: { display: 'block', font: FONT.caption, fontStyle: 'normal', color: 'var(--text-3)', fontSize: '0.8em', textAlign: 'center' },
+  // "Headward fluid shift" above the head: gravity color, upright, not the chain's italic pill.
+  fluidShiftLabel: {
+    padding: '1px var(--sp-2)',
+    borderRadius: 'var(--r-1)',
+    background: 'var(--bg-overlay)',
+    border: '1px dashed var(--hz-gravity)',
+    color: 'var(--hz-gravity)',
+    font: FONT.captionBold,
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+  },
   // Cabin sensor chip on the habitat wall.
   sensor: {
     padding: '2px var(--sp-2)',

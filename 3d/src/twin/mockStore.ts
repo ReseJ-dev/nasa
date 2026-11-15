@@ -17,7 +17,8 @@ type ScenarioData = SimOutput &
 
 // Pre-flight exercise, minutes per day (ISS plan: about 2.5 h including setup).
 const PRE_FLIGHT_ACTIVITY_MIN = 150
-// Last 7 days, oldest first; the last entry is today (same values as the preset's own fields).
+// Last 7 days, oldest first; the last entry is today: the same sleep, reaction, mood, activity and
+// CO2 the store shows for that preset (test/presets.test.mjs checks it, so the charts do not jump).
 // Synthetic demo self-tracking, hand-made to end at each preset's own values.
 const week = (sleep: number[], activity: number[], reaction: number[], mood: number[], co2: number[]) =>
   activity.map((activityMin, i) => ({ sleepHours: sleep[i], activityMin, reactionMs: reaction[i], mood: mood[i], co2Ppm: co2[i] }))
@@ -41,9 +42,9 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
       reactionLapses: 0,
       activityMin: 150,
       history: week(
-        [8, 7.8, 8.1, 8, 7.9, 8.2, 8],
+        [7.9, 7.8, 8, 7.7, 7.8, 7.6, 7.5],
         [148, 152, 145, 150, 155, 147, 150],
-        [252, 258, 254, 256, 251, 257, 255],
+        [252, 258, 254, 256, 259, 261, 263],
         [4, 4, 5, 4, 4, 4, 4],
         [2450, 2550, 2500, 2480, 2520, 2490, 2500],
       ),
@@ -58,7 +59,7 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
       glucose: 5.6,
       bodyTempC: 36.8,
       sleepHours: 6.5,
-      mood: 3,
+      mood: 4,
       reactionMs: 310,
       environment: 'transit',
       missionDay: 60,
@@ -73,10 +74,10 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
       reactionLapses: 2,
       activityMin: 110,
       history: week(
-        [7.4, 7.2, 7, 6.9, 6.8, 6.6, 6.5],
+        [7.4, 7.2, 7, 6.9, 6.8, 6.7, 6.6],
         [145, 140, 132, 128, 120, 114, 110],
-        [282, 288, 292, 297, 301, 306, 310],
-        [4, 4, 3, 3, 3, 3, 3],
+        [262, 266, 270, 273, 277, 280, 283],
+        [4, 4, 4, 3, 4, 4, 4],
         [2900, 2950, 3000, 3050, 3100, 3150, 3200],
       ),
     },
@@ -90,7 +91,7 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
       glucose: 7.8,
       bodyTempC: 37.6,
       sleepHours: 5,
-      mood: 2,
+      mood: 4,
       reactionMs: 420,
       environment: 'transit',
       missionDay: 180,
@@ -112,16 +113,16 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
         { from: 'environment', to: 'gravity', strength: 0.3 }, // less exercise in the shelter
       ],
     },
-    // Two days in the shelter: exercise collapses, almost no bright light.
+    // Two days in the shelter: exercise reduced, almost no bright light, mood holds.
     tracking: {
       brightLightMin: 20,
       reactionLapses: 5,
-      activityMin: 40,
+      activityMin: 115,
       history: week(
-        [6.8, 6.6, 6.5, 6.2, 6, 5.4, 5],
-        [142, 138, 130, 124, 118, 45, 40],
-        [318, 326, 335, 346, 360, 395, 420],
-        [3, 3, 3, 3, 2, 2, 2],
+        [6.8, 6.6, 6.5, 6.2, 6, 4.8, 4.2],
+        [148, 145, 140, 136, 130, 120, 115],
+        [300, 305, 310, 316, 322, 345, 355],
+        [4, 4, 4, 4, 3, 4, 4],
         [3300, 3400, 3500, 3700, 4000, 6200, 6800], // last two days in the shelter
       ),
     },
