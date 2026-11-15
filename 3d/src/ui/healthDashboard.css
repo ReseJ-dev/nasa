@@ -431,3 +431,9 @@
 @media (max-width: 600px) {
   .control-inputs { grid-template-columns: 1fr; }
 }
+
+/* Live vitals sliders (Control room) */
+.live-vital { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 5.5rem; align-items: center; gap: var(--sp-2); margin-top: var(--sp-1); font-size: var(--fs-caption); color: var(--text-2); }
+.live-vital input { width: 100%; accent-color: var(--accent); }
+.live-vital b { text-align: right; color: var(--text-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.live-vital small { color: var(--text-3); font-weight: 450; }
