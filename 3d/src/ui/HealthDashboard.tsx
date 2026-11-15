@@ -3,6 +3,7 @@ import type { Metric, RegionId } from '../contract/types'
 import { STATUS_HEX } from '../twin/colors'
 import { REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { useHealthStore, type ScenarioId } from '../twin/store'
+import { CheckInPanel } from './CheckInPanel'
 import { ControlBar, EarthLinkToggle, MAX_DAY } from './ControlBar'
 import { ZonePanel } from './ZonePanel'
 import './healthDashboard.css'
@@ -130,6 +131,7 @@ export function HealthDashboard({ children }: { children: ReactNode }) {
       <div className="health-layout">
         <section className="health-scene" aria-label="Interactive astronaut model">{children}</section>
         <div className="health-column health-data">
+          <CheckInPanel />
           <MissionControls />
           <HealthMetrics />
         </div>

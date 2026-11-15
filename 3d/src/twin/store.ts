@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import type { Baseline, HealthState, SimEnvironment, ThreatId } from '../contract/types'
 import { DISTANCE_DELAY_FULL_SEC, ENVIRONMENTS, GRAVITY_THREAT_DAYS } from '../sim/constants'
 import { initializeHealthStore, type HealthStore, type ScenarioId } from '../../../src/store/useHealthStore'
+import { PERSONAL_BASELINE } from '../../../src/data/baseline'
+import { isolationAlerts } from '../sim'
 import { SCENARIOS } from './mockStore'
 
 export type { ScenarioId }
@@ -13,6 +15,9 @@ interface TwinStore extends HealthStore {
   // shared store inputs (microgravity, radiationMsv) and the link fields. Never writes regions.
   setEnvironment(id: SimEnvironment): void
   setEarthLink(online: boolean): void
+  // Reaction test result: the mean goes to the shared store inputs (vitals.reactionMs),
+  // the lapse count to reactionLapses (display only, not an engine input).
+  submitReactionTest(meanMs: number, lapses: number): void
   patch(partial: Partial<HealthState>): void
   setGravityField(gravityField: number): void
   setThreatLevel(id: ThreatId, level: number): void
@@ -58,6 +63,8 @@ function sceneMetrics(state: Pick<HealthStore, 'metrics' | 'day'>) {
     sleepHours: value('sleep_hours'),
     reactionMs: value('reaction_ms'),
     muscleMass: 1 - (value('muscle_loss_pct') ?? 0) / 100,
+    // only once a mood was checked in; otherwise the scene preset keeps its own value
+    ...(value('mood') !== undefined ? { mood: value('mood') } : {}),
   }
 }
 
@@ -90,6 +97,26 @@ function liveThreats(state: TwinStore): Partial<TwinStore> {
   }
 }
 
+// Isolation alerts recomputed from the live values (sleep, reaction, mood, activity) after a
+// user change, with the reference sim rule (src/sim/isolation.ts). The twin only displays them.
+function liveAlerts(state: TwinStore): Partial<TwinStore> {
+  const b = state.baseline
+  if (!b?.sleepHours || !b.reactionMs || b.activityMin === undefined) return {}
+  return {
+    alerts: isolationAlerts({
+      sleepHours: state.sleepHours ?? b.sleepHours,
+      sleepShiftHours: state.sleepShiftHours ?? 0,
+      reactionMs: state.reactionMs ?? b.reactionMs,
+      mood: state.mood ?? PERSONAL_BASELINE.mood,
+      activityMin: state.activityMin ?? b.activityMin,
+      baseline: { sleepHours: b.sleepHours, reactionMs: b.reactionMs, mood: PERSONAL_BASELINE.mood, activityMin: b.activityMin },
+    }),
+  }
+}
+
+// Everything that follows the live inputs after a user change (not on a scenario load).
+const live = (state: TwinStore): Partial<TwinStore> => ({ ...liveThreats(state), ...liveAlerts(state) })
+
 export const useHealthStore = create<TwinStore>()((set, get) => {
   const health = initializeHealthStore(update => set(state => {
     const changes = update(state)
@@ -115,23 +142,28 @@ export const useHealthStore = create<TwinStore>()((set, get) => {
       const env = get().environment
       if (env) health.setInputs({ radiationMsv: doseAt(env, Math.max(day, 0)) })
       health.setDay(day)
-      set(liveThreats)
+      set(live)
     },
     setInputs: (patch) => {
       health.setInputs(patch)
-      set(liveThreats)
+      set(live)
     },
     setExercise: (patch) => {
       health.setExercise(patch)
-      set(liveThreats)
+      set(live)
     },
     setEnvironment: (id) => {
       const env = ENVIRONMENTS[id]
       health.setInputs({ microgravity: 1 - env.gravityField, radiationMsv: doseAt(id, get().day) })
       set({ environment: id, gravityField: env.gravityField, commDelaySec: env.commDelaySec })
-      set(liveThreats)
+      set(live)
     },
     setEarthLink: (online) => set({ earthLink: online }),
+    submitReactionTest: (meanMs, lapses) => {
+      health.setInputs({ vitals: { ...get().inputs.vitals, reactionMs: meanMs } })
+      set({ reactionLapses: lapses })
+      set(live)
+    },
     patch: (partial) => set(partial),
     setGravityField: (gravityField) => set({ gravityField }),
     setThreatLevel: (id, level) => set(state => {
