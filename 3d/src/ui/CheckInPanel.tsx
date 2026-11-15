@@ -26,7 +26,7 @@ const FIELDS: Field[] = [
   { key: 'heartRate', label: 'Pulse', unit: 'bpm', min: 30, max: 220, step: 1, metricId: 'heart_rate' },
   { key: 'glucose', label: 'Glucose', unit: 'mmol/L', min: 2, max: 30, step: 0.1, metricId: 'glucose' },
   { key: 'bodyTempC', label: 'Temperature', unit: '°C', min: 34, max: 42, step: 0.1, metricId: 'body_temp' },
-  { key: 'sleepHours', label: 'Sleep last night', unit: 'h', min: 0, max: 16, step: 0.25, metricId: 'sleep_hours' },
+  { key: 'sleepHours', label: 'Sleep', unit: 'h', min: 0, max: 16, step: 0.25, metricId: 'sleep_hours' },
   { key: 'mood', label: 'Mood', unit: '1–5', min: 1, max: 5, step: 1, metricId: 'mood' },
 ]
 // Full names for error messages (the form labels are short to fit two fields per row).
@@ -35,6 +35,7 @@ const FULL_LABEL: Partial<Record<FieldKey, string>> = {
   diastolic: 'Diastolic pressure',
   glucose: 'Blood glucose',
   bodyTempC: 'Body temperature',
+  sleepHours: 'Sleep last night',
 }
 const MOODS = [1, 2, 3, 4, 5]
 const MOOD_HINT: Record<number, string> = { 1: 'very low', 2: 'low', 3: 'okay', 4: 'good', 5: 'great' }
@@ -61,7 +62,9 @@ const TEXT = {
   checklist: "Today's checklist",
 }
 
-const format = (v: number, step: number) => (step < 1 ? String(Number(v.toFixed(2))) : String(Math.round(v)))
+// As many decimals as the field's step: 5.6 mmol/L, 36.6 °C, 7.25 h, 118 mmHg.
+const format = (v: number, step: number) =>
+  step >= 1 ? String(Math.round(v)) : String(Number(v.toFixed(step < 0.1 || (step * 10) % 1 !== 0 ? 2 : 1)))
 
 export function CheckInPanel() {
   const day = useHealthStore((s) => s.day)
