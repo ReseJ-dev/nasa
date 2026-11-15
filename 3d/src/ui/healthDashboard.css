@@ -156,7 +156,7 @@
 .status-open { justify-self: start; margin-top: var(--sp-2); padding: var(--sp-1) var(--sp-3); background: var(--bg-raised); border: 1px solid var(--line-strong); border-radius: var(--r-1); }
 .status-open:hover { border-color: var(--accent-line); }
 .health-card .status-clear { display: flex; align-items: center; gap: var(--sp-2); margin: 0; font-size: var(--fs-number); font-weight: 650; color: var(--text-1); }
-.status-clear i { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.status-clear i { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--st-ok); box-shadow: 0 0 10px var(--st-ok); }
 .status-more summary { padding: var(--sp-1) var(--sp-2); color: var(--text-2); font-weight: 600; cursor: pointer; border-radius: var(--r-1); }
 .status-more summary:hover { background: var(--bg-inset); }
 .status-more ul { list-style: none; display: grid; gap: var(--sp-2); margin: var(--sp-2) 0 0; padding: 0; }
