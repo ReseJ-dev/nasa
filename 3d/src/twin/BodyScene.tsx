@@ -115,14 +115,17 @@ function LayerSwitch({ layer, onChange }: { layer: Layer; onChange(l: Layer): vo
 // e.g. to open a threat panel.
 // focusedThreat (optional): pass it to control the pinned threat from outside (null = none);
 // clicks then only call onThreatClick. Without it, a click pins / unpins and Esc clears.
+// compact: the threats strip as a narrow centered row of rings without a panel (presentation).
 export function BodyScene({
   showFps = false,
+  compact = false,
   layer: layerProp,
   onLayerChange,
   onThreatClick,
   focusedThreat,
 }: {
   showFps?: boolean
+  compact?: boolean
   layer?: Layer
   onLayerChange?(layer: Layer): void
   onThreatClick?(threatId: ThreatId): void
@@ -183,7 +186,7 @@ export function BodyScene({
   return (
     <div ref={container} style={st.root}>
       {/* Threats: their own row, so nothing covers the astronaut. */}
-      <ThreatStrip iconRefs={iconRefs} onToggle={onThreatToggle} />
+      <ThreatStrip iconRefs={iconRefs} onToggle={onThreatToggle} compact={compact} />
       <div ref={stage} style={st.stage}>
         <Canvas
           camera={{ position: CAMERA.position, fov: CAMERA.fov }}

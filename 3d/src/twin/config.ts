@@ -6,8 +6,8 @@ type Vec3 = [number, number, number]
 // Camera controls. The camera moves on its own only on a selection change (see CameraRig.tsx).
 export const CAMERA = {
   // Start in front of the body, at mid height. At this distance the figure (1.8 units tall)
-  // fills about 85 % of the canvas height, with room for the callouts on both sides.
-  position: [0, 0.93, 2.62] as Vec3,
+  // fills about 90 % of the canvas height (the twin is the hero of the presentation screen).
+  position: [0, 0.93, 2.47] as Vec3,
   fov: 45, // vertical field of view, degrees
   target: [0, 0.93, 0] as Vec3, // orbit center = vertical middle of the body
   fitPadding: 0.5, // space around a selected region when the camera fits to it: the organ in its body context
