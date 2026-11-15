@@ -148,7 +148,7 @@ export const STRIP_SOURCE = {
     'weight-bearing bones; the per-bone split is a project estimate.',
   distance:
     'Reply = signal to Earth and back. NASA HRP: up to 20 min one way at Mars. ' +
-    'The delay of this scenario is a project estimate. Above 5 min one way the crew works autonomously.',
+    'The delay of this scenario is a project estimate. Project rule: above 5 min one way the crew works autonomously.',
   environment:
     'Cabin CO₂ partial pressure (sea-level cabin assumed: project estimate). Limit 3 mmHg: ' +
     'NASA-STD-3001 Vol 2 Rev F [V2 6004], a 1-hour average; the app uses a daily mean.',

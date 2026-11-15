@@ -365,7 +365,7 @@ export const CALLOUTS = { maxWarnings: 2 }
 
 // One-way signal delay above which Earth cannot help in time: the strip says "Autonomous mode" and
 // escalation to the ground becomes the on-board protocol (Earth is informed with the delay).
-// Display rule chosen for the demo (5 min), not a NASA value.
+// Project rule (5 min), chosen for the demo, not a NASA value; the strip tooltip says "Project rule".
 export const AUTONOMOUS_DELAY_SEC = 300
 export const isDelayedEarth = (commDelaySec: number | undefined) => (commDelaySec ?? 0) > AUTONOMOUS_DELAY_SEC
 
