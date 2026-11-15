@@ -3,10 +3,11 @@ import type { Metric, RegionId } from '../contract/types'
 import { STATUS_HEX } from '../twin/colors'
 import { REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { useHealthStore, type ScenarioId } from '../twin/store'
+import { ZonePanel } from './ZonePanel'
 import './healthDashboard.css'
 
 const scenarios: Record<ScenarioId, string> = { healthy: 'Healthy', day60: 'Day 60', critical: 'Critical' }
-const systems = ['heart', 'brain', 'bones', 'muscles', 'eyes', 'immune', 'lungs'] satisfies RegionId[]
+const systems = ['heart', 'brain', 'bones', 'muscles', 'eyes', 'immune', 'lungs', 'metabolism'] satisfies RegionId[]
 const vitals = ['heart_rate', 'sleep_hours', 'reaction_ms', 'bone_loss_pct', 'muscle_loss_pct', 'vision_score']
 const names: Record<string, string> = {
   heart_rate: 'Heart rate',
@@ -104,8 +105,6 @@ function HealthSystems() {
   const regions = useHealthStore(state => state.regions)
   const selected = useHealthStore(state => state.selectedRegion)
   const select = useHealthStore(state => state.selectRegion)
-  const metrics = useHealthStore(state => state.metrics)
-  const region = selected ? regions[selected] : undefined
   return (
     <aside className="health-column">
       <section className="health-card" aria-labelledby="health-systems">
@@ -125,17 +124,7 @@ function HealthSystems() {
           })}
         </ul>
       </section>
-      <section className="health-card health-detail" aria-labelledby="health-detail">
-        <h2 id="health-detail">{region ? REGION_LABEL[region.id] : 'System details'}</h2>
-        {region ? (
-          <>
-            <dl className="health-grid">
-              {region.metrics.map(id => <MetricValue key={id} label={names[id] ?? id} metric={id === 'glucose' ? undefined : metrics.find(metric => metric.id === id)} />)}
-            </dl>
-            {region.advice.length > 0 && <ul>{region.advice.map(advice => <li key={advice}>{advice}</li>)}</ul>}
-          </>
-        ) : <p>Select a system here or on the astronaut to see its metrics and guidance.</p>}
-      </section>
+      <ZonePanel />
     </aside>
   )
 }

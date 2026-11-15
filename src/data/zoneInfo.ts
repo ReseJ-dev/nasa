@@ -123,7 +123,8 @@ export const ZONE_INFO: Record<RegionId, ZoneInfo> = {
     why: 'Bones lose strength when they carry no weight. You cannot feel it, but weak bones can break during landing or work on a planet.',
     how: [
       'Bone density cannot be measured on board with the available tools.',
-      'The app forecasts it from days in low gravity and the exercise you log (model rates: 3d/src/sim/constants.ts, BONE_LOSS_PER_MONTH).',
+      // model rates: 3d/src/sim/constants.ts, BONE_LOSS_PER_MONTH
+      'The app forecasts it from days in low gravity and the exercise you log.',
       'Log every resistance exercise session, so the forecast stays accurate.',
     ],
     measurement: 'forecast',
@@ -155,7 +156,8 @@ export const ZONE_INFO: Record<RegionId, ZoneInfo> = {
     why: 'Muscles shrink when they do not work against gravity. Strong legs and back are needed to stand, walk and work after landing.',
     how: [
       'Muscle mass is not measured on board with the available tools.',
-      'The app forecasts it from days in low gravity and the exercise you log (model rate: 3d/src/sim/constants.ts, MUSCLE_LOSS_PER_MONTH).',
+      // model rate: 3d/src/sim/constants.ts, MUSCLE_LOSS_PER_MONTH
+      'The app forecasts it from days in low gravity and the exercise you log.',
       'Note if exercise feels harder than usual: that is a useful self-check.',
     ],
     measurement: 'forecast',
