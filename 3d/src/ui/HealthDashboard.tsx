@@ -3,6 +3,7 @@ import type { Metric, RegionId } from '../contract/types'
 import { STATUS_HEX } from '../twin/colors'
 import { REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { useHealthStore, type ScenarioId } from '../twin/store'
+import { ControlBar, EarthLinkToggle, MAX_DAY } from './ControlBar'
 import { ZonePanel } from './ZonePanel'
 import './healthDashboard.css'
 
@@ -33,8 +34,6 @@ function MetricValue({ metric, label }: { metric?: Metric; label: string }) {
 function MissionHeader() {
   const day = useHealthStore(state => state.day)
   const scenario = useHealthStore(state => state.scenario)
-  const link = useHealthStore(state => state.earthLink)
-  const delay = useHealthStore(state => state.commDelaySec)
   const flare = useHealthStore(state => state.activeEvent === 'solar_flare')
   return (
     <header className="health-header">
@@ -43,9 +42,9 @@ function MissionHeader() {
         <p>Demonstration model · simulated values</p>
       </div>
       <dl className="health-telemetry">
-        <div><dt>Mission Day</dt><dd>{day} <small>/ 180</small></dd></div>
+        <div><dt>Mission Day</dt><dd>{day} <small>/ {MAX_DAY}</small></dd></div>
         <div><dt>Scenario</dt><dd>{scenarios[scenario]}</dd></div>
-        <div><dt>Earth link</dt><dd data-alert={!link}>{link ? 'Connected' : 'Offline'}{link && delay !== undefined && <small> · {delay} s one-way</small>}</dd></div>
+        <div className="health-telemetry-toggle"><EarthLinkToggle /></div>
         <div><dt>Solar flare</dt><dd data-alert={flare}>{flare ? 'Active' : 'None'}</dd></div>
       </dl>
     </header>
@@ -53,9 +52,7 @@ function MissionHeader() {
 }
 
 function MissionControls() {
-  const day = useHealthStore(state => state.day)
   const scenario = useHealthStore(state => state.scenario)
-  const setDay = useHealthStore(state => state.setDay)
   const setScenario = useHealthStore(state => state.setScenario)
   return (
     <section className="health-card health-controls" aria-labelledby="mission-controls">
@@ -65,10 +62,7 @@ function MissionControls() {
           <button key={id} type="button" aria-pressed={scenario === id} onClick={() => setScenario(id as ScenarioId)}>{label}</button>
         ))}
       </div>
-      <label htmlFor="mission-day">Mission day <strong>{day}</strong></label>
-      <input id="mission-day" type="range" min="0" max="180" step="1" value={day} onChange={event => setDay(event.currentTarget.valueAsNumber)} />
-      <div className="health-range-ends" aria-hidden="true"><span>0</span><span>180</span></div>
-      <p>Changing the day recalculates health with fixed mission inputs. Environment and dose do not advance automatically.</p>
+      <p>A scenario loads a full mission state. Change the day, exercise and environment in the bottom bar; the Earth link toggle is in the top bar.</p>
     </section>
   )
 }
@@ -141,6 +135,7 @@ export function HealthDashboard({ children }: { children: ReactNode }) {
         </div>
         <HealthSystems />
       </div>
+      <ControlBar />
     </main>
   )
 }

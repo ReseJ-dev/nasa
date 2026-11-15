@@ -3,6 +3,7 @@
   --line: #243649;
   --muted: #a0b3c7;
   --accent: #73d6e8;
+  --control-bar-height: 150px; /* room the sticky bottom bar takes (ControlBar.tsx) */
   box-sizing: border-box;
   height: 100%;
   overflow: auto;
@@ -40,7 +41,7 @@
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
-  height: max(580px, calc(100dvh - 122px));
+  height: max(520px, calc(100dvh - 122px - var(--control-bar-height)));
   border: 1px solid var(--line);
   border-radius: 14px;
   overflow: hidden;
@@ -110,3 +111,63 @@
 .zone-foot { margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--line); }
 .zone-foot p { margin: 4px 0 0; font-size: 11px; }
 .zone-disclaimer { font-weight: 650; }
+
+/* Earth link toggle in the top bar (ControlBar.tsx) */
+.health-telemetry > .health-telemetry-toggle { padding: 0; border: none; background: none; }
+.earth-toggle { display: grid; text-align: left; gap: 1px; padding: 7px 12px; border-radius: 8px; cursor: pointer; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); }
+.earth-toggle small { color: var(--muted); font-size: 11px; }
+.earth-toggle span { font-weight: 650; }
+.earth-toggle[data-online="true"] span { color: #9fe8c9; }
+.earth-toggle[data-online="false"] { border-color: #3a6dff; }
+.earth-toggle[data-online="false"] span { color: #9cc3ff; }
+.earth-toggle:hover { border-color: #559ba9; }
+.earth-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Bottom control bar (ControlBar.tsx) */
+.control-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  box-sizing: border-box;
+  min-height: var(--control-bar-height);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 12px 28px;
+  align-items: center;
+  padding: 12px clamp(14px, 2.4vw, 36px);
+  background: rgba(7, 13, 22, .96);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(6px);
+}
+.control-bar button, .control-bar select { color: inherit; font: inherit; cursor: pointer; }
+.control-bar button:focus-visible, .control-bar select:focus-visible, .control-bar input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.control-inputs { display: grid; grid-template-columns: minmax(160px, 1.4fr) auto auto; gap: 10px 16px; align-items: end; }
+.control-day, .control-environment { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+.control-day strong { color: #eef5ff; font-variant-numeric: tabular-nums; }
+.control-day input { width: 100%; margin: 0; accent-color: var(--accent); }
+.control-environment select { padding: 5px 8px; background: #111e2d; border: 1px solid var(--line); border-radius: 6px; }
+.control-segment { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.control-segment button { padding: 5px 10px; font-size: 12px; white-space: nowrap; background: #111e2d; border: none; }
+.control-segment button + button { border-left: 1px solid var(--line); }
+.control-segment button[aria-pressed="true"] { background: #1c3a4c; color: #eef5ff; font-weight: 650; }
+.control-forecast { min-width: 0; }
+.control-forecast-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 6px; }
+.control-forecast-head h2 { margin: 0; font-size: 13px; }
+.control-forecast-head small { color: var(--muted); font-size: 11px; font-style: italic; }
+.control-forecast table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.control-forecast th, .control-forecast td { padding: 3px 8px; text-align: left; white-space: nowrap; }
+.control-forecast thead th { color: var(--muted); font-weight: 500; font-size: 11px; }
+.control-forecast tbody th { color: var(--muted); font-weight: 500; }
+.control-forecast tbody tr + tr { border-top: 1px solid #172636; }
+.control-forecast td i { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; }
+.control-forecast td small { color: var(--muted); }
+
+@media (max-width: 1040px) {
+  .control-bar { position: static; grid-template-columns: 1fr; }
+  .control-inputs { grid-template-columns: 1fr auto; }
+  .control-day { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .control-inputs { grid-template-columns: 1fr; }
+  .control-forecast { overflow-x: auto; }
+}
