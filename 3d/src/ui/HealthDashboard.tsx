@@ -8,6 +8,7 @@ import { CheckInPanel } from './CheckInPanel'
 import { ControlBar, EarthLinkToggle, MAX_DAY } from './ControlBar'
 import { ZonePanel } from './ZonePanel'
 import './healthDashboard.css'
+import { SoundControls } from './SoundControls'
 
 const scenarios: Record<ScenarioId, string> = { healthy: 'Healthy', day60: 'Day 60', critical: 'Critical' }
 const systems = ['heart', 'brain', 'bones', 'muscles', 'eyes', 'immune', 'lungs', 'metabolism'] satisfies RegionId[]
@@ -42,6 +43,7 @@ function MissionHeader() {
       <div className="health-title">
         <h1>Astronaut Health Monitor</h1>
         <p>Demonstration model · simulated values</p>
+        <SoundControls />
       </div>
       <dl className="health-telemetry">
         <div><dt>Mission Day</dt><dd>{day} <small>/ {MAX_DAY}</small></dd></div>

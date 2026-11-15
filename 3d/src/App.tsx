@@ -6,6 +6,7 @@ import { Bench } from './Bench'
 import { SCENARIOS } from './twin/mockStore'
 import { useHealthStore, type ScenarioId } from './twin/store'
 import { HealthDashboard } from './ui/HealthDashboard'
+import { SoundControls } from './ui/SoundControls'
 import { DEV_PANEL, REGION_LABEL } from './twin/labels'
 import { GRAVITY_FIELDS, type Layer } from './twin/config'
 
@@ -316,6 +317,7 @@ function TestPanel({ demo }: { demo: ReturnType<typeof useDemo> }) {
         {DEV_PANEL.selectedRegion}: {selected ? REGION_LABEL[selected] : DEV_PANEL.none}
       </div>
       {demo.view.caption && <div style={{ marginTop: 6, opacity: 0.8 }}>{demo.view.caption}</div>}
+      <SoundControls />
     </div>
   )
 }
