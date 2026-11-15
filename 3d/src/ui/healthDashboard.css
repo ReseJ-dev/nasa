@@ -85,3 +85,28 @@
   .health-scene { height: clamp(400px, 68dvh, 560px); }
   .health-telemetry { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
 }
+
+/* Zone panel (ZonePanel.tsx) */
+.zone-head { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; margin-bottom: 8px; }
+.zone-head i { width: 10px; height: 10px; border-radius: 50%; }
+.zone-head h2 { margin: 0; }
+.zone-status { font-size: 12px; font-weight: 650; }
+.health-card .zone-close { width: 26px; height: 26px; padding: 0; line-height: 1; font-size: 18px; background: #111e2d; border: 1px solid var(--line); border-radius: 6px; }
+.zone-badges { display: flex; gap: 6px; margin-bottom: 10px; }
+.zone-badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.zone-badge[data-source="measured"] { color: #9fe8c9; border: 1px solid #3f8a6c; background: #10261f; }
+.zone-badge[data-source="forecast"] { color: #c8b8ff; border: 1px dashed #7a66c4; background: #1a1630; }
+.zone-metrics { margin-bottom: 4px; }
+.zone-block { margin-top: 14px; }
+.zone-block h3 { margin: 0 0 6px; font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
+.zone-block p { margin: 6px 0 0; }
+.zone-panel ul, .zone-panel ol { margin: 0; padding-left: 18px; color: #d6e2ef; font-size: 12.5px; display: grid; gap: 4px; overflow-wrap: anywhere; }
+.zone-panel li strong { color: #eef5ff; font-weight: 600; }
+.zone-panel .zone-alert { list-style: none; margin-left: -18px; padding: 5px 8px; border-left: 3px solid; background: #101e2c; border-radius: 4px; }
+.zone-escalation { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12.5px; font-weight: 650; border: 1px solid var(--line); background: #101e2c; }
+.zone-escalation[data-level="crew"] { color: #f5c242; border-color: #8a6d24; }
+.zone-escalation[data-level="ground"] { color: #ff8a80; border-color: #8a3a34; }
+.zone-escalation[data-level="autonomous"] { color: #9cc3ff; border-color: #3a6dff; }
+.zone-foot { margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--line); }
+.zone-foot p { margin: 4px 0 0; font-size: 11px; }
+.zone-disclaimer { font-weight: 650; }
