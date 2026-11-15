@@ -1,8 +1,9 @@
-import type { Alert, AlertMetric, Escalation, Metric, RegionId, RegionState, Status } from '../contract/types'
+import type { Alert, Escalation, Metric, RegionId, RegionState, Status } from '../contract/types'
 import { STATUS_HEX } from '../twin/colors'
 import { REGION_LABEL, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
 import { DISCLAIMER, ZONE_INFO } from '../../../src/data/zoneInfo'
+import { ALERT_REGION, METRIC_ALERT, autonomousAction } from './alerts'
 
 // Zone panel: everything about the selected region, top to bottom:
 // name + status, measured/forecast badge, score + metrics, why, how, cause, what to do,
@@ -11,20 +12,6 @@ import { DISCLAIMER, ZONE_INFO } from '../../../src/data/zoneInfo'
 
 const NO_METRICS: Metric[] = []
 const NO_ALERTS: Alert[] = []
-
-// Isolation alerts carry a metric, not a region: the region they belong to.
-const ALERT_REGION: Record<AlertMetric, RegionId> = {
-  sleep: 'brain',
-  reaction: 'brain',
-  mood: 'brain',
-  activity: 'muscles',
-}
-const ALERT_CAUSE: Record<AlertMetric, string> = {
-  sleep: 'sleep is short or shifted from your normal schedule',
-  reaction: 'reaction test is slower than your normal',
-  mood: 'mood is lower than your normal',
-  activity: 'exercise is below your normal',
-}
 
 const ESCALATION_LABEL: Record<Escalation, string> = {
   self: 'Handle yourself',
@@ -107,7 +94,8 @@ export function ZoneDetails({
     .map((id) => metrics.find((m) => m.id === id))
     .filter((m): m is Metric => m !== undefined)
   const regionAlerts = alerts.filter((a) => ALERT_REGION[a.metric] === selected)
-  const actions = status === 'ok' ? [] : zone.actions[status]
+  // No Earth link: every action shows its autonomous version.
+  const actions = status === 'ok' ? [] : zone.actions[status].map((line) => (earthLink ? line : autonomousAction(line)))
   const who = escalationFor(region.escalation, status, selected)
   // No Earth: anything that would go to the ground goes to the crew instead.
   const autonomous = !earthLink && (who === 'ground' || status === 'critical')
@@ -160,7 +148,7 @@ export function ZoneDetails({
             {regionAlerts.map((a) => (
               <li key={a.id} className="zone-alert" style={{ borderColor: STATUS_HEX[a.status] }}>
                 <strong style={{ color: STATUS_HEX[a.status] }}>{STATUS_LABEL[a.status]}</strong>{' '}
-                {THREAT_LABEL[a.hazard]}: {ALERT_CAUSE[a.metric]}.
+                {THREAT_LABEL[a.hazard]}: {METRIC_ALERT[a.metric].cause}.
               </li>
             ))}
             {zone.hazards.map((h) => (

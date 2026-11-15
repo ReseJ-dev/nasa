@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Baseline, HealthState, SimEnvironment, ThreatId } from '../contract/types'
+import type { Baseline, HealthState, RegionId, SimEnvironment, ThreatId } from '../contract/types'
 import { DISTANCE_DELAY_FULL_SEC, ENVIRONMENTS, GRAVITY_THREAT_DAYS } from '../sim/constants'
 import { initializeHealthStore, type HealthStore, type ScenarioId } from '../../../src/store/useHealthStore'
 import { PERSONAL_BASELINE } from '../../../src/data/baseline'
@@ -18,6 +18,11 @@ interface TwinStore extends HealthStore {
   // Reaction test result: the mean goes to the shared store inputs (vitals.reactionMs),
   // the lapse count to reactionLapses (display only, not an engine input).
   submitReactionTest(meanMs: number, lapses: number): void
+  // Alert picked in the alerts list: the 3D scene focuses on its regions (others dim).
+  // Cleared when the selection moves to a region outside it, or is cleared.
+  highlightAlertId: string | null
+  highlightRegions: RegionId[] | null
+  setHighlightAlert(id: string | null, regions?: RegionId[]): void
   patch(partial: Partial<HealthState>): void
   setGravityField(gravityField: number): void
   setThreatLevel(id: ThreatId, level: number): void
@@ -134,6 +139,17 @@ export const useHealthStore = create<TwinStore>()((set, get) => {
     ...sceneMetrics(health),
     baseline: mergeBaseline(health.baseline, 'healthy'),
     environment: null,
+    highlightAlertId: null,
+    highlightRegions: null,
+    setHighlightAlert: (id, regions) =>
+      set({ highlightAlertId: id, highlightRegions: id && regions?.length ? regions : null }),
+    selectRegion: (id) => {
+      health.selectRegion(id)
+      const { highlightRegions } = get()
+      if (highlightRegions && (id === null || !highlightRegions.includes(id))) {
+        set({ highlightAlertId: null, highlightRegions: null })
+      }
+    },
     setScenario: (id) => {
       health.setScenario(id)
       set(state => ({ ...scenePreset(id), ...sceneMetrics(state), environment: null }))

@@ -3,6 +3,7 @@ import type { Metric, RegionId } from '../contract/types'
 import { STATUS_HEX } from '../twin/colors'
 import { REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { useHealthStore, type ScenarioId } from '../twin/store'
+import { AlertsBadge, CriticalBanner } from './AlertsPanel'
 import { CheckInPanel } from './CheckInPanel'
 import { ControlBar, EarthLinkToggle, MAX_DAY } from './ControlBar'
 import { ZonePanel } from './ZonePanel'
@@ -46,6 +47,7 @@ function MissionHeader() {
         <div><dt>Mission Day</dt><dd>{day} <small>/ {MAX_DAY}</small></dd></div>
         <div><dt>Scenario</dt><dd>{scenarios[scenario]}</dd></div>
         <div className="health-telemetry-toggle"><EarthLinkToggle /></div>
+        <div className="health-telemetry-toggle"><AlertsBadge /></div>
         <div><dt>Solar flare</dt><dd data-alert={flare}>{flare ? 'Active' : 'None'}</dd></div>
       </dl>
     </header>
@@ -138,6 +140,7 @@ export function HealthDashboard({ children }: { children: ReactNode }) {
         <HealthSystems />
       </div>
       <ControlBar />
+      <CriticalBanner />
     </main>
   )
 }
