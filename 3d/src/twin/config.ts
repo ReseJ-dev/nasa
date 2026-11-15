@@ -153,9 +153,9 @@ export const CABIN_FLOW = {
   path: [
     [-0.62, 1.25, 0.45],
     [-0.3, 1.58, 0.35],
-    [0, 1.63, 0.16], // nose
-    [-0.04, 1.47, 0.07],
-    [-0.085, 1.32, 0], // lungs
+    [0, 1.64, 0.13], // nose
+    [-0.04, 1.47, 0.06],
+    [-0.08, 1.33, 0], // lungs
   ] as Vec3[],
   pulses: 7, // moving dots on the path
   loopSeconds: 2.6, // one dot travels the whole path in this time
@@ -220,13 +220,13 @@ export const CIRCADIAN = {
 export const IMPULSE = {
   // eyes -> brain -> brainstem -> shoulder -> elbow -> hand (the astronaut's left arm, viewer's right)
   path: [
-    [0.04, 1.655, 0.1],
+    [0.033, 1.668, 0.082],
     [0, 1.7, -0.01],
     [0, 1.56, -0.02],
-    [0.09, 1.46, 0],
-    [0.235, 1.43, 0],
-    [0.275, 1.14, 0],
-    [0.315, 0.83, 0.01],
+    [0.09, 1.46, -0.01],
+    [0.218, 1.425, -0.005],
+    [0.284, 1.143, -0.01],
+    [0.36, 0.82, 0.03],
   ] as Vec3[],
   period: 3, // seconds between two impulses
   baseTravel: 0.85, // seconds eyes -> hand at the baseline reaction time; scales with reactionMs / baseline
@@ -239,7 +239,7 @@ export const IMPULSE = {
   maxLapseShare: 0.67,
   lapseAt: [0.4, 0.62] as [number, number], // a lapsed impulse fades between these path fractions
   press: { seconds: 0.5, size: 0.24 }, // flash at the hand when the impulse arrives
-  label: [0.45, 0.79, 0] as Vec3, // right of the hand, between the bones and muscles callouts
+  label: [0.47, 0.79, 0] as Vec3, // right of the hand, between the bones and muscles callouts
 }
 
 // Activity: last 7 days as thin bars on a floor ring under the feet.
@@ -375,11 +375,11 @@ export const RADIATION_TRACKS = {
 // Rough body outline for track hits: for a height band, the half width (x) and half depth (z)
 // of the body shell. A track at (y, z) enters the body at x = -halfWidth if |z| < halfDepth.
 export const BODY_PROFILE: { y: [number, number]; halfWidth: number; halfDepth: number }[] = [
-  { y: [1.52, 1.8], halfWidth: 0.12, halfDepth: 0.12 }, // head
-  { y: [1.44, 1.52], halfWidth: 0.055, halfDepth: 0.055 }, // neck
-  { y: [0.98, 1.44], halfWidth: 0.3, halfDepth: 0.11 }, // torso + arms
-  { y: [0.85, 0.98], halfWidth: 0.19, halfDepth: 0.12 }, // pelvis
-  { y: [0.05, 0.85], halfWidth: 0.16, halfDepth: 0.07 }, // legs
+  { y: [1.54, 1.8], halfWidth: 0.085, halfDepth: 0.1 }, // head
+  { y: [1.47, 1.54], halfWidth: 0.055, halfDepth: 0.055 }, // neck
+  { y: [1.1, 1.47], halfWidth: 0.3, halfDepth: 0.1 }, // torso + arms
+  { y: [0.8, 1.1], halfWidth: 0.36, halfDepth: 0.1 }, // pelvis + forearms and hands
+  { y: [0.05, 0.8], halfWidth: 0.17, halfDepth: 0.06 }, // legs
 ]
 
 // Solar flare: on the transition of activeEvent to 'solar_flare'.
