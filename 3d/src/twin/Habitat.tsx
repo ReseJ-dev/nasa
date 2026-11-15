@@ -17,7 +17,7 @@ import type { Status } from '../contract/types'
 import { useHealthStore } from './store'
 import { useThreatEffect } from './hooks/useThreatEffect'
 import { STATUS_HEX } from './colors'
-import { CABIN_FOG as F, EFFECTS, HABITAT as H, SENSORS, THREAT_ACTIVE_THRESHOLD, THREAT_COLOR, type Layer } from './config'
+import { CABIN_FOG as F, EFFECTS, HABITAT as H, SENSORS, THREAT_ACTIVE_THRESHOLD, THREAT_COLOR, THREAT_LABEL_EMPHASIS, type Layer } from './config'
 import { SENSOR_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 
@@ -202,8 +202,8 @@ export function Habitat({ layer }: { layer: Layer }) {
     if (fog.visible) u.uTime.value += delta * F.driftSpeed
   })
 
-  // Sensors: same visibility rule as the fog (environment), faint or full.
-  const sensorOpacity = EFFECTS.cabinSensors ? envEmphasis : 0
+  // Sensors: text chips, shown only while the environment threat is focused (or demo).
+  const sensorOpacity = EFFECTS.cabinSensors && envEmphasis >= THREAT_LABEL_EMPHASIS ? 1 : 0
   return (
     <primitive object={group}>
       <primitive object={lines} />

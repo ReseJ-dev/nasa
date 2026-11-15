@@ -48,6 +48,9 @@ export const THREAT_LABEL: Record<ThreatId, string> = {
   environment: 'Environment',
 }
 
+// Short names for the threats row (two lines next to a ring; the full names stay in THREAT_LABEL).
+export const THREAT_STRIP_LABEL: Record<ThreatId, string> = { ...THREAT_LABEL, distance: 'Earth distance' }
+
 export const SENSOR_LABEL = {
   co2: 'CO₂',
   temp: '°C',
@@ -90,7 +93,7 @@ export const EARTH_LABEL = {
 export const formatG = (g: number) => `${Number(g.toFixed(2))} g`
 
 export const RADIATION_LABEL = {
-  dose: (level: number) => `Dose: ${Math.round(level * 100)}%`,
+  dose: (level: number) => `Dose ${Math.round(level * 100)}%`,
   shelter: 'Shelter',
 }
 

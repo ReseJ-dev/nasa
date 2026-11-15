@@ -30,6 +30,8 @@ import { LAYER_LABEL } from './labels'
 import { REGIONS } from './regions'
 import { useHealthStore } from './store'
 import { BLOOM, CAMERA, EFFECTS, RENDER, SCENE, type Layer } from './config'
+import { overlayStyles as st } from './overlayStyles'
+import './theme'
 
 // Dark vertical gradient for the scene background, created once at module load.
 function createBackground() {
@@ -85,32 +87,16 @@ function StudioEnvironment() {
   )
 }
 
-// "Body / Skeleton" switch shown over the top-right corner of the scene.
+// "Body / Skeleton" switch shown over the top-right corner of the stage.
 function LayerSwitch({ layer, onChange }: { layer: Layer; onChange(l: Layer): void }) {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        display: 'flex',
-        borderRadius: 8,
-        overflow: 'hidden',
-        border: '1px solid rgba(255, 255, 255, 0.25)',
-        font: '14px system-ui, sans-serif',
-      }}
-    >
+    <div style={st.layerSwitch} role="group">
       {(Object.keys(LAYER_LABEL) as Layer[]).map((l) => (
         <button
           key={l}
+          aria-pressed={l === layer}
           onClick={() => onChange(l)}
-          style={{
-            padding: '6px 14px',
-            border: 'none',
-            cursor: 'pointer',
-            color: '#fff',
-            background: l === layer ? 'rgba(79, 163, 255, 0.6)' : 'rgba(10, 14, 24, 0.8)',
-          }}
+          style={{ ...st.layerButton, ...(l === layer ? st.layerButtonActive : null) }}
         >
           {LAYER_LABEL[l]}
         </button>
@@ -176,6 +162,7 @@ export function BodyScene({
   const focus = useHealthStore((s) => s.highlightRegions ?? (focused ? (s.threats?.[focused].regions ?? null) : null))
   // Shared between the HTML overlay and the Canvas for the focus lines (no React state per frame).
   const container = useRef<HTMLDivElement>(null)
+  const stage = useRef<HTMLDivElement>(null)
   const iconRefs = useRef<Partial<Record<ThreatId, HTMLElement | null>>>({})
   const focusLines = useRef<(SVGLineElement | null)[]>([])
   // Hint disappears after the first pointer interaction with the canvas (set once).
@@ -194,80 +181,83 @@ export function BodyScene({
   const clearSelection = useMemo(() => () => selectRegion(null), [selectRegion])
 
   return (
-    <div ref={container} style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <Canvas
-        camera={{ position: CAMERA.position, fov: CAMERA.fov }}
-        dpr={RENDER.dpr}
-        shadows={false} // no shadow maps: nothing in the scene casts shadows
-        gl={{ antialias: false, stencil: true }} // EffectComposer does the anti-aliasing; stencil for the shell
-        onPointerMissed={clearSelection} // click on empty space clears selection
-        onPointerDown={hintVisible ? hideHint : undefined}
-        onWheel={hintVisible ? hideHint : undefined}
-      >
-        <primitive attach="background" object={BACKGROUND} />
-        <Stars
-          radius={SCENE.stars.radius}
-          depth={SCENE.stars.depth}
-          count={SCENE.stars.count}
-          factor={SCENE.stars.factor}
-          speed={SCENE.stars.speed}
-          saturation={0}
-          fade
-        />
-        <StudioEnvironment />
-        <ambientLight ref={ambient} intensity={SCENE.ambientIntensity} />
-        <directionalLight ref={keyLight} position={SCENE.keyLight.position} intensity={SCENE.keyLight.intensity} />
-        <directionalLight
-          ref={rimLight}
-          position={SCENE.rimLight.position}
-          intensity={SCENE.rimLight.intensity}
-          color={SCENE.rimLight.color}
-        />
-        {/* Selection collects the organs marked with <Select enabled> in RegionMesh. */}
-        <Selection>
-          {REGIONS.map((def) => (
-            <RegionMesh key={def.id} def={def} layer={layer} focus={focus} />
-          ))}
-          <Skeleton layer={layer} />
-          <Body layer={layer} />
-          {/* stencilBuffer: the shell draws each pixel only once (see Body.tsx) */}
-          <EffectComposer multisampling={RENDER.multisampling} stencilBuffer>
-            <SelectiveBloom
-              lights={bloomLights}
-              intensity={BLOOM.intensity}
-              luminanceThreshold={BLOOM.luminanceThreshold}
-              luminanceSmoothing={BLOOM.luminanceSmoothing}
-              radius={BLOOM.radius}
-              mipmapBlur
-            />
-          </EffectComposer>
-        </Selection>
-        <Callouts visible={layer === 'body'} />
-        <ChainLinks visible={layer === 'body'} />
-        {/* Threat effects, each behind its own flag in config.ts (EFFECTS). */}
-        {(EFFECTS.habitatModule || EFFECTS.cabinFog || EFFECTS.cabinSensors) && <Habitat layer={layer} />}
-        {EFFECTS.cabinFlow && <CabinFlow layer={layer} />}
-        {/* Isolation visuals: the stage driver first, then the elements that read it. */}
-        <IsolationStage layer={layer} />
-        {EFFECTS.circadianRing && <CircadianRing />}
-        {EFFECTS.reactionImpulse && <ReactionImpulse />}
-        {EFFECTS.activityBars && <ActivityBars />}
-        {EFFECTS.moodDots && <MoodDots />}
-        {EFFECTS.offline && <OfflineTag />}
-        {EFFECTS.gravityArrow && <GravityArrow />}
-        {EFFECTS.radiationTracks && <RadiationTracks layer={layer} />}
-        {EFFECTS.shelter && <Shelter layer={layer} />}
-        {showFps && <Stats />}
-        <CameraRig />
-        <FocusLineTracker lines={focusLines} iconRefs={iconRefs} container={container} />
-      </Canvas>
-      <LayerSwitch layer={layer} onChange={changeLayer} />
-      {EFFECTS.offline && <OfflineTint />}
-      {EFFECTS.solarFlare && <FlareFlash />}
-      <FocusLinesSvg lines={focusLines} />
+    <div ref={container} style={st.root}>
+      {/* Threats: their own row, so nothing covers the astronaut. */}
       <ThreatStrip iconRefs={iconRefs} onToggle={onThreatToggle} />
-      <Legend layer={layer} />
-      <Hint visible={hintVisible} />
+      <div ref={stage} style={st.stage}>
+        <Canvas
+          camera={{ position: CAMERA.position, fov: CAMERA.fov }}
+          dpr={RENDER.dpr}
+          shadows={false} // no shadow maps: nothing in the scene casts shadows
+          gl={{ antialias: false, stencil: true }} // EffectComposer does the anti-aliasing; stencil for the shell
+          onPointerMissed={clearSelection} // click on empty space clears selection
+          onPointerDown={hintVisible ? hideHint : undefined}
+          onWheel={hintVisible ? hideHint : undefined}
+        >
+          <primitive attach="background" object={BACKGROUND} />
+          <Stars
+            radius={SCENE.stars.radius}
+            depth={SCENE.stars.depth}
+            count={SCENE.stars.count}
+            factor={SCENE.stars.factor}
+            speed={SCENE.stars.speed}
+            saturation={0}
+            fade
+          />
+          <StudioEnvironment />
+          <ambientLight ref={ambient} intensity={SCENE.ambientIntensity} />
+          <directionalLight ref={keyLight} position={SCENE.keyLight.position} intensity={SCENE.keyLight.intensity} />
+          <directionalLight
+            ref={rimLight}
+            position={SCENE.rimLight.position}
+            intensity={SCENE.rimLight.intensity}
+            color={SCENE.rimLight.color}
+          />
+          {/* Selection collects the organs marked with <Select enabled> in RegionMesh. */}
+          <Selection>
+            {REGIONS.map((def) => (
+              <RegionMesh key={def.id} def={def} layer={layer} focus={focus} />
+            ))}
+            <Skeleton layer={layer} />
+            <Body layer={layer} />
+            {/* stencilBuffer: the shell draws each pixel only once (see Body.tsx) */}
+            <EffectComposer multisampling={RENDER.multisampling} stencilBuffer>
+              <SelectiveBloom
+                lights={bloomLights}
+                intensity={BLOOM.intensity}
+                luminanceThreshold={BLOOM.luminanceThreshold}
+                luminanceSmoothing={BLOOM.luminanceSmoothing}
+                radius={BLOOM.radius}
+                mipmapBlur
+              />
+            </EffectComposer>
+          </Selection>
+          <Callouts visible={layer === 'body'} />
+          <ChainLinks visible={layer === 'body'} />
+          {/* Threat effects, each behind its own flag in config.ts (EFFECTS). */}
+          {(EFFECTS.habitatModule || EFFECTS.cabinFog || EFFECTS.cabinSensors) && <Habitat layer={layer} />}
+          {EFFECTS.cabinFlow && <CabinFlow layer={layer} />}
+          {/* Isolation visuals: the stage driver first, then the elements that read it. */}
+          <IsolationStage layer={layer} />
+          {EFFECTS.circadianRing && <CircadianRing />}
+          {EFFECTS.reactionImpulse && <ReactionImpulse />}
+          {EFFECTS.activityBars && <ActivityBars />}
+          {EFFECTS.moodDots && <MoodDots />}
+          {EFFECTS.offline && <OfflineTag />}
+          {EFFECTS.gravityArrow && <GravityArrow />}
+          {EFFECTS.radiationTracks && <RadiationTracks layer={layer} />}
+          {EFFECTS.shelter && <Shelter layer={layer} />}
+          {showFps && <Stats />}
+          <CameraRig />
+          <FocusLineTracker lines={focusLines} iconRefs={iconRefs} container={container} stage={stage} />
+        </Canvas>
+        <LayerSwitch layer={layer} onChange={changeLayer} />
+        {EFFECTS.offline && <OfflineTint />}
+        {EFFECTS.solarFlare && <FlareFlash />}
+        <Legend layer={layer} />
+        <Hint visible={hintVisible} />
+      </div>
+      <FocusLinesSvg lines={focusLines} />
     </div>
   )
 }

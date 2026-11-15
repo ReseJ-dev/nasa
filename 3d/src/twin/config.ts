@@ -183,7 +183,6 @@ export const ISOLATION = {
   // (ring at the head, readout at the hand, bars on the floor). For a head-and-shoulders
   // framing use position [0, 1.72, 1.75] and target [0, 1.6, 0] (the hand and the bars leave the frame).
   camera: { position: [0, 1.4, 3.12] as Vec3, target: [0, 0.96, 0] as Vec3 },
-  dimmedCallout: 0.2, // callouts of regions outside the focused threat
 }
 
 // Circadian ring around the head: a 24-hour clock seen from above, clockwise.
@@ -313,17 +312,19 @@ export const THREAT_ACTIVE_THRESHOLD = 0.3
 
 // Strength of an active threat's 3D effect while it is NOT focused (and no demo): a faint background.
 export const THREAT_BACKGROUND_EMPHASIS = 0.3
+// Text labels of a threat effect (cabin sensors, g label) show only from this emphasis up, i.e.
+// when their threat is focused or in demo: faint text is unreadable and reads as clutter.
+export const THREAT_LABEL_EMPHASIS = 0.99
 // The same while ANOTHER threat is focused: one accent at a time.
 export const THREAT_DIMMED_EMPHASIS = 0.2
 
-// Threats strip layout (px) and its lines.
+// Threats row layout (px) and its lines.
 export const THREAT_STRIP = {
-  slot: 96, // width per threat
-  ring: 44, // icon ring diameter
+  ring: 38, // icon ring diameter
   ringWidth: 3,
-  arcSpace: 30, // room above the rings for the threat-link arcs
-  linkOpacity: 0.22, // threat-link arcs at rest
-  linkOpacityFocused: 0.85, // when one end is the focused threat
+  arcSpace: 14, // room above the row content for the threat-link arcs
+  linkOpacity: 0.3, // threat-link arcs at rest
+  linkOpacityFocused: 0.9, // when one end is the focused threat
   focusLineOpacity: 0.55, // lines from the focused icon toward its regions
   focusLineReach: 0.92, // lines stop at this fraction of the way, so they do not cover the organ
 }
@@ -332,9 +333,9 @@ export const THREAT_STRIP = {
 // (ok grey, warning yellow, critical red), so a threat is never read as a status.
 export const THREAT_COLOR: Record<ThreatId, string> = {
   radiation: '#a66cff', // violet
-  isolation: '#5f7396', // dull blue
+  isolation: '#8fa6d0', // dull blue, light enough for icons and text on the dark panels
   gravity: '#a8eef7', // light cyan
-  distance: '#3a6dff', // blue
+  distance: '#6b93ff', // blue
   environment: '#b8927a', // grey-orange
 }
 

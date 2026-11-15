@@ -20,6 +20,8 @@ import type { BonePart } from '../contract/types'
 import { BONE_DENSITY, FRACTURE_LABEL_THRESHOLD, LANDING, LAYERS, SKELETON, type Layer } from './config'
 import { boneDensityColor, STATUS_HEX } from './colors'
 import { FRACTURE_LABEL } from './labels'
+import { overlayStyles as overlay } from './overlayStyles'
+import { FONT } from './theme'
 import { useHealthStore } from './store'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
 import { useSceneStore } from './sceneStore'
@@ -198,15 +200,7 @@ function FractureLabel({ part }: { part: BonePart }) {
   return (
     <Html position={LABEL_POSITION[part]} center style={{ pointerEvents: 'none' }}>
       <div
-        style={{
-          padding: '3px 8px',
-          borderRadius: 4,
-          background: 'rgba(120, 16, 10, 0.85)',
-          border: '1px solid #ff3b30',
-          color: '#fff',
-          font: '13px system-ui, sans-serif',
-          whiteSpace: 'nowrap',
-        }}
+        style={{ ...overlay.hoverLabel, color: '#fff', font: FONT.captionBold, background: 'rgba(120, 16, 10, 0.9)', border: '1px solid var(--st-critical)' }}
       >
         {FRACTURE_LABEL}
       </div>

@@ -5,12 +5,12 @@ import { useSceneStore } from './sceneStore'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { STATUS_HEX } from './colors'
 import { EFFECTS, THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S } from './config'
-import { EARTH_LABEL, RADIATION_LABEL, THREAT_LABEL } from './labels'
+import { EARTH_LABEL, RADIATION_LABEL, THREAT_LABEL, THREAT_STRIP_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 
-// Five threats strip (HTML over the canvas, top center).
+// Five threats strip: its own row above the 3D stage (never over the astronaut).
 // Each threat: its icon inside a ring filled by level (ring color = status thresholds),
-// name and level in %. Arcs above the rings show threatLinks (thickness = strength).
+// name and level in % next to it. Arcs above the row show threatLinks (thickness = strength).
 // Hover previews the focus, click pins / unpins (handled by BodyScene). Never calls selectRegion.
 
 export const THREAT_IDS: ThreatId[] = ['radiation', 'isolation', 'gravity', 'distance', 'environment']
@@ -82,7 +82,7 @@ function ThreatRing({ id, level }: { id: ThreatId; level: number }) {
   const c = 2 * Math.PI * r
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={S.ringWidth} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line-strong)" strokeWidth={S.ringWidth} />
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -107,27 +107,34 @@ function ThreatRing({ id, level }: { id: ThreatId; level: number }) {
   )
 }
 
-// Arcs between icon rings for threatLinks, in strip coordinates.
+// Arcs above the row for threatLinks. The SVG stretches with the row: x is in slots
+// (0..5, one per threat), y in pixels; the stroke keeps its pixel width.
 function LinkArcs({ focused }: { focused: ThreatId | null }) {
   const links = useHealthStore((st) => st.threatLinks ?? NO_LINKS)
-  const width = THREAT_IDS.length * S.slot
-  const y = S.arcSpace // top of the rings
-  const cx = (id: ThreatId) => THREAT_IDS.indexOf(id) * S.slot + S.slot / 2
+  const y = S.arcSpace // top of the row content
+  const cx = (id: ThreatId) => THREAT_IDS.indexOf(id) + 0.5
   return (
-    <svg width={width} height={S.arcSpace} style={s.threatArcs} aria-hidden>
+    <svg
+      height={S.arcSpace}
+      viewBox={`0 0 ${THREAT_IDS.length} ${S.arcSpace}`}
+      preserveAspectRatio="none"
+      style={s.threatArcs}
+      aria-hidden
+    >
       {links.map((l) => {
         const x1 = cx(l.from)
         const x2 = cx(l.to)
-        const lift = Math.min(S.arcSpace - 4, 8 + (Math.abs(x2 - x1) / S.slot) * 5) // longer link = higher arc
+        const lift = Math.min(S.arcSpace - 2, 4 + Math.abs(x2 - x1) * 3) // longer link = higher arc
         const lit = focused === l.from || focused === l.to
         return (
           <path
             key={`${l.from}-${l.to}`}
             d={`M${x1} ${y} Q${(x1 + x2) / 2} ${y - lift * 2} ${x2} ${y}`}
             fill="none"
-            stroke="#cfe6ff"
+            stroke="var(--text-2)"
             strokeWidth={0.75 + l.strength * 2.5}
             strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
             opacity={lit ? S.linkOpacityFocused : S.linkOpacity}
           />
         )
@@ -148,7 +155,7 @@ export function ThreatStrip({
   const selected = useHealthStore((st) => st.selectedRegion)
   const setHover = useSceneStore((st) => st.setHoverThreat)
   const focused = useFocusedThreat()
-  // Dose counter next to the radiation icon while a solar flare is on.
+  // Dose counter next to the radiation level while a solar flare is on.
   const flare = useHealthStore((st) => st.activeEvent === 'solar_flare')
   const dose = useHealthStore((st) => st.radiationLevel ?? 0)
   // Distance shows the link state and delay instead of a level.
@@ -162,16 +169,17 @@ export function ThreatStrip({
       <LinkArcs focused={focused} />
       {THREAT_IDS.map((id) => {
         const { level, regions } = threats[id]
+        const status = levelStatus(level)
         const ofSelected = selected !== null && regions.includes(selected) // reverse highlight
         return (
           <button
             key={id}
             title={`${THREAT_LABEL[id]}: ${id === 'distance' ? distanceText : `${Math.round(level * 100)}%`}`}
+            aria-pressed={focused === id}
             style={{
               ...s.threat,
-              width: S.slot,
               ...(ofSelected ? s.threatOfSelected : null),
-              ...(focused === id ? s.threatFocused : null),
+              ...(focused === id ? { ...s.threatFocused, boxShadow: `inset 0 0 0 1px ${THREAT_COLOR[id]}` } : null),
             }}
             onMouseEnter={() => setHover(id)}
             onClick={() => onToggle(id)}
@@ -180,15 +188,25 @@ export function ThreatStrip({
               ref={(el) => {
                 iconRefs.current[id] = el
               }}
-              style={{ display: 'flex' }}
+              style={{ display: 'flex', flex: 'none' }}
             >
               <ThreatRing id={id} level={level} />
             </span>
-            <span>{THREAT_LABEL[id]}</span>
-            <span style={{ ...s.threatLevel, ...(id === 'distance' && !link ? s.threatNoLink : null) }}>
-              {id === 'distance' ? distanceText : `${Math.round(level * 100)}%`}
+            <span style={s.threatText}>
+              <span style={s.threatName}>{THREAT_STRIP_LABEL[id]}</span>
+              <span
+                style={{
+                  ...s.threatLevel,
+                  ...(status !== 'ok' ? { color: STATUS_HEX[status], fontWeight: 700 } : null),
+                  ...(id === 'distance' ? (link ? { color: 'var(--text-2)', fontWeight: 400 } : s.threatNoLink) : null),
+                }}
+              >
+                {id === 'distance' ? distanceText : `${Math.round(level * 100)}%`}
+                {id === 'radiation' && flare && EFFECTS.solarFlare && (
+                  <span style={s.doseBadge}>{RADIATION_LABEL.dose(dose)}</span>
+                )}
+              </span>
             </span>
-            {id === 'radiation' && flare && EFFECTS.solarFlare && <span style={s.doseBadge}>{RADIATION_LABEL.dose(dose)}</span>}
           </button>
         )
       })}

@@ -4,7 +4,7 @@ import { Html } from '@react-three/drei'
 import { ConeGeometry, CylinderGeometry, Group, Mesh, MeshBasicMaterial } from 'three'
 import { useHealthStore } from './store'
 import { useSceneStore } from './sceneStore'
-import { GRAVITY_ARROW as A, GRAVITY_FIELDS } from './config'
+import { GRAVITY_ARROW as A, GRAVITY_FIELDS, THREAT_LABEL_EMPHASIS } from './config'
 import { formatG } from './labels'
 import { useThreatEffect } from './hooks/useThreatEffect'
 import { overlayStyles as s } from './overlayStyles'
@@ -85,7 +85,7 @@ export function GravityArrow() {
       <Html
         position={[A.position[0], A.position[1] + 0.06, A.position[2]]}
         center
-        style={{ pointerEvents: 'none', opacity: strength, display: strength > 0 ? 'block' : 'none' }}
+        style={{ pointerEvents: 'none', display: strength >= THREAT_LABEL_EMPHASIS ? 'block' : 'none' }}
       >
         <div style={s.gravityLabel}>{formatG(g)}</div>
       </Html>
