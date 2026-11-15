@@ -161,6 +161,16 @@
 .status-more summary:hover { background: var(--bg-inset); }
 .status-more ul { list-style: none; display: grid; gap: var(--sp-2); margin: var(--sp-2) 0 0; padding: 0; }
 
+/* Key hints (H): a small list in the top-right corner of the stage, under the layer switch */
+.keys-icon { font-size: var(--fs-caption); font-weight: 700; }
+.key-hints { position: absolute; top: 4rem; right: var(--sp-3); z-index: 16; width: min(24rem, calc(100% - 1.5rem)); padding: var(--sp-3) var(--sp-4); background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: var(--r-3); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); }
+.key-hints header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); }
+.key-hints h2 { margin: 0; font-size: var(--fs-title); }
+.key-hints dl { display: grid; gap: var(--sp-1); margin: 0; }
+.key-hints dl div { display: grid; grid-template-columns: 3rem minmax(0, 1fr); align-items: baseline; gap: var(--sp-2); }
+.key-hints dd { margin: 0; color: var(--text-2); }
+.key-hints kbd { display: inline-block; min-width: 1.8rem; padding: 1px var(--sp-1); text-align: center; font: 600 var(--fs-caption) var(--font); color: var(--text-1); background: var(--bg-inset); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: var(--r-1); }
+
 /* Demo caption: one line at the bottom of the stage while the scripted demo runs */
 .demo-caption { position: absolute; left: 50%; bottom: var(--sp-3); z-index: 10; transform: translateX(-50%); margin: 0; padding: var(--sp-1) var(--sp-4); max-width: calc(100% - 2rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs-title); font-weight: 600; color: var(--text-1); background: var(--bg-overlay); border: 1px solid var(--line-strong); border-radius: var(--r-pill); pointer-events: none; }
 

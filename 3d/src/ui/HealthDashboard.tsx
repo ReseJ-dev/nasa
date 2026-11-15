@@ -38,6 +38,39 @@ const TEXT = {
   systems: 'Body systems',
   soundOn: 'Sound on (click to mute)',
   soundOff: 'Sound muted (click to unmute)',
+  keys: 'Keys',
+  keysButton: 'Keyboard shortcuts (H)',
+  closeKeys: 'Close',
+}
+
+// Key hint overlay (H). The same keys are handled in HealthDashboard below.
+const KEYS: [string, string][] = [
+  ['C', 'Control room: presets, mission controls, check-in'],
+  ['D', 'Run the scripted demo'],
+  ['I', 'Isolation step only'],
+  ['F', 'Forecast: with and without exercise'],
+  ['S', 'Body / skeleton'],
+  ['Esc', 'Stop the demo and reset to Healthy'],
+  ['H', 'Show or hide this list'],
+]
+
+function KeyHints({ onClose }: { onClose(): void }) {
+  return (
+    <div className="key-hints" role="dialog" aria-label={TEXT.keys}>
+      <header>
+        <h2>{TEXT.keys}</h2>
+        <button type="button" className="zone-close" onClick={onClose} aria-label={TEXT.closeKeys}>×</button>
+      </header>
+      <dl>
+        {KEYS.map(([key, text]) => (
+          <div key={key}>
+            <dt><kbd>{key}</kbd></dt>
+            <dd>{text}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
 }
 
 // Tiny speaker icon: the only sound control in presentation mode (the slider is in the Control room).
@@ -56,7 +89,17 @@ function SoundIcon() {
 }
 
 // Read-only chips: mission day, Earth link, solar flare (only while active), alert counts.
-function TopBar({ forecastOpen, onForecast }: { forecastOpen: boolean; onForecast(): void }) {
+function TopBar({
+  forecastOpen,
+  onForecast,
+  keysOpen,
+  onKeys,
+}: {
+  forecastOpen: boolean
+  onForecast(): void
+  keysOpen: boolean
+  onKeys(): void
+}) {
   // missionDay is the day the scene shows (the scripted demo moves it); same as `day` otherwise.
   const day = useHealthStore((s) => s.missionDay ?? s.day)
   const flare = useHealthStore((s) => s.activeEvent === 'solar_flare')
@@ -100,6 +143,9 @@ function TopBar({ forecastOpen, onForecast }: { forecastOpen: boolean; onForecas
           {TEXT.forecast}
         </button>
         <SoundIcon />
+        <button type="button" className="sound-icon keys-icon" aria-pressed={keysOpen} aria-label={TEXT.keysButton} title={TEXT.keysButton} onClick={onKeys}>
+          H
+        </button>
       </div>
     </header>
   )
@@ -158,6 +204,7 @@ export function HealthDashboard() {
   const [forecastOpen, setForecastOpen] = useState(false)
   const [controlOpen, setControlOpen] = useState(START_IN_CONTROL)
   const [checkInOpen, setCheckInOpen] = useState(false)
+  const [keysOpen, setKeysOpen] = useState(false)
 
   // The scripted demo drives the layer and the focused threat, so both are controlled here.
   const demo = useDemo()
@@ -180,7 +227,8 @@ export function HealthDashboard() {
     }
   }, [])
 
-  // Keys: C Control room, D demo, I isolation step, Esc stops the demo and resets to Healthy.
+  // Keys (listed in KEYS above): C Control room, D demo, I isolation step, F forecast,
+  // S body / skeleton, H key hints, Esc stops the demo and resets to Healthy.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (typing(e) || e.ctrlKey || e.metaKey || e.altKey || checkInOpen) return
@@ -188,18 +236,28 @@ export function HealthDashboard() {
       if (key === 'c') setControlOpen((o) => !o)
       else if (key === 'd') start()
       else if (key === 'i') startIsolation()
+      else if (key === 'f') setForecastOpen((o) => !o)
+      else if (key === 's') setView((v) => ({ ...v, layer: v.layer === 'body' ? 'skeleton' : 'body' }))
+      else if (key === 'h') setKeysOpen((o) => !o)
       else if (key === 'escape') {
+        setKeysOpen(false)
+        setForecastOpen(false)
         stop()
         useHealthStore.getState().selectRegion(null)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [checkInOpen, start, startIsolation, stop])
+  }, [checkInOpen, start, startIsolation, stop, setView])
 
   return (
     <main className="health-dashboard" data-control={controlOpen}>
-      <TopBar forecastOpen={forecastOpen} onForecast={() => setForecastOpen((o) => !o)} />
+      <TopBar
+        forecastOpen={forecastOpen}
+        onForecast={() => setForecastOpen((o) => !o)}
+        keysOpen={keysOpen}
+        onKeys={() => setKeysOpen((o) => !o)}
+      />
       <div className="health-layout">
         <section className="health-scene" aria-label="Interactive astronaut model">
           <BodyScene
@@ -209,7 +267,8 @@ export function HealthDashboard() {
             focusedThreat={focus}
             onThreatClick={(id) => setView((v) => ({ ...v, focus: v.focus === id ? null : id }))}
           />
-          {caption && <p className="demo-caption" role="status">{caption}</p>}
+          {caption && !forecastOpen && <p className="demo-caption" role="status">{caption}</p>}
+          {keysOpen && <KeyHints onClose={() => setKeysOpen(false)} />}
           {forecastOpen && <ForecastDrawer onClose={() => setForecastOpen(false)} />}
         </section>
         <aside className="health-column">
