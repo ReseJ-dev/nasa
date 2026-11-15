@@ -45,6 +45,10 @@ export const BODY_SHELL = {
   rimColor: '#4fe3ff', // cyan edge glow
   rimPower: 2.2, // higher = thinner edge
   rimIntensity: 1.6, // brightness of the edge glow
+  // Breathing: the edge glow slowly swells and fades, always on. One calm cycle every
+  // `breathSeconds`; far slower than the warning (0.7 Hz) and critical (1.6 Hz) pulses.
+  breathSeconds: 5,
+  breathAmount: 0.22, // +/- share of rimIntensity
   // Opacity multipliers on top of the layer opacity (LAYERS.*.shell), result clamped to 1.
   centerAlpha: 0.35,
   edgeAlpha: 3.5,
@@ -265,14 +269,14 @@ export const REGION = {
   // Emissive glow strength in each state. Base glow depends on the status:
   // ok organs stay dim, warning/critical stand out.
   emissive: {
-    base: { ok: 0.04, warning: 0.35, critical: 0.5 } as Record<Status, number>,
+    base: { ok: 0.1, warning: 0.35, critical: 0.5 } as Record<Status, number>,
     selected: 0.5,
     hover: 0.9,
   },
   // Emissive pulse for unhealthy regions, added on top of the glow above.
   // hz = pulses per second, amplitude = extra emissive at the peak.
   pulse: {
-    ok: { hz: 0, amplitude: 0 },
+    ok: { hz: 0.2, amplitude: 0.1 }, // faint ambient pulse in step with the shell's breathing: alive, calm
     warning: { hz: 0.7, amplitude: 0.35 },
     critical: { hz: 1.6, amplitude: 0.9 },
   },
