@@ -80,9 +80,14 @@ function createShellMaterial() {
       .replace(
         '#include <opaque_fragment>',
         `// 0 where the surface faces the camera, 1 at the silhouette edge
-        float fresnel = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), uRimPower);
+        float facing = 1.0 - abs(dot(normalize(normal), normalize(vViewPosition)));
+        float fresnel = pow(facing, uRimPower); // wide soft glow
+        float line = pow(facing, ${BODY_SHELL.linePower.toFixed(1)}); // thin bright silhouette line
         outgoingLight = mix(outgoingLight, uRimColor * uRimIntensity, fresnel);
-        diffuseColor.a = clamp(diffuseColor.a * mix(uCenterAlpha, uEdgeAlpha, fresnel), 0.0, 1.0);
+        outgoingLight += uRimColor * uRimIntensity * line * ${BODY_SHELL.lineIntensity.toFixed(2)};
+        // light reflections stay visible on the clear middle, like on glass
+        float highlight = dot(totalSpecular, vec3(0.333)) * ${BODY_SHELL.highlightAlpha.toFixed(2)};
+        diffuseColor.a = clamp(diffuseColor.a * (mix(uCenterAlpha, uEdgeAlpha, fresnel) + highlight), 0.0, 1.0);
         // fluid shift: tint grows from the feet to the head
         float fluidH = smoothstep(${FLUID_SHIFT.feetY.toFixed(2)}, ${FLUID_SHIFT.headY.toFixed(2)}, vFluidY);
         float fluidK = uFluid * fluidH * ${FLUID_SHIFT.strength.toFixed(2)};
