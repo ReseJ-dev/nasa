@@ -26,15 +26,23 @@ export const RENDER = {
 
 // Scene background and lights
 export const SCENE = {
-  // Vertical background gradient, top -> bottom.
-  backgroundTop: '#0b1830',
-  backgroundBottom: '#020309',
-  ambientIntensity: 0.25, // lower than before: the environment adds soft light
-  keyLight: { position: [3, 5, 4] as Vec3, intensity: 1.1 }, // main light, front-right-top
-  rimLight: { position: [-3, 2, -4] as Vec3, intensity: 0.9, color: '#7fdcff' }, // back light, cyan outline
+  // Backdrop: a dark vertical gradient (top -> bottom) with a soft lighter halo behind the torso.
+  backgroundTop: '#0a1730',
+  backgroundBottom: '#020308',
+  halo: { color: '46, 110, 170', alpha: 0.3, x: 0.5, y: 0.42, radius: 0.55 }, // x, y, radius: fractions of the canvas
+  // Three-point lighting: key (main, warm), fill (soft, from the other side, lifts the shadows),
+  // rim (from behind, cyan outline).
+  ambientIntensity: 0.22, // low: the environment and the fill light add the soft light
+  keyLight: { position: [3, 5, 4] as Vec3, intensity: 1.15, color: '#fff3e4' }, // front-right-top
+  fillLight: { position: [-3.5, 1.5, 3] as Vec3, intensity: 0.4, color: '#9fc4ff' }, // front-left, cool
+  rimLight: { position: [-3, 2, -4] as Vec3, intensity: 1.0, color: '#7fdcff' }, // back light, cyan outline
   // Few faint stars, so they stay cheap and do not compete with the body.
   stars: { radius: 40, depth: 20, count: 600, factor: 2, speed: 0.3 },
   environmentResolution: 64, // env map size; rendered once, built only from Lightformers
+  // Soft glow on the floor under the body, darker right under the feet (a contact shadow).
+  ground: { size: 1.5, color: '79, 227, 255', opacity: 0.32, y: 0.002 },
+  // Darker corners of the 3D view, so the eye stays on the body.
+  vignette: { offset: 0.3, darkness: 0.62 },
 }
 
 // Translucent body shell with a fresnel look: almost clear in the center,
@@ -63,7 +71,12 @@ export const BODY_SHELL = {
 // Skeleton (neutral, before density colors)
 export const SKELETON = {
   color: '#ece8df', // bone white
-  roughness: 0.6,
+  roughness: 0.55,
+  // Same look as the body shell: a soft cyan light on the outline of every bone.
+  rimColor: '#4fe3ff',
+  rimPower: 2.2, // higher = thinner outline light
+  rimIntensity: 0.55,
+  centerShade: 0.8, // brightness of the middle of a bone (1 = no shading)
 }
 
 // Bloom glow, applied only to warning/critical regions in body mode.
@@ -90,7 +103,9 @@ export const FRACTURE_LABEL_THRESHOLD = 0.9
 export type Layer = 'body' | 'skeleton'
 export const LAYERS: Record<Layer, { shell: number; skeleton: number; organs: number }> = {
   body: { shell: 0.25, skeleton: 0, organs: 1 }, // skeleton hidden
-  skeleton: { shell: 0.06, skeleton: 0.9, organs: 0.08 }, // shell almost gone, organs faint, only bones in focus
+  // Shell: a faint outline that keeps the body shape. Bones fully opaque, so the primitives a bone
+  // is built from never show through each other. Organs faint.
+  skeleton: { shell: 0.11, skeleton: 1, organs: 0.06 },
 }
 // In skeleton mode these regions are hidden completely (they overlap the bones);
 // the other organs fade to LAYERS.skeleton.organs and cannot be hovered or clicked.
@@ -225,7 +240,7 @@ export const CIRCADIAN = {
 export const IMPULSE = {
   // eyes -> brain -> brainstem -> shoulder -> elbow -> hand (the astronaut's left arm, viewer's right)
   path: [
-    [0.033, 1.668, 0.082],
+    [0.033, 1.66, 0.084],
     [0, 1.7, -0.01],
     [0, 1.56, -0.02],
     [0.09, 1.46, -0.01],
