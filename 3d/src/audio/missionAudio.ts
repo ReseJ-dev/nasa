@@ -1,5 +1,5 @@
 import { useHealthStore } from '../twin/store'
-import { THREAT_LEVEL } from '../twin/config'
+import { threatStatus } from '../twin/threatStatus'
 import { CUE_PRIORITY, transitionCue, type Cue } from './cues'
 
 export const DEFAULT_VOLUME = 0.25
@@ -10,9 +10,6 @@ const SOUNDS: Record<Cue, { file: string; gain: number }> = {
   critical: { file: 'critical-two-tone.wav', gain: 0.85 },
   flare: { file: 'solar-flare.ogg', gain: 0.9 },
 }
-
-const threatStatus = (level: number) =>
-  level >= THREAT_LEVEL.criticalAt ? 'critical' : level >= THREAT_LEVEL.warnAt ? 'warning' : 'ok'
 
 export function createMissionAudio() {
   // Reuse one media element so it can be unlocked by the Sound button click.

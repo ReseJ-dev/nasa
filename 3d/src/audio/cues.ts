@@ -1,4 +1,4 @@
-import type { HealthState, Status } from '../contract/types'
+import type { HealthState, RegionId, RegionState, Status, ThreatId } from '../contract/types'
 import type { ScenarioId } from '../twin/store'
 
 export type Cue = 'scenario' | 'warning' | 'critical' | 'flare'
@@ -17,7 +17,7 @@ export const CUE_PRIORITY: Record<Cue, number> = {
 export function transitionCue(
   previous: SoundState,
   next: SoundState,
-  threatStatus: (level: number) => Status,
+  threatStatus: (id: ThreatId, level: number, regions: Partial<Record<RegionId, RegionState>> | undefined) => Status,
 ): Cue | undefined {
   if (previous.activeEvent !== 'solar_flare' && next.activeEvent === 'solar_flare') return 'flare'
 
@@ -33,8 +33,8 @@ export function transitionCue(
   }
   if (next.threats && next.threats !== previous.threats) {
     for (const id of Object.keys(next.threats) as (keyof typeof next.threats)[]) {
-      const status = threatStatus(next.threats[id].level)
-      const previousStatus = threatStatus(previous.threats?.[id].level ?? 0)
+      const status = threatStatus(id, next.threats[id].level, next.regions)
+      const previousStatus = threatStatus(id, previous.threats?.[id].level ?? 0, previous.regions)
       if (previousStatus !== status) transitions.push(status)
     }
   }

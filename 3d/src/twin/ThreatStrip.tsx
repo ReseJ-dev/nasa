@@ -4,7 +4,8 @@ import { useHealthStore } from './store'
 import { useSceneStore } from './sceneStore'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { STATUS_HEX } from './colors'
-import { THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S, isDelayedEarth } from './config'
+import { THREAT_COLOR, THREAT_STRIP as S, isDelayedEarth } from './config'
+import { threatStatus } from './threatStatus'
 import { EARTH_LABEL, STRIP_SOURCE, STRIP_VALUE, THREAT_LABEL, THREAT_STRIP_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 import { ppmToMmHg } from '../../../src/engine/constants'
@@ -18,11 +19,6 @@ import { ppmToMmHg } from '../../../src/engine/constants'
 export const THREAT_IDS: ThreatId[] = ['radiation', 'isolation', 'gravity', 'distance', 'environment']
 const NO_LINKS: ThreatLink[] = []
 
-function levelStatus(level: number): Status {
-  if (level >= THREAT_LEVEL.criticalAt) return 'critical'
-  if (level >= THREAT_LEVEL.warnAt) return 'warning'
-  return 'ok'
-}
 
 // Radiation trefoil: three wedges around a small dot.
 function wedge(centerDeg: number) {
@@ -78,7 +74,7 @@ const ICON: Record<ThreatId, ReactNode> = {
 }
 
 // Icon (identity color) inside a ring filled by level (status color).
-function ThreatRing({ id, level }: { id: ThreatId; level: number }) {
+function ThreatRing({ id, level, status }: { id: ThreatId; level: number; status: Status }) {
   const size = S.ring
   const r = (size - S.ringWidth) / 2
   const c = 2 * Math.PI * r
@@ -90,7 +86,7 @@ function ThreatRing({ id, level }: { id: ThreatId; level: number }) {
         cy={size / 2}
         r={r}
         fill="none"
-        stroke={STATUS_HEX[levelStatus(level)]}
+        stroke={STATUS_HEX[status]}
         strokeWidth={S.ringWidth}
         strokeLinecap="round"
         strokeDasharray={`${c * Math.min(Math.max(level, 0), 1)} ${c}`}
@@ -191,6 +187,7 @@ export function ThreatStrip({
 }) {
   // New objects only on scenario change, so this re-renders rarely.
   const threats = useHealthStore((st) => st.threats)
+  const bodyRegions = useHealthStore((st) => st.regions) // gravity status follows bones and muscles
   const selected = useHealthStore((st) => st.selectedRegion)
   const setHover = useSceneStore((st) => st.setHoverThreat)
   const focused = useFocusedThreat()
@@ -203,7 +200,7 @@ export function ThreatStrip({
       <LinkArcs focused={focused} />
       {THREAT_IDS.map((id) => {
         const { level, regions } = threats[id]
-        const status = levelStatus(level)
+        const status = threatStatus(id, level, bodyRegions)
         const ofSelected = selected !== null && regions.includes(selected) // reverse highlight
         const { value, limit } = values[id]
         const physicalDose = showPhysicalDose && id === 'radiation'
@@ -227,7 +224,7 @@ export function ThreatStrip({
               }}
               style={{ display: 'flex', flex: 'none' }}
             >
-              <ThreatRing id={id} level={level} />
+              <ThreatRing id={id} level={level} status={status} />
             </span>
             <span style={s.threatText}>
               <span style={s.threatName}>{THREAT_STRIP_LABEL[id]}</span>
