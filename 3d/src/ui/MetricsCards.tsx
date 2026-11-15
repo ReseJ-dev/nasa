@@ -1,5 +1,5 @@
 import type { Metric } from '../contract/types'
-import { NO_DATA_LABEL } from '../twin/labels'
+import { NO_DATA_LABEL, SOURCES_NOTE } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
 import { formatLevel } from '../sim'
 import { GRAVITY_THREAT_DAYS } from '../sim/constants'
@@ -63,6 +63,7 @@ export function HealthMetrics() {
           <LevelValue label="Gravity threat level" level={gravityThreat} note={`index × ${Math.min(day, GRAVITY_THREAT_DAYS)} / ${GRAVITY_THREAT_DAYS} days`} />
           <LevelValue label="Isolation threat level" level={isolationThreat} />
         </dl>
+        <p className="health-metric-note">{SOURCES_NOTE}</p>
       </section>
       <section className="health-card" aria-labelledby="health-future">
         <h2 id="health-future">Future measurements</h2>
