@@ -295,7 +295,10 @@ export const REGION = {
   edge: { power: 1.2, litCenter: 0.07, litEdge: 1.9, glowCenter: 0.2, glowEdge: 1.9 },
   // How fast color and glow follow their target (higher = faster, ~0.5 s at 6).
   lerpSpeed: 6,
-  dimmedBrightness: 0.15, // color/glow of non-selected organs while a region is selected
+  dimmedBrightness: 0.6, // color/glow of non-selected organs while a region is selected
+  dimmedOpacity: 0.35, // opacity of non-selected organs while a region is selected
+  selectedRim: 2.4, // outline glow of the selected organ, in its status color
+  selectedBoneOpacity: 0.9, // bones (no organ mesh in Body mode) show through the shell while selected
   threatDimmedBrightness: 0.2, // organs outside the highlighted threat's regions
   // Emissive glow strength in each state. Base glow depends on the status:
   // ok organs stay dim, warning/critical stand out.
