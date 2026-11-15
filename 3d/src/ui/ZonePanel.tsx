@@ -1,5 +1,5 @@
 import type { Alert, Escalation, Metric, RegionId, RegionState, Status } from '../contract/types'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { STATUS_HEX } from '../twin/colors'
 import { REGION_LABEL, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
@@ -34,7 +34,7 @@ const TEXT = {
   who: 'Who to involve',
   source: 'Source',
   unverified: 'not yet verified',
-  empty: 'Select a system here or on the astronaut to see its metrics and guidance.',
+  empty: 'Select a system in the list or on the astronaut to see its metrics, trends and what to do.',
   details: 'System details',
 }
 
@@ -83,7 +83,11 @@ export function ZoneDetails({
 }) {
   if (!region) {
     return (
-      <section className="health-card health-detail" aria-labelledby="zone-title">
+      <section className="health-card health-detail zone-empty" aria-labelledby="zone-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+          <circle cx="12" cy="5" r="2.5" />
+          <path d="M12 8v8M7 10.5h10M12 16l-3 5M12 16l3 5" strokeLinecap="round" />
+        </svg>
         <h2 id="zone-title">{TEXT.details}</h2>
         <p>{TEXT.empty}</p>
       </section>
@@ -107,11 +111,11 @@ export function ZoneDetails({
   const whoText = status === 'ok' ? undefined : autonomous ? zone.escalation.autonomous : zone.escalation[status].text
 
   return (
-    <section className="health-card health-detail zone-panel" aria-labelledby="zone-title" aria-live="polite">
+    <section className="health-card health-detail zone-panel" data-status={status} style={{ '--zone-color': color } as CSSProperties} aria-labelledby="zone-title" aria-live="polite">
       <header className="zone-head">
         <i aria-hidden="true" style={{ background: color }} />
         <h2 id="zone-title">{REGION_LABEL[selected]}</h2>
-        <span className="zone-status" style={{ color }}>{STATUS_LABEL[status]}</span>
+        <span className="zone-status" data-status={status}>{STATUS_LABEL[status]}</span>
         <button type="button" className="zone-close" onClick={onClose} aria-label={TEXT.close}>×</button>
       </header>
 

@@ -25,12 +25,12 @@ export function SoundControls() {
         Sound {enabled ? 'on' : 'off'}
       </button>
       <label>
-        Volume <span>{Math.round(volume * 100)}%</span>
-        <input type="range" min="0" max="100" value={Math.round(volume * 100)} onChange={event => {
+        <input type="range" aria-label="Volume" title="Volume" min="0" max="100" value={Math.round(volume * 100)} onChange={event => {
           const value = event.currentTarget.valueAsNumber / 100
           audio.current?.setVolume(value)
           setVolume(value)
         }} />
+        <span>{Math.round(volume * 100)}%</span>
       </label>
     </div>
   )
