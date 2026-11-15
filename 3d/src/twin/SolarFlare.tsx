@@ -12,7 +12,7 @@ import { overlayStyles as st } from './overlayStyles'
 // Solar flare and shelter.
 // useSolarFlareWatcher: starts the flare effects only on the transition of activeEvent to 'solar_flare'.
 // FlareFlash: 0.5 s white-yellow flash over the whole frame (HTML overlay, outside the Canvas).
-// Shelter: translucent violet capsule with fresnel edges around the body while inShelter is true
+// Shelter: translucent blue capsule with fresnel edges around the body while inShelter is true
 // (the radiation tracks stop at its wall, see RadiationTracks). Created once, faded in useFrame.
 
 export function useSolarFlareWatcher() {
@@ -53,7 +53,7 @@ const fragment = /* glsl */ `
   varying vec3 vViewDir;
   void main() {
     float rim = pow(1.0 - abs(dot(normalize(vNormalV), normalize(vViewDir))), uRimPower);
-    gl_FragColor = vec4(uColor, uOpacity * (0.08 + rim));
+    gl_FragColor = vec4(uColor, uOpacity * (0.04 + rim));
   }
 `
 
@@ -62,7 +62,7 @@ const fragment = /* glsl */ `
 export function Shelter({ layer }: { layer: Layer }) {
   const inShelter = useHealthStore((s) => s.inShelter ?? false)
   const effect = useThreatEffect('radiation')
-  const strength = inShelter && layer === 'body' ? effect : 0
+  const strength = inShelter && layer === 'body' ? Math.max(0.75, effect) : 0
   const goal = useRef(0)
   useLayoutEffect(() => {
     goal.current = S.opacity * strength

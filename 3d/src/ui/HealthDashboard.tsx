@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DEMO_LABEL, useDemo } from '../demo'
+import type { SlideScene } from '../slideScene'
+import { SPE_LIMIT_LABEL } from '../missionDisplay'
 import type { RegionId } from '../contract/types'
 import { BodyScene } from '../twin'
 import { STATUS_HEX } from '../twin/colors'
@@ -199,10 +201,21 @@ const START_IN_CONTROL = new URLSearchParams(location.search).get('mode') === 'c
 const typing = (e: KeyboardEvent) =>
   e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement
 
-export function HealthDashboard() {
+function RadiationReference() {
+  const dose = useHealthStore(state => state.metrics.find(metric => metric.id === 'radiation_msv')?.value)
+  return (
+    <section className="health-card slide-reference">
+      <h2>Radiation exposure</h2>
+      {dose !== undefined && <p><strong>{dose} mSv</strong> <span>Simulated accumulated dose</span></p>}
+      <p><strong>250 mSv</strong> <span>{SPE_LIMIT_LABEL}</span></p>
+    </section>
+  )
+}
+
+export function HealthDashboard({ slide }: { slide?: SlideScene }) {
   const selected = useHealthStore((s) => s.selectedRegion)
   const [forecastOpen, setForecastOpen] = useState(false)
-  const [controlOpen, setControlOpen] = useState(START_IN_CONTROL)
+  const [controlOpen, setControlOpen] = useState(!slide && START_IN_CONTROL)
   const [checkInOpen, setCheckInOpen] = useState(false)
   const [keysOpen, setKeysOpen] = useState(false)
 
@@ -213,6 +226,7 @@ export function HealthDashboard() {
 
   // Browsers allow audio only after a user gesture: the first key press or click unmutes.
   useEffect(() => {
+    if (slide) return
     const unlock = (e: Event) => {
       // a first click on a sound control is that control's own decision
       if (e.target instanceof Element && e.target.closest('.sound-icon, .sound-controls')) return
@@ -225,11 +239,12 @@ export function HealthDashboard() {
       window.removeEventListener('keydown', unlock, options)
       window.removeEventListener('pointerdown', unlock, options)
     }
-  }, [])
+  }, [slide])
 
   // Keys (listed in KEYS above): C Control room, D demo, I isolation step, F forecast,
   // S body / skeleton, H key hints, Esc stops the demo and resets to Healthy.
   useEffect(() => {
+    if (slide) return
     const onKey = (e: KeyboardEvent) => {
       if (typing(e) || e.ctrlKey || e.metaKey || e.altKey || checkInOpen) return
       const key = e.key.toLowerCase()
@@ -248,20 +263,23 @@ export function HealthDashboard() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [checkInOpen, start, startIsolation, stop, setView])
+  }, [slide, checkInOpen, start, startIsolation, stop, setView])
 
   return (
-    <main className="health-dashboard" data-control={controlOpen}>
-      <TopBar
-        forecastOpen={forecastOpen}
-        onForecast={() => setForecastOpen((o) => !o)}
-        keysOpen={keysOpen}
-        onKeys={() => setKeysOpen((o) => !o)}
-      />
+    <main className="health-dashboard" data-control={controlOpen} data-slide={slide}>
+      <div inert={Boolean(slide)}>
+        <TopBar
+          forecastOpen={forecastOpen}
+          onForecast={() => setForecastOpen((o) => !o)}
+          keysOpen={keysOpen}
+          onKeys={() => setKeysOpen((o) => !o)}
+        />
+      </div>
       <div className="health-layout">
-        <section className="health-scene" aria-label="Interactive astronaut model">
+        <section className="health-scene" aria-label="Astronaut model" inert={Boolean(slide)}>
           <BodyScene
             compact
+            still={Boolean(slide)}
             layer={layer}
             onLayerChange={(l) => setView((v) => ({ ...v, layer: l }))}
             focusedThreat={focus}
@@ -274,10 +292,19 @@ export function HealthDashboard() {
         <aside className="health-column">
           {/* New critical alert: first thing in the right column, right under the top bar.
               It is in the column's flow, so it can never cover the threats strip or the twin. */}
-          <CriticalBanner />
-          <SystemList />
-          {/* A selected region replaces "Status now" with its zone panel; closing it returns. */}
-          {selected ? <ZonePanel /> : <StatusNow />}
+          {slide ? (
+            <>
+              <StatusNow slide={slide} />
+              <RadiationReference />
+            </>
+          ) : (
+            <>
+              <CriticalBanner />
+              {!selected && <StatusNow />}
+              <SystemList />
+              {selected && <ZonePanel />}
+            </>
+          )}
         </aside>
         {controlOpen && (
           <ControlRoom

@@ -101,6 +101,26 @@
 .health-column { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; min-height: 0; overflow-y: auto; }
 .health-column > * { flex: none; }
 
+.health-dashboard[data-slide] *, .health-dashboard[data-slide] *::before, .health-dashboard[data-slide] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+.slide-flare-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 72% at -10% 29%, rgba(255, 174, 77, .28), transparent 74%);
+}
+.slide-reference p {
+  display: grid;
+  gap: .15rem;
+  margin: .75rem 0 0;
+  padding: .65rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+}
+.slide-reference strong { color: var(--text-1); font-size: 1.35rem; }
+
 /* Panels: quiet surfaces, no heavy boxes */
 .health-card { min-width: 0; padding: var(--sp-3) var(--sp-4); background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--r-3); }
 .health-card h2 { margin: 0 0 var(--sp-2); font-size: var(--fs-title); font-weight: 650; letter-spacing: -0.01em; }

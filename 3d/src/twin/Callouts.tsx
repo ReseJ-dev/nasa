@@ -10,22 +10,21 @@ import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { overlayStyles as s } from './overlayStyles'
 import { REGIONS, type RegionDef } from './regions'
 
-// Permanent callouts: a thin line from the organ to a label (name + score) at a fixed spot left
-// or right of the body. Shown for every critical region and for the CALLOUTS.maxWarnings
-// highest-priority warnings (lowest score); the other warnings show a label on hover (RegionMesh).
+// Permanent callouts run sideways out of the silhouette before bending to their labels.
 // Performance: every callout stays mounted and is only shown/hidden, so a scenario
 // or layer change creates no new materials, geometries or Html roots.
 
 // Line geometries and materials, created once at module load.
-const LINE_GEOMETRY = new Map(
-  REGIONS.map((def) => [
-    def.id,
-    new BufferGeometry().setFromPoints([
-      new Vector3(...(def.callout.lineStart ?? def.callout.anchor)),
-      new Vector3(...def.callout.label),
-    ]),
-  ]),
-)
+const LINE_GEOMETRY = new Map(REGIONS.map(({ id, callout }) => {
+  const anchor = new Vector3(...callout.anchor)
+  const label = new Vector3(...callout.label)
+  const exitY = id === 'lungs' ? 1.158 : anchor.y
+  const elbow = new Vector3(label.x * 0.74, exitY, anchor.z)
+  const points = id === 'lungs'
+    ? [anchor, new Vector3(-0.16, exitY, anchor.z), elbow, label]
+    : [anchor, elbow, label]
+  return [id, new BufferGeometry().setFromPoints(points)] as const
+}))
 const lineMaterial = (status: Status) =>
   // depthTest off: the line stays visible through the translucent shell
   new LineBasicMaterial({ color: STATUS_HEX[status], transparent: true, opacity: 0.8, depthTest: false })
@@ -38,13 +37,13 @@ const LINE_MATERIAL: Record<Status, LineBasicMaterial> = {
 const noRaycast = () => null // the line must not catch hover or clicks
 
 // Ids of the regions with a permanent callout, as one string (a stable selector result).
-function pinnedCallouts(regions: Record<RegionId, RegionState>): string {
-  const all = Object.values(regions)
-  const warnings = all
-    .filter((r) => r.status === 'warning')
-    .sort((a, b) => a.score - b.score)
-    .slice(0, CALLOUTS.maxWarnings)
-  return [...all.filter((r) => r.status === 'critical'), ...warnings].map((r) => r.id).join(',')
+function pinnedCallouts(regions: Record<RegionId, RegionState>, eligible?: RegionId[]): string {
+  return Object.values(regions)
+    .filter(r => r.status !== 'ok' && (!eligible || eligible.includes(r.id)))
+    .sort((a, b) => Number(b.status === 'critical') - Number(a.status === 'critical') || a.score - b.score)
+    .slice(0, CALLOUTS.maxVisible)
+    .map(r => r.id)
+    .join(',')
 }
 
 function Callout({ def, visible }: { def: RegionDef; visible: boolean }) {
@@ -73,8 +72,7 @@ function Callout({ def, visible }: { def: RegionDef; visible: boolean }) {
   const pinned = useHealthStore(
     (st) =>
       st.selectedRegion === def.id ||
-      (st.highlightRegions?.includes(def.id) ?? false) ||
-      pinnedCallouts(st.regions).split(',').includes(def.id),
+      pinnedCallouts(st.regions, st.highlightRegions ?? (focused ? st.threats?.[focused].regions : undefined)).split(',').includes(def.id),
   )
 
   const shown = visible && status !== 'ok' && pinned && !outOfThreat && !outOfAlert && !otherSelected

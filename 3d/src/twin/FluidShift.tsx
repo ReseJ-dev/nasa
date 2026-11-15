@@ -10,8 +10,10 @@ import { overlayStyles as s } from './overlayStyles'
 // never drawn as a cause label between chain organs (the CO2 chain keeps its own labels).
 export function FluidShiftLabel({ visible }: { visible: boolean }) {
   const fluid = useHealthStore((st) => st.fluidShift ?? 0)
+  const hiddenByFlare = useHealthStore(state => state.activeEvent === 'solar_flare' &&
+    state.selectedRegion !== 'lungs' && state.selectedRegion !== 'brain' && state.selectedRegion !== 'eyes')
   const effect = useThreatEffect('gravity')
-  const show = visible && EFFECTS.fluidShift && effect > 0 && fluid >= F.labelFrom
+  const show = visible && !hiddenByFlare && EFFECTS.fluidShift && effect > 0 && fluid >= F.labelFrom
   if (!show) return null
   return (
     <Html position={F.labelPosition} center style={{ pointerEvents: 'none' }}>

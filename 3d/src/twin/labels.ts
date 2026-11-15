@@ -113,7 +113,7 @@ export const formatG = (g: number) => `${Number(g.toFixed(2))} g`
 
 export const RADIATION_LABEL = {
   dose: (level: number) => `Dose ${Math.round(level * 100)}%`,
-  shelter: 'Shelter',
+  shelter: 'Storm shelter',
 }
 
 export const HINT = 'Rotate, zoom, click an organ'

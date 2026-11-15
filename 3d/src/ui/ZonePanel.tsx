@@ -5,6 +5,7 @@ import { NO_DATA_LABEL, REGION_LABEL, SOURCES_NOTE, STATUS_LABEL, THREAT_LABEL }
 import { useHealthStore } from '../twin/store'
 import { DISCLAIMER, ZONE_INFO } from '../../../src/data/zoneInfo'
 import { ALERT_REGION, METRIC_ALERT, autonomousAction } from './alerts'
+import { delayedEarth, DELAYED_EARTH_TEXT } from '../missionDisplay'
 import { ZoneCharts } from './ZoneCharts'
 import { Co2Value } from './Co2Value'
 
@@ -53,6 +54,7 @@ export function ZonePanel() {
   const metrics = useHealthStore((s) => s.metrics ?? NO_METRICS)
   const alerts = useHealthStore((s) => s.alerts ?? NO_ALERTS)
   const earthLink = useHealthStore((s) => s.earthLink ?? true)
+  const commDelaySec = useHealthStore((s) => s.commDelaySec)
   const select = useHealthStore((s) => s.selectRegion)
   return (
     <ZoneDetails
@@ -60,6 +62,7 @@ export function ZonePanel() {
       metrics={metrics}
       alerts={alerts}
       earthLink={earthLink}
+      commDelaySec={commDelaySec}
       onClose={() => select(null)}
       charts={selected ? <ZoneCharts regionId={selected} /> : null}
     />
@@ -72,6 +75,7 @@ export function ZoneDetails({
   metrics,
   alerts,
   earthLink,
+  commDelaySec,
   onClose,
   charts,
 }: {
@@ -79,6 +83,7 @@ export function ZoneDetails({
   metrics: Metric[]
   alerts: Alert[]
   earthLink: boolean
+  commDelaySec?: number
   onClose(): void
   charts?: ReactNode // trend charts (store-driven), placed after the metrics
 }) {
@@ -105,11 +110,12 @@ export function ZoneDetails({
     .filter((m): m is Metric => m !== undefined)
   const regionAlerts = alerts.filter((a) => ALERT_REGION[a.metric] === selected)
   // No Earth link: every action shows its autonomous version.
-  const actions = status === 'ok' ? [] : zone.actions[status].map((line) => (earthLink ? line : autonomousAction(line)))
+  const delayed = status !== 'ok' && delayedEarth(commDelaySec)
+  const actions = status === 'ok' ? [] : zone.actions[status].map((line) => (earthLink || delayed ? line : autonomousAction(line)))
   const who = escalationFor(region.escalation, status, selected)
   // No Earth: anything that would go to the ground goes to the crew instead.
-  const autonomous = !earthLink && (who === 'ground' || status === 'critical')
-  const whoText = status === 'ok' ? undefined : autonomous ? zone.escalation.autonomous : zone.escalation[status].text
+  const autonomous = delayed || (!earthLink && (who === 'ground' || status === 'critical'))
+  const whoText = status === 'ok' ? undefined : delayed ? DELAYED_EARTH_TEXT : autonomous ? zone.escalation.autonomous : zone.escalation[status].text
 
   return (
     <section className="health-card health-detail zone-panel" data-status={status} style={{ '--zone-color': color } as CSSProperties} aria-labelledby="zone-title" aria-live="polite">

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { STATUS_HEX } from '../twin/colors'
 import { STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
-import { buildAlerts, type AlertItem } from './alerts'
+import { buildAlerts, statusNowItems, type AlertItem } from './alerts'
 
 // Alerts: the alert card used by the "Status now" list, plus a 4 s banner and a red vignette
 // flash whenever a new critical alert appears.
@@ -22,7 +22,16 @@ export function useAlertItems(): AlertItem[] {
   const alerts = useHealthStore((s) => s.alerts)
   const threats = useHealthStore((s) => s.threats)
   const earthLink = useHealthStore((s) => s.earthLink ?? true)
-  return useMemo(() => buildAlerts({ regions, alerts, threats, earthLink }), [regions, alerts, threats, earthLink])
+  const commDelaySec = useHealthStore((s) => s.commDelaySec)
+  return useMemo(() => buildAlerts({ regions, alerts, threats, earthLink, commDelaySec }), [regions, alerts, threats, earthLink, commDelaySec])
+}
+
+export function useStatusNowItems(): AlertItem[] {
+  const items = useAlertItems()
+  const event = useHealthStore(s => s.activeEvent)
+  const inShelter = useHealthStore(s => s.inShelter ?? false)
+  const delay = useHealthStore(s => s.commDelaySec)
+  return useMemo(() => statusNowItems(items, event, inShelter, delay), [items, event, inShelter, delay])
 }
 
 export function useOpenAlert() {
@@ -61,13 +70,14 @@ export function AlertCard({ item }: { item: AlertItem }) {
         {TEXT.cause}: {THREAT_LABEL[item.hazard]}
       </small>
       <span className="alert-action">{item.action}</span>
+      {item.escalationNote && <small>{item.escalationNote}</small>}
     </button>
   )
 }
 
 // Banner (4 s) and red vignette flash for each new critical alert.
 export function CriticalBanner() {
-  const items = useAlertItems()
+  const items = useStatusNowItems()
   const openAlert = useOpenAlert()
   const seen = useRef<Set<string>>(new Set())
   const [banner, setBanner] = useState<{ item: AlertItem; more: number; key: number } | null>(null)
@@ -105,7 +115,7 @@ export function CriticalBanner() {
             {item.message} · {TEXT.cause}: {THREAT_LABEL[item.hazard]}
             {more > 0 && <small> · {TEXT.more(more)}</small>}
           </span>
-          <span className="alert-action">{item.action}</span>
+          <span className="alert-action">{item.action}{item.escalationNote && <small> {item.escalationNote}</small>}</span>
         </button>
       </div>
     </>

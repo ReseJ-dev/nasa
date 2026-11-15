@@ -204,12 +204,12 @@ export const overlayStyles = {
   // Full-frame flash at the start of a solar flare (opacity animated by FlareFlash).
   flareFlash: { position: 'absolute', inset: 0, opacity: 0, pointerEvents: 'none' },
   shelterLabel: {
-    padding: '2px var(--sp-2)',
+    padding: '4px var(--sp-2)',
     borderRadius: 'var(--r-1)',
-    border: '1px solid var(--hz-radiation)',
+    border: '1px solid #69c8ff',
     background: 'var(--bg-overlay)',
-    color: '#e4d8ff',
-    font: FONT.captionBold,
+    color: '#d9f4ff',
+    font: '600 14px system-ui, sans-serif',
     whiteSpace: 'nowrap',
     userSelect: 'none',
   },
