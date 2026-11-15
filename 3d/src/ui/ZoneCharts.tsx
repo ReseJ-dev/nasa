@@ -44,6 +44,15 @@ const COLOR = {
   marker: '#eef5ff',
 }
 
+// Source line under every chart, worded from SOURCES.md ("project estimate" where it says so).
+const CHART_SOURCE = {
+  sleep: 'Sleep line: NASA protected sleep time 8.5 h (Barger et al. 2014), not a measured sleep target; baseline: your pre-flight value.',
+  reaction: 'Reaction test: shortened PVT-B (Basner et al. 2011); 30 s length and 500 ms lapse cut-off are project estimates.',
+  mood: 'Mood: 1–5 self-report; the scale is a project estimate, not a validated questionnaire.',
+  bones: 'Bone loss rate: project estimate based on LeBlanc 2000 and NASA HRP (1–1.5% per month in weight-bearing bones).',
+  co2: 'CO₂ limits: 3 mmHg NASA-STD-3001 Vol 2 [V2 6004] (1-hour average); 2.5 mmHg OCHMO-TB-004 (7-day average). The chart shows daily means.',
+}
+
 const W = 300
 const H = 112
 const PAD = { left: 36, right: 10, top: 20, bottom: 20 } // top: room for the y unit and the "today" label
@@ -52,6 +61,7 @@ function MiniChart({
   title,
   unit,
   yUnit,
+  source,
   series,
   refs = [],
   x,
@@ -63,6 +73,7 @@ function MiniChart({
   title: string
   unit: string
   yUnit: string // unit of the y axis, drawn above the axis values
+  source: string // where the numbers and lines come from (SOURCES.md)
   series: Series[]
   refs?: RefLine[]
   x: [number, number]
@@ -185,6 +196,7 @@ function MiniChart({
           </li>
         ))}
       </ul>
+      <p className="mini-chart-source">{source}</p>
     </figure>
   )
 }
@@ -228,6 +240,7 @@ function BrainCharts() {
           title="Sleep"
           unit="h · last 7 days"
           yUnit="h"
+          source={CHART_SOURCE.sleep}
           x={x}
           marker={day}
           xLabel={dayLabel}
@@ -244,6 +257,7 @@ function BrainCharts() {
           title="Reaction time"
           unit="ms · last 7 days"
           yUnit="ms"
+          source={CHART_SOURCE.reaction}
           x={x}
           marker={day}
           xLabel={dayLabel}
@@ -256,6 +270,7 @@ function BrainCharts() {
           title="Mood"
           unit="1–5 · last 7 days"
           yUnit="1–5"
+          source={CHART_SOURCE.mood}
           x={x}
           y={[1, 5]}
           marker={day}
@@ -296,6 +311,7 @@ function BoneChart() {
       title="Bone density forecast"
       unit="% of pre-flight · weakest load-bearing bone"
       yUnit="%"
+          source={CHART_SOURCE.bones}
       x={[0, end]}
       marker={day}
       xLabel={dayLabel}
@@ -319,6 +335,7 @@ function LungChart() {
       title="Cabin CO₂"
       unit="mmHg · last 7 days"
       yUnit="mmHg"
+          source={CHART_SOURCE.co2}
       x={[day - 6, day]}
       marker={day}
       xLabel={dayLabel}
