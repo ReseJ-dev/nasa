@@ -2,6 +2,7 @@ import { useHealthStore, type ScenarioId } from '../twin/store'
 import { CheckInPanel } from './CheckInPanel'
 import { EarthLinkToggle, MissionControls } from './ControlBar'
 import { HealthMetrics } from './MetricsCards'
+import { LiveVitals } from './LiveVitals'
 import { loadPreset, useIsCustom } from './presetState'
 import { SoundControls } from './SoundControls'
 
@@ -94,6 +95,7 @@ export function ControlRoom({
           <h3 id="cr-scenario">{TEXT.scenario}</h3>
           <Presets />
         </section>
+        <LiveVitals />
         <section className="health-card" aria-labelledby="cr-demo">
           <h3 id="cr-demo">{TEXT.demo}</h3>
           <div className="control-demo">
