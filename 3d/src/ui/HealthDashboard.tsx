@@ -3,6 +3,8 @@ import type { Metric, RegionId } from '../contract/types'
 import { STATUS_HEX } from '../twin/colors'
 import { NO_DATA_LABEL, REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { useHealthStore, type ScenarioId } from '../twin/store'
+import { formatLevel } from '../sim'
+import { GRAVITY_THREAT_DAYS } from '../sim/constants'
 import { AlertsBadge, CriticalBanner, useAlertItems } from './AlertsPanel'
 import { CheckInPanel } from './CheckInPanel'
 import { ControlBar, EarthLinkToggle, MAX_DAY } from './ControlBar'
@@ -31,6 +33,16 @@ function MetricValue({ metric, label }: { metric?: Metric; label: string }) {
     <div className="health-metric">
       <dt>{label}</dt>
       <dd>{metric ? <>{format.format(metric.value)} <small>{metric.unit}</small></> : <small>{NO_DATA_LABEL}</small>}</dd>
+    </div>
+  )
+}
+
+// A 0..1 index or threat level, in the one format the threats strip uses (whole percent).
+function LevelValue({ label, level, note }: { label: string; level: number | undefined; note?: string }) {
+  return (
+    <div className="health-metric">
+      <dt>{label}</dt>
+      <dd>{level === undefined ? <small>{NO_DATA_LABEL}</small> : <>{formatLevel(level)}{note && <> <small>{note}</small></>}</>}</dd>
     </div>
   )
 }
@@ -68,7 +80,10 @@ function MissionHeader() {
 function HealthMetrics() {
   const metrics = useHealthStore(state => state.metrics)
   const microgravity = useHealthStore(state => state.inputs.microgravity)
-  const isolation = useHealthStore(state => state.inputs.isolation)
+  // Threat levels come from the same store field as the threats strip, in the same format.
+  const gravityThreat = useHealthStore(state => state.threats?.gravity.level)
+  const isolationThreat = useHealthStore(state => state.threats?.isolation.level)
+  const day = useHealthStore(state => state.day)
   const metric = (id: string) => metrics.find(item => item.id === id)
   return (
     <>
@@ -81,8 +96,9 @@ function HealthMetrics() {
         <dl className="health-grid">
           <MetricValue label={names.co2_ppm} metric={metric('co2_ppm')} />
           <MetricValue label={names.radiation_msv} metric={metric('radiation_msv')} />
-          <div className="health-metric"><dt>Microgravity index</dt><dd>{format.format(microgravity ?? 0)} <small>/ 1</small></dd></div>
-          <div className="health-metric"><dt>Isolation index</dt><dd>{format.format(isolation ?? 0)} <small>/ 1</small></dd></div>
+          <LevelValue label="Microgravity index" level={microgravity} note="exposure now" />
+          <LevelValue label="Gravity threat level" level={gravityThreat} note={`index × day ${day} / ${GRAVITY_THREAT_DAYS}`} />
+          <LevelValue label="Isolation threat level" level={isolationThreat} />
         </dl>
       </section>
       <section className="health-card" aria-labelledby="health-future">

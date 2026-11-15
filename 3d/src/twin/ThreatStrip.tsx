@@ -7,6 +7,7 @@ import { STATUS_HEX } from './colors'
 import { EFFECTS, THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S } from './config'
 import { EARTH_LABEL, RADIATION_LABEL, THREAT_LABEL, THREAT_STRIP_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
+import { formatLevel } from '../sim'
 
 // Five threats strip: its own row above the 3D stage (never over the astronaut).
 // Each threat: its icon inside a ring filled by level (ring color = status thresholds),
@@ -174,7 +175,7 @@ export function ThreatStrip({
         return (
           <button
             key={id}
-            title={`${THREAT_LABEL[id]}: ${id === 'distance' ? distanceText : `${Math.round(level * 100)}%`}`}
+            title={`${THREAT_LABEL[id]}: ${id === 'distance' ? distanceText : formatLevel(level)}`}
             aria-pressed={focused === id}
             style={{
               ...s.threat,
@@ -201,7 +202,7 @@ export function ThreatStrip({
                   ...(id === 'distance' ? (link ? { color: 'var(--text-2)', fontWeight: 400 } : s.threatNoLink) : null),
                 }}
               >
-                {id === 'distance' ? distanceText : `${Math.round(level * 100)}%`}
+                {id === 'distance' ? distanceText : formatLevel(level)}
                 {id === 'radiation' && flare && EFFECTS.solarFlare && (
                   <span style={s.doseBadge}>{RADIATION_LABEL.dose(dose)}</span>
                 )}
