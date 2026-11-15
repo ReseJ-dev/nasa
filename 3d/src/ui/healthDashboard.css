@@ -216,6 +216,8 @@
 .control-room h3 { margin: 0 0 var(--sp-2); font-size: var(--fs-caption); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
 .control-room .health-presets { display: flex; }
 .control-room .health-presets button { flex: 1; padding: var(--sp-2); }
+.preset-custom { flex: 1; display: grid; place-items: center; padding: var(--sp-2); font-weight: 650; color: var(--st-warning); background: var(--st-warning-bg); border-radius: var(--r-1); box-shadow: inset 0 0 0 1px var(--st-warning); }
+.health-card .preset-note { margin: var(--sp-2) 0 0; font-size: var(--fs-caption); color: var(--text-3); }
 .control-room .control-inputs { grid-template-columns: minmax(0, 1fr); }
 .control-row { display: grid; gap: var(--sp-3); }
 .control-row .earth-toggle { justify-self: start; }
