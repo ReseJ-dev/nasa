@@ -26,15 +26,23 @@ export const RENDER = {
 
 // Scene background and lights
 export const SCENE = {
-  // Vertical background gradient, top -> bottom.
-  backgroundTop: '#0b1830',
-  backgroundBottom: '#020309',
-  ambientIntensity: 0.25, // lower than before: the environment adds soft light
-  keyLight: { position: [3, 5, 4] as Vec3, intensity: 1.1 }, // main light, front-right-top
-  rimLight: { position: [-3, 2, -4] as Vec3, intensity: 0.9, color: '#7fdcff' }, // back light, cyan outline
+  // Backdrop: a dark vertical gradient (top -> bottom) with a soft lighter halo behind the torso.
+  backgroundTop: '#0a1730',
+  backgroundBottom: '#020308',
+  halo: { color: '46, 110, 170', alpha: 0.3, x: 0.5, y: 0.42, radius: 0.55 }, // x, y, radius: fractions of the canvas
+  // Three-point lighting: key (main, warm), fill (soft, from the other side, lifts the shadows),
+  // rim (from behind, cyan outline).
+  ambientIntensity: 0.22, // low: the environment and the fill light add the soft light
+  keyLight: { position: [3, 5, 4] as Vec3, intensity: 1.15, color: '#fff3e4' }, // front-right-top
+  fillLight: { position: [-3.5, 1.5, 3] as Vec3, intensity: 0.4, color: '#9fc4ff' }, // front-left, cool
+  rimLight: { position: [-3, 2, -4] as Vec3, intensity: 1.0, color: '#7fdcff' }, // back light, cyan outline
   // Few faint stars, so they stay cheap and do not compete with the body.
   stars: { radius: 40, depth: 20, count: 600, factor: 2, speed: 0.3 },
   environmentResolution: 64, // env map size; rendered once, built only from Lightformers
+  // Soft glow on the floor under the body, darker right under the feet (a contact shadow).
+  ground: { size: 1.5, color: '79, 227, 255', opacity: 0.32, y: 0.002 },
+  // Darker corners of the 3D view, so the eye stays on the body.
+  vignette: { offset: 0.3, darkness: 0.62 },
 }
 
 // Translucent body shell with a fresnel look: almost clear in the center,
@@ -225,7 +233,7 @@ export const CIRCADIAN = {
 export const IMPULSE = {
   // eyes -> brain -> brainstem -> shoulder -> elbow -> hand (the astronaut's left arm, viewer's right)
   path: [
-    [0.033, 1.668, 0.082],
+    [0.033, 1.66, 0.084],
     [0, 1.7, -0.01],
     [0, 1.56, -0.02],
     [0.09, 1.46, -0.01],
