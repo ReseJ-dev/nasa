@@ -105,6 +105,10 @@ export const EARTH_LABEL = {
   replyIn: (seconds: number) =>
     seconds < 60 ? `Reply in ${Math.round(seconds)} s` : `Reply in ${Math.round(seconds / 60)} min`,
   autonomous: 'Autonomous mode',
+  // Escalation to the ground while Earth answers too late (one-way delay above 5 min).
+  delayedEscalation: 'Follow on-board protocol; Earth informed with delay',
+  delayedText:
+    'Earth answers too late to guide you now: follow the onboard checklist with the crew medical officer, log every step and send the log to the flight surgeon on Earth.',
   noLink: 'No link',
 }
 

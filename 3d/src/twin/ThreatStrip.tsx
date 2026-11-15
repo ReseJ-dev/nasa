@@ -4,7 +4,7 @@ import { useHealthStore } from './store'
 import { useSceneStore } from './sceneStore'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { STATUS_HEX } from './colors'
-import { THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S } from './config'
+import { THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S, isDelayedEarth } from './config'
 import { EARTH_LABEL, STRIP_SOURCE, STRIP_VALUE, THREAT_LABEL, THREAT_STRIP_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 import { ppmToMmHg } from '../../../src/engine/constants'
@@ -168,7 +168,8 @@ function useStripValues(): Record<ThreatId, StripValue> {
     gravity: { value: or(boneLoss, STRIP_VALUE.gravity), limit: STRIP_VALUE.gravityLimit },
     distance: {
       value: link ? EARTH_LABEL.replyIn(delay * 2) : EARTH_LABEL.noLink, // reply = there and back
-      limit: STRIP_VALUE.oneWay(delay),
+      // no link, or a one-way delay above 5 min: the crew acts on its own
+      limit: !link || isDelayedEarth(delay) ? EARTH_LABEL.autonomous : STRIP_VALUE.oneWay(delay),
     },
     environment: {
       value: or(co2Ppm, (ppm) => STRIP_VALUE.environment(ppmToMmHg(ppm))),

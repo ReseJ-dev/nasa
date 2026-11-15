@@ -354,6 +354,12 @@ export const THREAT_DIMMED_EMPHASIS = 0.2
 // scores first). The other warnings show their label on hover only.
 export const CALLOUTS = { maxWarnings: 2 }
 
+// One-way signal delay above which Earth cannot help in time: the strip says "Autonomous mode" and
+// escalation to the ground becomes the on-board protocol (Earth is informed with the delay).
+// Display rule chosen for the demo (5 min), not a NASA value.
+export const AUTONOMOUS_DELAY_SEC = 300
+export const isDelayedEarth = (commDelaySec: number | undefined) => (commDelaySec ?? 0) > AUTONOMOUS_DELAY_SEC
+
 export const THREAT_STRIP = {
   ring: 38, // icon ring diameter
   ringWidth: 3,
