@@ -36,6 +36,13 @@ export const LAYER_LABEL = {
   skeleton: 'Skeleton',
 }
 
+// Fluid shift (microgravity) gets its own label near the head, apart from the CO2 cause chain.
+export const FLUID_SHIFT_LABEL = 'Headward fluid shift'
+// The cause chain between organs (lungs -> brain -> eyes) has no verified source attached in
+// the code: every chain label carries this note and its tooltip says so.
+export const CHAIN_MODEL_LABEL = 'project model'
+export const CHAIN_MODEL_TOOLTIP = 'Project model: the link between these organs is our assumption, not a verified source.'
+
 export const FRACTURE_LABEL = 'Fracture risk at landing' // shown at the weakest bone part
 
 // Temporary dev test panel in App.tsx (mock scenarios).

@@ -4,16 +4,20 @@ import type { ChainLink } from '../contract/types'
 import { useHealthStore } from './store'
 import { CHAIN, CHAIN_LABEL } from './config'
 import { CHAIN_LABELS } from '../../../src/engine/constants'
-import { sceneLabel } from './labels'
+import { CHAIN_MODEL_LABEL, CHAIN_MODEL_TOOLTIP, sceneLabel } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 import { REGIONS } from './regions'
 
 // Cause labels between chain organs, from `chainLinks` in the store.
 // Each label sits between its two organs (a bit in front of the body) and fades in
 // when its `to` organ lights up in the chain animation. Body mode only.
+// Brain -> eyes is the headward fluid shift (gravity), not a CO2 cause: FluidShiftLabel shows it
+// left of the head in its own style, so it is left out here and never reads as part of the CO2 chain.
+// The chain has no verified source attached: each label says "project model" (also in its tooltip).
 
 const ANCHOR = new Map(REGIONS.map((d) => [d.id, d.callout.anchor]))
 const NONE: ChainLink[] = []
+const isFluidShift = (link: ChainLink) => link.from === 'brain' && link.to === 'eyes'
 
 function LinkLabel({ link, delay }: { link: ChainLink; delay: number }) {
   const position = useMemo(() => {
@@ -37,9 +41,10 @@ function LinkLabel({ link, delay }: { link: ChainLink; delay: number }) {
 
   return (
     <Html position={position} center style={{ pointerEvents: 'none' }}>
-      <div ref={fadeIn} style={s.chainLabel}>
+      <div ref={fadeIn} style={{ ...s.chainLabel, pointerEvents: 'auto' }} title={CHAIN_MODEL_TOOLTIP}>
         {/* Short cause label of this organ pair; the store's own text only as a fallback. */}
         {sceneLabel(CHAIN_LABELS[`${link.from}>${link.to}`] ?? link.label)}
+        <span style={s.chainNote}>{CHAIN_MODEL_LABEL}</span>
       </div>
     </Html>
   )
@@ -54,7 +59,7 @@ export function ChainLinks({ visible }: { visible: boolean }) {
   if (!visible) return null
   return (
     <group name="chain_links" key={chainKey}>
-      {links.map((link) => {
+      {links.filter((link) => !isFluidShift(link)).map((link) => {
         const step = Math.max(chain.indexOf(link.to), 0)
         return <LinkLabel key={`${link.from}-${link.to}`} link={link} delay={step * CHAIN.stepDelay} />
       })}
