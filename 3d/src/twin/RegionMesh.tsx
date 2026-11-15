@@ -20,6 +20,33 @@ import { SHIMMER_COLOR, useRadiationShimmer } from './hooks/useRadiationShimmer'
 import type { RegionDef } from './regions'
 import type { RegionId } from '../contract/types'
 
+// Organ material: the usual lit material plus a soft edge. The middle of the organ is shaded
+// darker and the outline lighter (fresnel), so an organ reads as a soft volume inside the body,
+// not as a flat-colored lump with a hard edge. The status color and glow are untouched:
+// useStatusColor still drives `color`, `emissive` and `emissiveIntensity`.
+function createOrganMaterial() {
+  const material = new MeshStandardMaterial({
+    color: STATUS_COLOR.ok.clone(),
+    emissive: STATUS_COLOR.ok.clone(),
+    emissiveIntensity: REGION.emissive.base.ok,
+    roughness: REGION.roughness,
+    transparent: false, // useFadeOpacity turns it on when organs are dimmed
+    opacity: LAYERS.body.organs,
+  })
+  const e = REGION.edge
+  material.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <opaque_fragment>',
+      `// 0 where the surface faces the camera, 1 at the organ's outline
+      float organEdge = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), ${e.power.toFixed(2)});
+      outgoingLight = (totalDiffuse + totalSpecular) * mix(${e.litCenter.toFixed(2)}, ${e.litEdge.toFixed(2)}, organEdge)
+        + totalEmissiveRadiance * mix(${e.glowCenter.toFixed(2)}, ${e.glowEdge.toFixed(2)}, organEdge);
+      #include <opaque_fragment>`,
+    )
+  }
+  return material
+}
+
 // One health region: behavior only (color, pulse, chain, heartbeat, bloom, hover, click). Shapes come from regions.ts.
 // focus: regions highlighted by a threat in the strip (null = none). Regions outside it dim.
 export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer; focus: RegionId[] | null }) {
@@ -36,18 +63,7 @@ export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer
   const { hovered, onPointerOver, onPointerOut } = useHover(interactive)
 
   // One material for all parts of this region, created once.
-  const material = useMemo(
-    () =>
-      new MeshStandardMaterial({
-        color: STATUS_COLOR.ok.clone(),
-        emissive: STATUS_COLOR.ok.clone(),
-        emissiveIntensity: REGION.emissive.base.ok,
-        roughness: REGION.roughness,
-        transparent: false, // useFadeOpacity turns it on when organs are dimmed
-        opacity: LAYERS.body.organs,
-      }),
-    [],
-  )
+  const material = useMemo(createOrganMaterial, [])
   const hidden = layer === 'skeleton' && HIDDEN_IN_SKELETON.includes(def.id)
   useFadeOpacity(material, hidden ? 0 : LAYERS[layer].organs)
 
