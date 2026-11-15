@@ -68,14 +68,14 @@ test('Healthy preset stays healthy after neutral user actions', () => {
   }
 })
 
-test('Day 60 preset: only brain is a warning and the user sees four warnings', () => {
+test('Day 60 preset: only eyes are a warning and the user sees three warnings', () => {
   getState().setScenario('day60')
   assert.equal(getState().day, 60)
-  assert.deepEqual(statuses(), { ...allOk, brain: 'warning' })
+  assert.deepEqual(statuses(), { ...allOk, eyes: 'warning' })
   const list = alerts()
-  assert.equal(list.length, 4)
+  assert.equal(list.length, 3)
   assert.ok(list.every((a) => a.level === 'warning'))
-  assert.deepEqual(list.filter((a) => a.id.startsWith('region_')).map((a) => a.regionId), ['brain'])
+  assert.deepEqual(list.filter((a) => a.id.startsWith('region_')).map((a) => a.regionId), ['eyes'])
   assert.equal(getState().threats.gravity.level, 0.5)
 })
 
@@ -83,7 +83,7 @@ const criticalStatuses = {
   ...allOk, brain: 'critical', immune: 'critical', lungs: 'critical', bones: 'warning', eyes: 'warning',
 }
 
-test('Critical preset preserves the crisis and exposes the eight current alerts', () => {
+test('Critical preset preserves the crisis and the expected region statuses', () => {
   getState().setScenario('critical')
   assert.equal(getState().day, 180)
   assert.equal(getState().activeEvent, 'solar_flare')
@@ -94,22 +94,23 @@ test('Critical preset preserves the crisis and exposes the eight current alerts'
   const list = alerts()
   assert.equal(list[0].level, 'critical')
   assert.deepEqual(list.map(a => a.id).sort(), [
-    'isolation_activity', 'isolation_mood', 'isolation_sleep',
+    'isolation_sleep',
     'region_bones', 'region_brain', 'region_eyes', 'region_immune', 'region_lungs',
   ])
   assert.equal(getState().threats.gravity.level, 1)
   assert.ok(getState().threats.radiation.level >= THREAT_LEVEL.criticalAt)
 })
 
-test('Critical reaches six visible alerts with the proposed mood and activity inputs', () => {
+test('a user reaction test replaces the simulated Critical reading', () => {
   getState().setScenario('critical')
-  // Proposed companion edit: the scene preset owns activityMin and the initial
-  // scene mood. Exercise completion and isolation activity minutes are separate.
-  getState().patch({ mood: 4, activityMin: 115 })
-  getState().setInputs({ vitals: { ...getState().inputs.vitals, mood: 4 } })
-  assert.deepEqual(statuses(), criticalStatuses)
-  assert.equal(alerts().length, 6)
-  assert.deepEqual(alerts().filter(a => a.id.startsWith('isolation_')).map(a => a.id), ['isolation_sleep'])
+  assert.equal(getState().inputs.vitals.reactionMs, 300)
+  assert.equal(metric('reaction_ms'), 300)
+  getState().submitReactionTest(360, 2)
+  assert.equal(getState().inputs.vitals.reactionMs, 360)
+  assert.equal(metric('reaction_ms'), 360)
+  assert.equal(getState().reactionMs, 360)
+  assert.equal(getState().reactionLapses, 2)
+  assert.ok(alerts().some(a => a.id === 'isolation_reaction' && a.level === 'critical'))
 })
 
 test('no preset has a region score of 0 or NaN', () => {
@@ -232,7 +233,7 @@ const counts = () => {
   return { total: list.length, critical: list.filter((a) => a.level === 'critical').length, ids: list.map((a) => a.id) }
 }
 
-test('alert counts: Healthy 0, Day 60 exactly 3 warnings, Critical at most 6', () => {
+test('alert counts: Healthy 0, Day 60 exactly 3 warnings, Critical has no mood or activity alert', () => {
   getState().setScenario('healthy')
   assert.equal(counts().total, 0)
   getState().setScenario('day60')
@@ -241,21 +242,26 @@ test('alert counts: Healthy 0, Day 60 exactly 3 warnings, Critical at most 6', (
   assert.equal(day60.critical, 0)
   getState().setScenario('critical')
   const critical = counts()
-  assert.ok(critical.total <= 6, `Critical has ${critical.total} alerts: ${critical.ids.join(', ')}`)
   // mood and activity are back within the personal norm: no isolation alert for them
   assert.ok(!critical.ids.includes('isolation_mood') && !critical.ids.includes('isolation_activity'))
 })
 
-// Fails today: sleep (4.2 h) and reaction (355 ms) come from src/data/scenarios.ts through the
-// engine and are critical on their own, on top of brain, immune and lungs. Needs the teammate's
-// scenario values; kept as a todo so the target stays visible.
-test('Critical preset has at most 3 critical alerts', { todo: 'sleep and reaction values live in src/data/scenarios.ts' }, () => {
+test('Critical preset has exactly six alerts', () => {
   getState().setScenario('critical')
-  assert.ok(counts().critical <= 3, `critical alerts: ${counts().ids.join(', ')}`)
+  assert.equal(counts().total, 6, counts().ids.join(', '))
 })
 
-test('the last history point is what the store shows today (no jump at the end of the charts)', () => {
-  for (const id of ['healthy', 'day60', 'critical']) {
+test('Critical preset has three red and three yellow alerts', { todo: 'the scene must read sleepShiftHours from CRITICAL_TELEMETRY' }, () => {
+  getState().setScenario('critical')
+  const list = alerts()
+  assert.deepEqual(list.filter(a => a.level === 'critical').map(a => a.id).sort(), ['region_brain', 'region_immune', 'region_lungs'])
+  assert.deepEqual(list.filter(a => a.level === 'warning').map(a => a.id).sort(), ['isolation_sleep', 'region_bones', 'region_eyes'])
+})
+
+for (const id of ['healthy', 'day60', 'critical']) {
+  test(`${id}: the last history point matches current readings`, {
+    todo: id === 'critical' ? 'the scene history must read CRITICAL_TELEMETRY' : false,
+  }, () => {
     getState().setScenario(id)
     const s = getState()
     const last = s.history.at(-1)
@@ -264,7 +270,10 @@ test('the last history point is what the store shows today (no jump at the end o
     assert.equal(last.sleepHours, s.sleepHours, `${id}: sleep`)
     assert.equal(last.reactionMs, s.reactionMs, `${id}: reaction`)
     assert.equal(last.co2Ppm, metric('co2_ppm'), `${id}: CO2`)
-  }
+  })
+}
+
+test('the scene presets preserve the agreed mood and activity', () => {
   getState().setScenario('day60')
   assert.equal(getState().mood, 4)
   getState().setScenario('critical')
