@@ -251,7 +251,7 @@ test('Critical preset has exactly six alerts', () => {
   assert.equal(counts().total, 6, counts().ids.join(', '))
 })
 
-test('Critical preset has three red and three yellow alerts', { todo: 'the scene must read sleepShiftHours from CRITICAL_TELEMETRY' }, () => {
+test('Critical preset has three red and three yellow alerts', () => {
   getState().setScenario('critical')
   const list = alerts()
   assert.deepEqual(list.filter(a => a.level === 'critical').map(a => a.id).sort(), ['region_brain', 'region_immune', 'region_lungs'])
@@ -259,9 +259,7 @@ test('Critical preset has three red and three yellow alerts', { todo: 'the scene
 })
 
 for (const id of ['healthy', 'day60', 'critical']) {
-  test(`${id}: the last history point matches current readings`, {
-    todo: id === 'critical' ? 'the scene history must read CRITICAL_TELEMETRY' : false,
-  }, () => {
+  test(`${id}: the last history point matches current readings`, () => {
     getState().setScenario(id)
     const s = getState()
     const last = s.history.at(-1)

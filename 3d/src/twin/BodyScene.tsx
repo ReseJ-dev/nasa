@@ -31,7 +31,7 @@ import type { ThreatId } from '../contract/types'
 import { LAYER_LABEL } from './labels'
 import { REGIONS } from './regions'
 import { useHealthStore } from './store'
-import { BLOOM, CAMERA, EFFECTS, RENDER, SCENE, type Layer } from './config'
+import { BLOOM, CAMERA, EFFECTS, RENDER, SCENE, SKELETON_ONLY, type Layer } from './config'
 import { overlayStyles as st } from './overlayStyles'
 import './theme'
 
@@ -122,6 +122,8 @@ function createGroundTexture() {
 }
 const GROUND_TEXTURE = createGroundTexture()
 const noRaycast = () => null // decoration: never catches hover or clicks
+// Organ meshes drawn in the scene; the bones region is drawn only by the Skeleton layer.
+const ORGANS = REGIONS.filter((def) => !SKELETON_ONLY.includes(def.id))
 
 function GroundGlow() {
   return (
@@ -323,7 +325,7 @@ export function BodyScene({
           />
           {/* Selection collects the organs marked with <Select enabled> in RegionMesh. */}
           <Selection>
-            {REGIONS.map((def) => (
+            {ORGANS.map((def) => (
               <RegionMesh key={def.id} def={def} layer={layer} focus={focus} />
             ))}
             <Skeleton layer={layer} />

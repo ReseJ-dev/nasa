@@ -1,11 +1,12 @@
-import type { Alert, Escalation, Metric, RegionId, RegionState, Status } from '../contract/types'
-import type { CSSProperties, ReactNode } from 'react'
+import type { Alert, Escalation, Metric, RegionId, RegionState, Status, ThreatId } from '../contract/types'
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { STATUS_HEX } from '../twin/colors'
 import { NO_DATA_LABEL, REGION_LABEL, SOURCES_NOTE, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
+import { isDelayedEarth } from '../twin/config'
+import { EARTH_LABEL } from '../twin/labels'
 import { DISCLAIMER, ZONE_INFO } from '../../../src/data/zoneInfo'
 import { ALERT_REGION, METRIC_ALERT, autonomousAction } from './alerts'
-import { delayedEarth, DELAYED_EARTH_TEXT } from '../missionDisplay'
 import { ZoneCharts } from './ZoneCharts'
 import { Co2Value } from './Co2Value'
 
@@ -15,6 +16,28 @@ import { Co2Value } from './Co2Value'
 // Reads the store live (every input change re-renders); writes only selectRegion(null).
 
 const NO_METRICS: Metric[] = []
+const NO_MEASURED: ReadonlySet<string> = new Set()
+
+// Model outputs with no in-flight measurement: always a forecast.
+const FORECAST_METRICS = new Set(['bone_density', 'bone_loss_pct', 'muscle_mass', 'muscle_loss_pct', 'fluid_shift', 'vision_score'])
+// Vitals the engine fills with a model value until the user measures them (check-in, reaction test).
+const MODELLED_VITALS: Record<string, 'heartRate' | 'glucose' | 'reactionMs'> = {
+  heart_rate: 'heartRate',
+  glucose: 'glucose',
+  reaction_ms: 'reactionMs',
+}
+// Same quantity shown twice: the second one is hidden when the first is there.
+const DUPLICATE_OF: Record<string, string> = {
+  bone_density: 'bone_loss_pct', // lowest density = 100 % minus the loss, already shown
+  muscle_mass: 'muscle_loss_pct', // muscle mass = 100 % minus the loss, already shown
+}
+export function metricSource(id: string, measuredVitals: ReadonlySet<string>): 'measured' | 'forecast' {
+  if (FORECAST_METRICS.has(id)) return 'forecast'
+  if (id in MODELLED_VITALS) return measuredVitals.has(id) ? 'measured' : 'forecast'
+  return 'measured'
+}
+// The source is shown as a badge, so the "(forecast)" suffix of the engine label is dropped.
+const metricLabel = (label: string) => label.replace(/\s*\(forecast\)$/, '')
 const NO_ALERTS: Alert[] = []
 
 export const ESCALATION_LABEL: Record<Escalation, string> = {
@@ -23,6 +46,24 @@ export const ESCALATION_LABEL: Record<Escalation, string> = {
   ground: 'Request Earth doctor',
 }
 export const AUTONOMOUS_LABEL = 'Autonomous protocol: tell a crew member'
+
+// Who to involve, as shown. Earth link down: the autonomous protocol. Earth reachable but more
+// than 5 min away one way: a step for the ground becomes the on-board protocol, Earth gets the log.
+export function escalationView(
+  who: Escalation,
+  status: Status,
+  zone: (typeof ZONE_INFO)[RegionId],
+  earthLink: boolean,
+  delayed: boolean,
+): { level: string; label: string; text: string | undefined } {
+  if (!earthLink && (who === 'ground' || status === 'critical')) {
+    return { level: 'autonomous', label: AUTONOMOUS_LABEL, text: zone.escalation.autonomous }
+  }
+  if (delayed && who === 'ground') {
+    return { level: 'autonomous', label: EARTH_LABEL.delayedEscalation, text: EARTH_LABEL.delayedText }
+  }
+  return { level: who, label: ESCALATION_LABEL[who], text: status === 'ok' ? undefined : zone.escalation[status].text }
+}
 
 const SOURCE_LABEL = { measured: 'measured', forecast: 'forecast' }
 const TEXT = {
@@ -38,6 +79,9 @@ const TEXT = {
   unverified: 'not yet verified',
   empty: 'Select a system in the list or on the astronaut to see its metrics, trends and what to do.',
   details: 'System details',
+  more: 'More',
+  otherCauses: 'Other hazards for this system',
+  less: 'Less',
 }
 
 const format = new Intl.NumberFormat('en', { maximumFractionDigits: 2 })
@@ -54,7 +98,18 @@ export function ZonePanel() {
   const metrics = useHealthStore((s) => s.metrics ?? NO_METRICS)
   const alerts = useHealthStore((s) => s.alerts ?? NO_ALERTS)
   const earthLink = useHealthStore((s) => s.earthLink ?? true)
-  const commDelaySec = useHealthStore((s) => s.commDelaySec)
+  const vitals = useHealthStore((s) => s.inputs.vitals)
+  const threats = useHealthStore((s) => s.threats)
+  const threatLevels = useMemo(
+    () => (threats ? Object.fromEntries(Object.entries(threats).map(([id, t]) => [id, t.level])) : undefined),
+    [threats],
+  )
+  // Modelled vitals the user has actually measured (check-in, reaction test).
+  const measuredVitals = useMemo(
+    () => new Set(Object.entries(MODELLED_VITALS).filter(([, key]) => Number.isFinite(vitals?.[key])).map(([id]) => id)),
+    [vitals],
+  )
+  const delayed = useHealthStore((s) => isDelayedEarth(s.commDelaySec))
   const select = useHealthStore((s) => s.selectRegion)
   return (
     <ZoneDetails
@@ -62,7 +117,9 @@ export function ZonePanel() {
       metrics={metrics}
       alerts={alerts}
       earthLink={earthLink}
-      commDelaySec={commDelaySec}
+      delayed={delayed}
+      measuredVitals={measuredVitals}
+      threatLevels={threatLevels}
       onClose={() => select(null)}
       charts={selected ? <ZoneCharts regionId={selected} /> : null}
     />
@@ -75,7 +132,9 @@ export function ZoneDetails({
   metrics,
   alerts,
   earthLink,
-  commDelaySec,
+  delayed = false,
+  measuredVitals = NO_MEASURED,
+  threatLevels,
   onClose,
   charts,
 }: {
@@ -83,7 +142,9 @@ export function ZoneDetails({
   metrics: Metric[]
   alerts: Alert[]
   earthLink: boolean
-  commDelaySec?: number
+  delayed?: boolean // one-way delay to Earth above 5 min
+  measuredVitals?: ReadonlySet<string> // modelled vitals the user has measured
+  threatLevels?: Partial<Record<ThreatId, number>> // to pick the strongest hazard as the cause
   onClose(): void
   charts?: ReactNode // trend charts (store-driven), placed after the metrics
 }) {
@@ -104,18 +165,21 @@ export function ZoneDetails({
   const zone = ZONE_INFO[selected]
   const { status } = region
   const color = STATUS_HEX[status]
-  const source = region.source ?? zone.measurement
   const regionMetrics = region.metrics
+    .filter((id) => !(DUPLICATE_OF[id] && region.metrics.includes(DUPLICATE_OF[id])))
     .map((id) => metrics.find((m) => m.id === id))
     .filter((m): m is Metric => m !== undefined)
   const regionAlerts = alerts.filter((a) => ALERT_REGION[a.metric] === selected)
+  // Cause: the zone's hazard that is strongest right now; the others move under "More".
+  const hazards = [...zone.hazards].sort((a, b) => (threatLevels?.[b.hazard] ?? 0) - (threatLevels?.[a.hazard] ?? 0))
+  // A normal region has nothing to explain: no cause line, all hazards stay under "More".
+  const cause = status === 'ok' ? undefined : hazards[0]
+  const otherHazards = cause ? hazards.slice(1) : hazards
   // No Earth link: every action shows its autonomous version.
-  const delayed = status !== 'ok' && delayedEarth(commDelaySec)
-  const actions = status === 'ok' ? [] : zone.actions[status].map((line) => (earthLink || delayed ? line : autonomousAction(line)))
+  const actions = status === 'ok' ? [] : zone.actions[status].map((line) => (earthLink && !delayed ? line : autonomousAction(line)))
   const who = escalationFor(region.escalation, status, selected)
-  // No Earth: anything that would go to the ground goes to the crew instead.
-  const autonomous = delayed || (!earthLink && (who === 'ground' || status === 'critical'))
-  const whoText = status === 'ok' ? undefined : delayed ? DELAYED_EARTH_TEXT : autonomous ? zone.escalation.autonomous : zone.escalation[status].text
+  // No Earth (or Earth too far to answer in time): the ground step becomes the on-board protocol.
+  const escalation = escalationView(who, status, zone, earthLink, delayed)
 
   return (
     <section className="health-card health-detail zone-panel" data-status={status} style={{ '--zone-color': color } as CSSProperties} aria-labelledby="zone-title" aria-live="polite">
@@ -126,41 +190,9 @@ export function ZoneDetails({
         <button type="button" className="zone-close" onClick={onClose} aria-label={TEXT.close}>×</button>
       </header>
 
-      <div className="zone-badges">
-        <span className="zone-badge" data-source={source}>{SOURCE_LABEL[source]}</span>
-      </div>
-
-      <dl className="health-grid zone-metrics">
-        <div className="health-metric">
-          <dt>{TEXT.score}</dt>
-          <dd style={{ color }}>{region.noData ? <small>{NO_DATA_LABEL}</small> : <>{region.score} <small>/ 100</small></>}</dd>
-        </div>
-        {regionMetrics.map((m) => m.id === 'co2_ppm' ? <Co2Value key={m.id} metric={m} /> : (
-          <div key={m.id} className="health-metric">
-            <dt>{m.label}</dt>
-            <dd>{format.format(m.value)} {m.unit && <small>{m.unit}</small>}</dd>
-          </div>
-        ))}
-      </dl>
-
-      {charts}
-
-      {zone.why && (
-        <div className="zone-block">
-          <h3>{TEXT.why}</h3>
-          <p>{zone.why}</p>
-        </div>
-      )}
-
-      {zone.how.length > 0 && (
-        <div className="zone-block">
-          <h3>{TEXT.how}</h3>
-          <ul>{zone.how.map((line) => <li key={line}>{line}</li>)}</ul>
-        </div>
-      )}
-
-      {(zone.hazards.length > 0 || regionAlerts.length > 0) && (
-        <div className="zone-block">
+      {/* 1. status (header) and cause: the measured alerts, then the strongest hazard right now */}
+      {(cause || regionAlerts.length > 0) && (
+        <div className="zone-block zone-cause">
           <h3>{TEXT.cause}</h3>
           <ul>
             {regionAlerts.map((a) => (
@@ -169,15 +201,16 @@ export function ZoneDetails({
                 {THREAT_LABEL[a.hazard]}: {METRIC_ALERT[a.metric].cause}.
               </li>
             ))}
-            {zone.hazards.map((h) => (
-              <li key={h.hazard}>
-                <strong>{THREAT_LABEL[h.hazard]}:</strong> {h.effect}
+            {cause && (
+              <li>
+                <strong>{THREAT_LABEL[cause.hazard]}:</strong> {cause.effect}
               </li>
-            ))}
+            )}
           </ul>
         </div>
       )}
 
+      {/* 2. what to do and who to involve: visible without scrolling */}
       <div className="zone-block">
         <h3>{TEXT.actions}</h3>
         {actions.length > 0 ? (
@@ -189,11 +222,35 @@ export function ZoneDetails({
 
       <div className="zone-block">
         <h3>{TEXT.who}</h3>
-        <span className="zone-escalation" data-level={autonomous ? 'autonomous' : who}>
-          {autonomous ? AUTONOMOUS_LABEL : ESCALATION_LABEL[who]}
+        <span className="zone-escalation" data-level={escalation.level}>
+          {escalation.label}
         </span>
-        {whoText && <p>{whoText}</p>}
+        {escalation.text && <p>{escalation.text}</p>}
       </div>
+
+      {/* 3. numbers, 4. chart, 5. why it matters (two lines, More for the rest) */}
+      <div className="zone-block">
+        <dl className="health-grid zone-metrics">
+        <div className="health-metric">
+          <dt>{TEXT.score}</dt>
+          <dd style={{ color }}>{region.noData ? <small>{NO_DATA_LABEL}</small> : <>{region.score} <small>/ 100</small></>}</dd>
+        </div>
+        {regionMetrics.map((m) => m.id === 'co2_ppm' ? <Co2Value key={m.id} metric={m} badge /> : (
+          <div key={m.id} className="health-metric">
+            <dt>
+              {metricLabel(m.label)}{' '}
+              <span className="zone-badge" data-source={metricSource(m.id, measuredVitals)}>{SOURCE_LABEL[metricSource(m.id, measuredVitals)]}</span>
+            </dt>
+            <dd>{format.format(m.value)} {m.unit && <small>{m.unit}</small>}</dd>
+          </div>
+        ))}
+      </dl>
+
+      </div>
+
+      {charts}
+
+      {zone.why && <WhyItMatters key={selected} why={zone.why} how={zone.how} hazards={otherHazards} />}
 
       <footer className="zone-foot">
         {zone.source && (
@@ -206,5 +263,37 @@ export function ZoneDetails({
         <p className="zone-disclaimer">{DISCLAIMER}</p>
       </footer>
     </section>
+  )
+}
+
+// "Why it matters": two lines, then "More" opens the full text and how to measure.
+function WhyItMatters({ why, how, hazards }: { why: string; how: string[]; hazards: { hazard: ThreatId; effect: string }[] }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="zone-block zone-why" data-open={open}>
+      <h3>{TEXT.why}</h3>
+      <p className="zone-why-text">{why}</p>
+      {open && hazards.length > 0 && (
+        <>
+          <h3 className="zone-why-how">{TEXT.otherCauses}</h3>
+          <ul>
+            {hazards.map((h) => (
+              <li key={h.hazard}>
+                <strong>{THREAT_LABEL[h.hazard]}:</strong> {h.effect}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {open && how.length > 0 && (
+        <>
+          <h3 className="zone-why-how">{TEXT.how}</h3>
+          <ul>{how.map((line) => <li key={line}>{line}</li>)}</ul>
+        </>
+      )}
+      <button type="button" className="zone-more" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        {open ? TEXT.less : TEXT.more}
+      </button>
+    </div>
   )
 }
