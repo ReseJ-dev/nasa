@@ -145,7 +145,7 @@
 
 /* Body systems list: compact, two columns of dot, name and score */
 .system-card { padding-bottom: var(--sp-2); }
-.health-systems { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--sp-3); margin: 0 calc(-1 * var(--sp-2)); padding: 0; }
+.health-systems { list-style: none; display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); /* right column holds the long names */ gap: 0 var(--sp-3); margin: 0 calc(-1 * var(--sp-2)); padding: 0; }
 .health-systems button {
   width: 100%;
   display: grid;
