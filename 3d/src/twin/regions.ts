@@ -74,6 +74,29 @@ export const REGIONS: RegionDef[] = [
     ],
   },
   {
+    // Liver under the ribs on the astronaut's right (viewer's left, -x) plus a small pancreas.
+    // Liver sits in front of the spleen (z) and below the lungs, so the shapes do not overlap.
+    // Callout on the left, between the lungs (1.42) and immune (1.04) labels.
+    id: 'metabolism',
+    labelPosition: [-0.3, 1.2, 0.1],
+    callout: { anchor: [-0.1, 1.15, 0.06], label: [-0.6, 1.23, 0] },
+    parts: [
+      // liver: wide, flat wedge-like ellipsoid
+      {
+        geometry: new SphereGeometry(0.06, 20, 14),
+        position: [-0.07, 1.15, 0.05],
+        rotation: [0, 0, -0.2],
+        scale: [1.6, 0.7, 0.9],
+      },
+      // pancreas: thin horizontal capsule behind the stomach, toward the left side
+      {
+        geometry: new CapsuleGeometry(0.018, 0.1, 4, 10),
+        position: [0.03, 1.05, 0],
+        rotation: [0, 0, Math.PI / 2 - 0.15],
+      },
+    ],
+  },
+  {
     id: 'bones',
     labelPosition: [0.3, 0.95, 0],
     callout: { anchor: [0, 0.92, -0.01], label: [0.6, 0.94, 0] },
