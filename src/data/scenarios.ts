@@ -21,6 +21,14 @@ import { PERSONAL_BASELINE } from './baseline.ts'
 
 export type ScenarioId = 'healthy' | 'day60' | 'critical'
 
+export const CRITICAL_TELEMETRY = {
+  sleepHours: 6,
+  sleepShiftHours: 2,
+  // Simulated reaction-test result. A user test replaces it in inputs.vitals.
+  reactionMs: 300,
+  co2Ppm: 7000,
+} as const
+
 // Synthetic readings shown by the first check-in. Pulse remains a forecast
 // until entered by the user, so it still follows the exercise control.
 const CHECK_IN_BASE = {
@@ -31,10 +39,8 @@ const CHECK_IN_BASE = {
 
 export const SCENARIO_INPUTS = {
   healthy: { vitals: { ...CHECK_IN_BASE, glucose: 5.1, mood: 4 } },
-  day60: { vitals: { ...CHECK_IN_BASE, glucose: 5.5, mood: 3 } },
-  // The crisis has a longer reaction time than the baseline, but this sample
-  // stays below the threshold for a separate reaction-test alert.
-  critical: { vitals: { ...CHECK_IN_BASE, glucose: 6.4, mood: 2, reactionMs: 304 } },
+  day60: { vitals: { ...CHECK_IN_BASE, glucose: 5.5, mood: 4 } },
+  critical: { vitals: { ...CHECK_IN_BASE, glucose: 6.4, mood: 4, reactionMs: CRITICAL_TELEMETRY.reactionMs } },
 } satisfies Record<ScenarioId, Pick<MissionInputs, 'vitals'>>
 
 export const SCENARIO_EXERCISE: Record<ScenarioId, Exercise> = {
@@ -152,7 +158,7 @@ const day60: Omit<ScenarioData, 'baseline'> = {
     immune: ['ok', 84], lungs: ['ok', 88], metabolism: ['ok', 85],
   }),
   metrics: makeMetrics({
-    heartRate: 70, sleepHours: 6.5, reactionMs: 285, co2Ppm: 3200,
+    heartRate: 70, sleepHours: 6.6, reactionMs: 283, co2Ppm: 3200,
     radiationMsv: 40, boneLossPct: 2.5, muscleLossPct: 6, visionScore: 0.9, glucose: 5.6,
   }),
   boneDensity: {
@@ -165,7 +171,7 @@ const day60: Omit<ScenarioData, 'baseline'> = {
   commDelaySec: 240,
   earthLink: true,
   activeEvent: 'none',
-  fluidShift: 0.49,
+  fluidShift: 0.5,
   chainLinks: [{
     from: 'brain', to: 'eyes',
     label: 'fluid shift: SANS theory',
@@ -182,7 +188,7 @@ const critical: Omit<ScenarioData, 'baseline'> = {
     lungs: ['critical', 32], metabolism: ['warning', 60],
   }),
   metrics: makeMetrics({
-    heartRate: 98, sleepHours: 4.25, reactionMs: SCENARIO_INPUTS.critical.vitals.reactionMs, co2Ppm: 6800,
+    ...CRITICAL_TELEMETRY, heartRate: 98,
     radiationMsv: 210, boneLossPct: 7.5, muscleLossPct: 14, visionScore: 0.8, glucose: 7.8,
   }),
   boneDensity: {
