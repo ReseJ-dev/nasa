@@ -161,9 +161,9 @@
 .status-more summary:hover { background: var(--bg-inset); }
 .status-more ul { list-style: none; display: grid; gap: var(--sp-2); margin: var(--sp-2) 0 0; padding: 0; }
 
-/* Key hints (H): a small list in the top-right corner of the stage, under the layer switch */
+/* Key hints (H): a small list in the middle of the stage */
 .keys-icon { font-size: var(--fs-caption); font-weight: 700; }
-.key-hints { position: absolute; top: 4rem; right: var(--sp-3); z-index: 16; width: min(24rem, calc(100% - 1.5rem)); padding: var(--sp-3) var(--sp-4); background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: var(--r-3); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); }
+.key-hints { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 16; width: min(24rem, calc(100% - 1.5rem)); padding: var(--sp-3) var(--sp-4); background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: var(--r-3); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); }
 .key-hints header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); }
 .key-hints h2 { margin: 0; font-size: var(--fs-title); }
 .key-hints dl { display: grid; gap: var(--sp-1); margin: 0; }
@@ -237,6 +237,8 @@
 .preset-custom { flex: 1; display: grid; place-items: center; padding: var(--sp-2); font-weight: 650; color: var(--st-warning); background: var(--st-warning-bg); border-radius: var(--r-1); box-shadow: inset 0 0 0 1px var(--st-warning); }
 .health-card .preset-note { margin: var(--sp-2) 0 0; font-size: var(--fs-caption); color: var(--text-3); }
 .control-room .control-inputs { grid-template-columns: minmax(0, 1fr); }
+.control-room .control-exercise .control-segment { display: flex; }
+.control-room .control-exercise .control-segment button { flex: 1; }
 .control-row { display: grid; gap: var(--sp-3); }
 .control-demo { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .control-demo button { padding: var(--sp-1) var(--sp-3); background: var(--bg-inset); border: 1px solid var(--line-strong); border-radius: var(--r-1); }
