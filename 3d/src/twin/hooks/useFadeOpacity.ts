@@ -18,6 +18,12 @@ export function useFadeOpacity(material: Material, target: number) {
     material.visible = material.opacity > 0.01
     // Fully opaque objects are drawn as opaque, so the shell keeps tinting the
     // organs in body mode exactly as before.
-    material.transparent = material.opacity < 0.995
+    const transparent = material.opacity < 0.995
+    if (transparent !== material.transparent) {
+      material.transparent = transparent
+      // three.js compiles opaque materials with alpha forced to 1; without a recompile on the
+      // switch (twice per layer change) the organs would stay solid in skeleton mode.
+      material.needsUpdate = true
+    }
   })
 }
