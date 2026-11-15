@@ -1,5 +1,5 @@
 import type { Alert, Escalation, Metric, RegionId, RegionState, Status } from '../contract/types'
-import { useMemo, type CSSProperties, type ReactNode } from 'react'
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { STATUS_HEX } from '../twin/colors'
 import { NO_DATA_LABEL, REGION_LABEL, SOURCES_NOTE, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
@@ -79,6 +79,8 @@ const TEXT = {
   unverified: 'not yet verified',
   empty: 'Select a system in the list or on the astronaut to see its metrics, trends and what to do.',
   details: 'System details',
+  more: 'More',
+  less: 'Less',
 }
 
 const format = new Intl.NumberFormat('en', { maximumFractionDigits: 2 })
@@ -192,19 +194,7 @@ export function ZoneDetails({
 
       {charts}
 
-      {zone.why && (
-        <div className="zone-block">
-          <h3>{TEXT.why}</h3>
-          <p>{zone.why}</p>
-        </div>
-      )}
-
-      {zone.how.length > 0 && (
-        <div className="zone-block">
-          <h3>{TEXT.how}</h3>
-          <ul>{zone.how.map((line) => <li key={line}>{line}</li>)}</ul>
-        </div>
-      )}
+      {zone.why && <WhyItMatters key={selected} why={zone.why} how={zone.how} />}
 
       {(zone.hazards.length > 0 || regionAlerts.length > 0) && (
         <div className="zone-block">
@@ -253,5 +243,25 @@ export function ZoneDetails({
         <p className="zone-disclaimer">{DISCLAIMER}</p>
       </footer>
     </section>
+  )
+}
+
+// "Why it matters": two lines, then "More" opens the full text and how to measure.
+function WhyItMatters({ why, how }: { why: string; how: string[] }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="zone-block zone-why" data-open={open}>
+      <h3>{TEXT.why}</h3>
+      <p className="zone-why-text">{why}</p>
+      {open && how.length > 0 && (
+        <>
+          <h3 className="zone-why-how">{TEXT.how}</h3>
+          <ul>{how.map((line) => <li key={line}>{line}</li>)}</ul>
+        </>
+      )}
+      <button type="button" className="zone-more" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        {open ? TEXT.less : TEXT.more}
+      </button>
+    </div>
   )
 }
