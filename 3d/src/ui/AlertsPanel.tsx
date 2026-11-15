@@ -10,6 +10,7 @@ import { buildAlerts, type AlertItem } from './alerts'
 
 const TEXT = {
   alerts: 'Alerts',
+  clear: 'All normal',
   none: 'No active alerts. Keep up the daily check-in.',
   cause: 'Cause',
   forecast: 'forecast',
@@ -20,7 +21,7 @@ const TEXT = {
 const BANNER_MS = 4000
 
 // The list, recomputed only when its inputs change.
-function useAlertItems(): AlertItem[] {
+export function useAlertItems(): AlertItem[] {
   const regions = useHealthStore((s) => s.regions)
   const alerts = useHealthStore((s) => s.alerts)
   const threats = useHealthStore((s) => s.threats)
@@ -76,8 +77,9 @@ export function AlertsBadge() {
       >
         <small>{TEXT.alerts}</small>
         <span>
-          <b>{items.length}</b>
           {worst && <i aria-hidden="true" style={{ background: STATUS_HEX[worst] }} />}
+          <b>{items.length}</b>
+          {worst ? STATUS_LABEL[worst] : TEXT.clear}
         </span>
       </button>
       {open && (

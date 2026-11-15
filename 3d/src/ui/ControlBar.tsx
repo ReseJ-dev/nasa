@@ -40,6 +40,7 @@ type Horizon = (typeof HORIZONS)[number]
 const TEXT = {
   day: 'Mission day',
   exercise: { on: 'With exercise', off: 'Without exercise' },
+  exerciseTitle: 'Exercise plan',
   environment: 'Environment',
   scenarioEnvironment: 'Scenario default',
   forecast: 'Forecast',
@@ -54,7 +55,7 @@ function StatusCell({ status, text }: { status: Status; text: string }) {
   return (
     <td>
       <i aria-hidden="true" style={{ background: STATUS_HEX[status] }} />
-      <span style={{ color: status === 'ok' ? undefined : STATUS_HEX[status] }}>{STATUS_LABEL[status]}</span>{' '}
+      <b style={{ color: status === 'ok' ? undefined : STATUS_HEX[status] }}>{STATUS_LABEL[status]}</b>{' '}
       <small>{text}</small>
     </td>
   )
@@ -101,27 +102,27 @@ function Forecast() {
           Day {day + horizon} · {TEXT.note}
         </small>
       </div>
+      {/* One row per variant, one column per system: three short rows keep the bar low. */}
       <table>
         <thead>
           <tr>
             <th scope="col" />
-            <th scope="col">{TEXT.exercise.on}</th>
-            <th scope="col">{TEXT.exercise.off}</th>
+            {FORECAST_REGIONS.map((id) => (
+              <th key={id} scope="col">{REGION_LABEL[id]}</th>
+            ))}
+            <th scope="col">{TEXT.fracture}</th>
           </tr>
         </thead>
         <tbody>
-          {FORECAST_REGIONS.map((id) => (
-            <tr key={id}>
-              <th scope="row">{REGION_LABEL[id]}</th>
-              <StatusCell status={withEx.regions[id].status} text={`${withEx.regions[id].score}`} />
-              <StatusCell status={withoutEx.regions[id].status} text={`${withoutEx.regions[id].score}`} />
+          {([[TEXT.exercise.on, withEx], [TEXT.exercise.off, withoutEx]] as const).map(([label, state]) => (
+            <tr key={label}>
+              <th scope="row">{label}</th>
+              {FORECAST_REGIONS.map((id) => (
+                <StatusCell key={id} status={state.regions[id].status} text={`${state.regions[id].score}`} />
+              ))}
+              <StatusCell {...fracture(state)} />
             </tr>
           ))}
-          <tr>
-            <th scope="row">{TEXT.fracture}</th>
-            <StatusCell {...fracture(withEx)} />
-            <StatusCell {...fracture(withoutEx)} />
-          </tr>
         </tbody>
       </table>
     </section>
@@ -141,7 +142,7 @@ export function ControlBar() {
       <div className="control-inputs">
         <label className="control-day">
           <span>
-            {TEXT.day} <strong>{day}</strong>
+            {TEXT.day} <strong>{day}</strong> / {MAX_DAY}
           </span>
           <input
             type="range"
@@ -152,13 +153,16 @@ export function ControlBar() {
             onChange={(e) => setDay(e.currentTarget.valueAsNumber)}
           />
         </label>
-        <div className="control-segment" role="group" aria-label="Exercise">
-          <button type="button" aria-pressed={exercising} onClick={() => setExercise(WITH_EXERCISE)}>
-            {TEXT.exercise.on}
-          </button>
-          <button type="button" aria-pressed={!exercising} onClick={() => setExercise(NO_EXERCISE)}>
-            {TEXT.exercise.off}
-          </button>
+        <div className="control-exercise">
+          <span>{TEXT.exerciseTitle}</span>
+          <div className="control-segment" role="group" aria-label={TEXT.exerciseTitle}>
+            <button type="button" aria-pressed={exercising} onClick={() => setExercise(WITH_EXERCISE)}>
+              {TEXT.exercise.on}
+            </button>
+            <button type="button" data-whatif="true" aria-pressed={!exercising} onClick={() => setExercise(NO_EXERCISE)}>
+              {TEXT.exercise.off}
+            </button>
+          </div>
         </div>
         <label className="control-environment">
           <span>{TEXT.environment}</span>
@@ -200,7 +204,7 @@ export function EarthLinkToggle() {
       onClick={() => setEarthLink(!online)}
     >
       <small>Earth link</small>
-      <span>{online ? `online · reply in ${replyText}` : 'offline · autonomous mode'}</span>
+      <span>{online ? `Online · reply in ${replyText}` : 'Offline · autonomous'}</span>
     </button>
   )
 }

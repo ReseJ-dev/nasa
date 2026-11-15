@@ -27,3 +27,6 @@ dist-ssr
 *.sln
 *.sw?
 bench-result.json
+
+# UI review screenshots
+screenshots

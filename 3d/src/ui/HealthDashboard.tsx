@@ -3,10 +3,11 @@ import type { Metric, RegionId } from '../contract/types'
 import { STATUS_HEX } from '../twin/colors'
 import { REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { useHealthStore, type ScenarioId } from '../twin/store'
-import { AlertsBadge, CriticalBanner } from './AlertsPanel'
+import { AlertsBadge, CriticalBanner, useAlertItems } from './AlertsPanel'
 import { CheckInPanel } from './CheckInPanel'
 import { ControlBar, EarthLinkToggle, MAX_DAY } from './ControlBar'
 import { ZonePanel } from './ZonePanel'
+import '../twin/theme'
 import './healthDashboard.css'
 import { SoundControls } from './SoundControls'
 
@@ -37,38 +38,30 @@ function MetricValue({ metric, label }: { metric?: Metric; label: string }) {
 function MissionHeader() {
   const day = useHealthStore(state => state.day)
   const scenario = useHealthStore(state => state.scenario)
+  const setScenario = useHealthStore(state => state.setScenario)
   const flare = useHealthStore(state => state.activeEvent === 'solar_flare')
+  const level = useAlertItems()[0]?.level ?? 'ok'
   return (
-    <header className="health-header">
-      <div className="health-title">
-        <h1>Astronaut Health Monitor</h1>
-        <p>Demonstration model · simulated values</p>
+    <header className="health-header" data-level={level}>
+      <div className="health-brand">
+        <div className="health-title">
+          <h1>Astronaut Health Monitor</h1>
+          <p>Demonstration model · simulated values</p>
+        </div>
         <SoundControls />
       </div>
-      <dl className="health-telemetry">
-        <div><dt>Mission Day</dt><dd>{day} <small>/ {MAX_DAY}</small></dd></div>
-        <div><dt>Scenario</dt><dd>{scenarios[scenario]}</dd></div>
-        <div className="health-telemetry-toggle"><EarthLinkToggle /></div>
-        <div className="health-telemetry-toggle"><AlertsBadge /></div>
-        <div><dt>Solar flare</dt><dd data-alert={flare}>{flare ? 'Active' : 'None'}</dd></div>
-      </dl>
-    </header>
-  )
-}
-
-function MissionControls() {
-  const scenario = useHealthStore(state => state.scenario)
-  const setScenario = useHealthStore(state => state.setScenario)
-  return (
-    <section className="health-card health-controls" aria-labelledby="mission-controls">
-      <h2 id="mission-controls">Mission controls</h2>
       <div className="health-presets" role="group" aria-label="Mission scenario">
         {Object.entries(scenarios).map(([id, label]) => (
-          <button key={id} type="button" aria-pressed={scenario === id} onClick={() => setScenario(id as ScenarioId)}>{label}</button>
+          <button key={id} type="button" data-scenario={id} aria-pressed={scenario === id} onClick={() => setScenario(id as ScenarioId)}>{label}</button>
         ))}
       </div>
-      <p>A scenario loads a full mission state. Change the day, exercise and environment in the bottom bar; the Earth link toggle is in the top bar.</p>
-    </section>
+      <div className="health-telemetry">
+        <dl className="health-chip"><dt>Mission day</dt><dd>{day} <small>/ {MAX_DAY}</small></dd></dl>
+        <dl className="health-chip" data-alert={flare}><dt>Solar flare</dt><dd>{flare ? 'Active' : 'None'}</dd></dl>
+        <EarthLinkToggle />
+        <AlertsBadge />
+      </div>
+    </header>
   )
 }
 
@@ -107,16 +100,17 @@ function HealthSystems() {
   return (
     <aside className="health-column">
       <section className="health-card" aria-labelledby="health-systems">
-        <h2 id="health-systems">Body systems</h2>
+        <h2 id="health-systems">Body systems <small className="health-h2-note">score / 100</small></h2>
         <ul className="health-systems">
           {systems.map(id => {
             const { status, score } = regions[id]
             return (
               <li key={id}>
-                <button type="button" aria-pressed={selected === id} onClick={() => select(id)}>
+                <button type="button" data-status={status} aria-pressed={selected === id} onClick={() => select(id)}>
                   <i aria-hidden="true" style={{ background: STATUS_HEX[status] }} />
-                  <span>{REGION_LABEL[id]}<small>{STATUS_LABEL[status]}</small></span>
-                  <strong>{score}<small> / 100</small></strong>
+                  <span>{REGION_LABEL[id]}</span>
+                  <em>{STATUS_LABEL[status]}</em>
+                  <strong>{score}</strong>
                 </button>
               </li>
             )
@@ -133,16 +127,17 @@ export function HealthDashboard({ children }: { children: ReactNode }) {
     <main className="health-dashboard">
       <MissionHeader />
       <div className="health-layout">
-        <section className="health-scene" aria-label="Interactive astronaut model">{children}</section>
+        <section className="health-scene" aria-label="Interactive astronaut model">
+          {children}
+          <CriticalBanner />
+        </section>
         <div className="health-column health-data">
           <CheckInPanel />
-          <MissionControls />
           <HealthMetrics />
         </div>
         <HealthSystems />
       </div>
       <ControlBar />
-      <CriticalBanner />
     </main>
   )
 }
