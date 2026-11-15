@@ -4,7 +4,7 @@ All four effects are distributed under [CC0 1.0](https://creativecommons.org/pub
 
 | Bundled file | Original | Source |
 | --- | --- | --- |
-| `critical.wav` | `alarm_2.wav` by bonzille, shortened to 1.4 seconds with a short fade-out | [OpenGameArt Alarm Sound Effect](https://opengameart.org/content/alarm-sound-effect) |
+| `critical-two-tone.wav` | `laserRetro_001.ogg` by Kenney, arranged into two pitches with short fades and normalized to a 72% peak | [Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds), [author's archive on OpenGameArt](https://opengameart.org/content/sci-fi-sounds) |
 | `scenario.ogg` | `click_001.ogg` by Kenney | [Interface Sounds](https://kenney.nl/assets/interface-sounds), [author's archive on OpenGameArt](https://opengameart.org/content/interface-sounds) |
 | `warning.ogg` | `confirmation_001.ogg` by Kenney | [Interface Sounds](https://kenney.nl/assets/interface-sounds), [author's archive on OpenGameArt](https://opengameart.org/content/interface-sounds) |
 | `solar-flare.ogg` | `laserRetro_001.ogg` by Kenney | [Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds), [author's archive on OpenGameArt](https://opengameart.org/content/sci-fi-sounds) |

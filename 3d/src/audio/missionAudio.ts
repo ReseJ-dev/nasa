@@ -5,10 +5,10 @@ import { CUE_PRIORITY, transitionCue, type Cue } from './cues'
 export const DEFAULT_VOLUME = 0.25
 
 const SOUNDS: Record<Cue, { file: string; gain: number }> = {
-  scenario: { file: 'scenario.ogg', gain: 0.45 },
+  scenario: { file: 'scenario.ogg', gain: 0.75 },
   warning: { file: 'warning.ogg', gain: 0.65 },
-  critical: { file: 'critical.wav', gain: 0.72 },
-  flare: { file: 'solar-flare.ogg', gain: 0.8 },
+  critical: { file: 'critical-two-tone.wav', gain: 0.85 },
+  flare: { file: 'solar-flare.ogg', gain: 0.9 },
 }
 
 const threatStatus = (level: number) =>
@@ -21,11 +21,18 @@ export function createMissionAudio() {
   let volume = DEFAULT_VOLUME
   let playing: Cue | undefined
   let pending: Cue | undefined
+  let flareAfterAlarm = false
   let playbackId = 0
 
   function play(cue: Cue) {
     if (!enabled || volume === 0) return
-    if (playing && CUE_PRIORITY[playing] > CUE_PRIORITY[cue]) return
+    // Keep the current red alarm intact. Coalesce further critical transitions
+    // into it, but let a distinct solar flare sound after the alarm finishes.
+    if (playing === 'critical') {
+      if (cue === 'flare') flareAfterAlarm = true
+      return
+    }
+    if (playing && CUE_PRIORITY[playing] >= CUE_PRIORITY[cue]) return
 
     const id = ++playbackId
     const { file, gain } = SOUNDS[cue]
@@ -34,7 +41,12 @@ export function createMissionAudio() {
     player.volume = volume * gain
     playing = cue
     const finish = () => {
-      if (id === playbackId) playing = undefined
+      if (id !== playbackId) return
+      playing = undefined
+      if (flareAfterAlarm) {
+        flareAfterAlarm = false
+        play('flare')
+      }
     }
     player.onended = finish
     player.onerror = finish
@@ -59,6 +71,7 @@ export function createMissionAudio() {
   function stop() {
     ++playbackId
     pending = undefined
+    flareAfterAlarm = false
     playing = undefined
     player.pause()
   }
