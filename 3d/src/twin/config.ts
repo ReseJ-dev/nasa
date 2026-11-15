@@ -5,10 +5,12 @@ type Vec3 = [number, number, number]
 
 // Camera controls. The camera moves on its own only on a selection change (see CameraRig.tsx).
 export const CAMERA = {
-  position: [0, 0.9, 3.2] as Vec3, // start in front of the body, at chest height
+  // Start in front of the body, at mid height. At this distance the figure (1.8 units tall)
+  // fills about 85 % of the canvas height, with room for the callouts on both sides.
+  position: [0, 0.93, 2.62] as Vec3,
   fov: 45, // vertical field of view, degrees
-  target: [0, 0.9, 0] as Vec3, // orbit center = vertical middle of the body
-  fitPadding: 0.15, // space around a selected region when the camera fits to it
+  target: [0, 0.93, 0] as Vec3, // orbit center = vertical middle of the body
+  fitPadding: 0.5, // space around a selected region when the camera fits to it: the organ in its body context
   smoothTime: 0.4, // seconds-ish for camera moves (higher = slower)
   minDistance: 1.5, // closest zoom
   maxDistance: 5, // farthest zoom
@@ -182,7 +184,7 @@ export const ISOLATION = {
   // reads as a circle and the floor bars open up, with the whole figure still in frame
   // (ring at the head, readout at the hand, bars on the floor). For a head-and-shoulders
   // framing use position [0, 1.72, 1.75] and target [0, 1.6, 0] (the hand and the bars leave the frame).
-  camera: { position: [0, 1.4, 3.12] as Vec3, target: [0, 0.96, 0] as Vec3 },
+  camera: { position: [0, 1.42, 2.86] as Vec3, target: [0, 0.94, 0] as Vec3 },
 }
 
 // Circadian ring around the head: a 24-hour clock seen from above, clockwise.
