@@ -137,8 +137,10 @@ export function HealthDashboard() {
           {forecastOpen && <ForecastDrawer onClose={() => setForecastOpen(false)} />}
         </section>
         <aside className="health-column">
-          <SystemList />
+          {/* New critical alert: first thing in the right column, right under the top bar.
+              It is in the column's flow, so it can never cover the threats strip or the twin. */}
           <CriticalBanner />
+          <SystemList />
           {/* A selected region replaces "Status now" with its zone panel; closing it returns. */}
           {selected ? <ZonePanel /> : <StatusNow />}
         </aside>
