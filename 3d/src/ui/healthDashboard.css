@@ -223,7 +223,7 @@
 .control-segment button[data-whatif="true"][aria-pressed="true"] { color: var(--st-warning); background: var(--st-warning-bg); box-shadow: inset 0 0 0 1px var(--st-warning); }
 
 /* ---- Control room (ControlRoom.tsx): a drawer over the left edge, hidden in presentation mode ---- */
-.health-dashboard[data-control="true"] .health-layout { grid-template-columns: 24rem minmax(0, 1fr) 25rem; }
+.health-dashboard[data-control="true"] .health-layout { grid-template-columns: clamp(19rem, 22vw, 24rem) minmax(0, 1fr) clamp(21rem, 24vw, 25rem); }
 .control-room { grid-column: 1; grid-row: 1; min-height: 0; margin: calc(-1 * var(--sp-2)) 0 calc(-1 * var(--sp-3)) calc(-1 * var(--sp-4)); display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4) var(--sp-4); overflow-y: auto; background: var(--bg-panel); border-right: 1px solid var(--line-strong); scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; animation: drawer-in 0.2s ease-out; }
 @keyframes drawer-in { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
 .control-room > * { flex: none; }

@@ -115,6 +115,8 @@ export const CHAIN = {
 export const CHAIN_LABEL = {
   zOffset: 0.25, // in front of the body, so the label does not sit inside the organs
   fadeMs: 400, // fade-in time when the label's organ lights up
+  headFrom: 1.6, // a label whose midpoint is above this height is inside the head...
+  aboveHead: 1.76, // ...and is lifted here: it is drawn in front of the body, so on screen this lands just above the head
 }
 
 // Habitat module around the body (isolation + closed environment threats).
