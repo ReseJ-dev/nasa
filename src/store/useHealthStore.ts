@@ -1,5 +1,5 @@
 import type { HealthState } from '../../3d/src/contract/types'
-import { SCENARIOS, type ScenarioData, type ScenarioId } from '../data/scenarios.ts'
+import { SCENARIOS, SCENARIO_EXERCISE, SCENARIO_INPUTS, type ScenarioData, type ScenarioId } from '../data/scenarios.ts'
 import { PERSONAL_BASELINE } from '../data/baseline.ts'
 import { missionSimulation, simulate, type Exercise, type MissionInputs } from '../engine/index.ts'
 
@@ -21,7 +21,6 @@ export interface HealthStore extends Omit<HealthState, keyof ScenarioData>, Scen
 }
 
 const SCENARIO_DAY: Record<ScenarioId, number> = { healthy: 0, day60: 60, critical: 180 }
-const DEFAULT_EXERCISE: Exercise = { aerobic: 1, resistance: 1 }
 
 function scenarioSettings(id: ScenarioId): MissionSettings {
   const { metrics, fluidShift } = SCENARIOS[id]
@@ -30,6 +29,7 @@ function scenarioSettings(id: ScenarioId): MissionSettings {
   return {
     day: SCENARIO_DAY[id],
     inputs: {
+      ...SCENARIO_INPUTS[id],
       co2Ppm: readMetric('co2_ppm'),
       sleepHours: readMetric('sleep_hours'),
       radiationMsv: readMetric('radiation_msv'),
@@ -38,7 +38,7 @@ function scenarioSettings(id: ScenarioId): MissionSettings {
       fluidShift,
       baseline: PERSONAL_BASELINE,
     },
-    exercise: { ...DEFAULT_EXERCISE },
+    exercise: { ...SCENARIO_EXERCISE[id] },
   }
 }
 

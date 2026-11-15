@@ -6,7 +6,7 @@ import { beforeEach, test } from 'node:test'
 const { useHealthStore } = await import('../src/twin/store.ts')
 const { buildAlerts } = await import('../src/ui/alerts.ts')
 const { gravityThreatLevel, distanceThreatLevel, formatLevel, microgravityIndex } = await import('../../src/engine/index.ts')
-const { checkInDefault } = await import('../src/ui/checkIn.ts')
+const { CHECKIN_METRIC, checkInDefault } = await import('../src/ui/checkIn.ts')
 const { THREAT_LEVEL } = await import('../src/twin/config.ts')
 
 const { getState, getInitialState, setState } = useHealthStore
@@ -68,27 +68,48 @@ test('Healthy preset stays healthy after neutral user actions', () => {
   }
 })
 
-test('Day 60 preset: exercise limits bone and muscle loss, eyes are a warning', () => {
+test('Day 60 preset: only brain is a warning and the user sees four warnings', () => {
   getState().setScenario('day60')
   assert.equal(getState().day, 60)
-  assert.deepEqual(statuses(), { ...allOk, eyes: 'warning' })
+  assert.deepEqual(statuses(), { ...allOk, brain: 'warning' })
   const list = alerts()
-  assert.ok(list.length > 0 && list.every((a) => a.level === 'warning'))
-  assert.deepEqual(list.filter((a) => a.id.startsWith('region_')).map((a) => a.regionId).sort(), ['eyes'])
+  assert.equal(list.length, 4)
+  assert.ok(list.every((a) => a.level === 'warning'))
+  assert.deepEqual(list.filter((a) => a.id.startsWith('region_')).map((a) => a.regionId), ['brain'])
   assert.equal(getState().threats.gravity.level, 0.5)
 })
 
-test('Critical preset: brain, immune and lungs are critical and eyes are a warning', () => {
+const criticalStatuses = {
+  ...allOk, brain: 'critical', immune: 'critical', lungs: 'critical', bones: 'warning', eyes: 'warning',
+}
+
+test('Critical preset preserves the crisis and exposes the eight current alerts', () => {
   getState().setScenario('critical')
   assert.equal(getState().day, 180)
-  assert.deepEqual(statuses(), {
-    ...allOk, brain: 'critical', eyes: 'warning', immune: 'critical', lungs: 'critical',
-  })
+  assert.equal(getState().activeEvent, 'solar_flare')
+  assert.equal(getState().inShelter, true)
+  assert.equal(getState().exercise.resistance, 0.6)
+  assert.deepEqual(getState().chain, ['lungs', 'brain'])
+  assert.deepEqual(statuses(), criticalStatuses)
   const list = alerts()
   assert.equal(list[0].level, 'critical')
-  assert.equal(list.filter((a) => a.id.startsWith('region_')).length, 4)
+  assert.deepEqual(list.map(a => a.id).sort(), [
+    'isolation_activity', 'isolation_mood', 'isolation_sleep',
+    'region_bones', 'region_brain', 'region_eyes', 'region_immune', 'region_lungs',
+  ])
   assert.equal(getState().threats.gravity.level, 1)
   assert.ok(getState().threats.radiation.level >= THREAT_LEVEL.criticalAt)
+})
+
+test('Critical reaches six visible alerts with the proposed mood and activity inputs', () => {
+  getState().setScenario('critical')
+  // Proposed companion edit: the scene preset owns activityMin and the initial
+  // scene mood. Exercise completion and isolation activity minutes are separate.
+  getState().patch({ mood: 4, activityMin: 115 })
+  getState().setInputs({ vitals: { ...getState().inputs.vitals, mood: 4 } })
+  assert.deepEqual(statuses(), criticalStatuses)
+  assert.equal(alerts().length, 6)
+  assert.deepEqual(alerts().filter(a => a.id.startsWith('isolation_')).map(a => a.id), ['isolation_sleep'])
 })
 
 test('no preset has a region score of 0 or NaN', () => {
@@ -119,15 +140,32 @@ test('threat levels agree with the metrics in every preset and after every contr
   assert.equal(formatLevel(getState().threats.gravity.level), '0%')
 })
 
-test('check-in defaults are the values the metrics panel shows', () => {
+test('the first check-in with the displayed values keeps metrics, scores and alerts', () => {
   for (const id of ['healthy', 'day60', 'critical']) {
     getState().setScenario(id)
     const state = getState()
-    assert.equal(checkInDefault('heartRate', state), metric('heart_rate'), id)
-    assert.equal(checkInDefault('sleepHours', state), metric('sleep_hours'), id)
-    assert.equal(checkInDefault('glucose', state), metric('glucose'), id)
+    const values = Object.fromEntries(Object.keys(CHECKIN_METRIC).map(key => {
+      const precision = key === 'sleepHours' ? 2 : ['glucose', 'bodyTempC'].includes(key) ? 1 : 0
+      return [key, Number(checkInDefault(key, state).toFixed(precision))]
+    }))
+    for (const [key, metricId] of Object.entries(CHECKIN_METRIC)) assert.equal(metric(metricId), values[key], id)
+    const initialAlerts = alerts()
+    const { sleepHours, ...vitals } = values
+    state.setInputs({ sleepHours, vitals: { ...state.inputs.vitals, ...vitals } })
+    assert.deepEqual(getState().metrics, state.metrics, id)
+    assert.deepEqual(statuses(), Object.fromEntries(Object.values(state.regions).map(r => [r.id, r.status])), id)
+    for (const region of Object.values(state.regions)) assert.equal(getState().regions[region.id].score, region.score, id)
+    assert.deepEqual(alerts(), initialAlerts, id)
   }
   assert.equal(checkInDefault('sleepHours', getInitialState()), 7.5)
+})
+
+test('a genuinely changed first check-in updates the metric, status and visible alert', () => {
+  const state = getState()
+  state.setInputs({ vitals: { ...state.inputs.vitals, glucose: 8.5 } })
+  assert.equal(metric('glucose'), 8.5)
+  assert.equal(getState().regions.metabolism.status, 'critical')
+  assert.ok(alerts().some(a => a.id === 'region_metabolism' && a.level === 'critical'))
 })
 
 test('the reported screen is a real reading, not missing data', () => {
