@@ -23,7 +23,7 @@ const systems = ['heart', 'brain', 'bones', 'muscles', 'eyes', 'immune', 'lungs'
 
 const TEXT = {
   title: 'Astronaut Health Monitor',
-  subtitle: 'Digital twin · demonstration model',
+  subtitle: 'Digital twin · demonstration model · not a medical device',
   day: 'Mission day',
   link: 'Earth link',
   online: (reply: string) => `Online · reply in ${reply}`,
