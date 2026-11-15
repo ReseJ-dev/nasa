@@ -40,8 +40,8 @@ function merged(parts: BufferGeometry[]) {
 
 // Brain: two hemispheres with a groove between them, cerebellum at the back, brainstem below.
 const BRAIN = merged([
-  blob([0.036, 0.056, 0.076], undefined, [-0.033, 0, 0]),
-  blob([0.036, 0.056, 0.076], undefined, [0.033, 0, 0]),
+  blob([0.036, 0.05, 0.076], undefined, [-0.033, 0, 0]),
+  blob([0.036, 0.05, 0.076], undefined, [0.033, 0, 0]),
   blob([0.046, 0.024, 0.03], undefined, [0, -0.046, -0.044]),
   blob([0.014, 0.036, 0.014], undefined, [0, -0.07, -0.014]),
 ])
@@ -89,15 +89,15 @@ export const REGIONS: RegionDef[] = [
     id: 'brain',
     labelPosition: [0, 1.82, 0],
     callout: { anchor: [0, 1.705, 0], label: [-0.6, 1.8, 0], lineStart: [-0.31, 1.745, 0] },
-    parts: [{ geometry: BRAIN, position: [0, 1.708, -0.004] }],
+    parts: [{ geometry: BRAIN, position: [0, 1.716, -0.004] }],
   },
   {
     id: 'eyes',
     labelPosition: [0, 1.66, 0.2],
-    callout: { anchor: [0.033, 1.668, 0.082], label: [0.6, 1.66, 0], lineStart: [0.31, 1.66, 0] },
+    callout: { anchor: [0.033, 1.66, 0.084], label: [0.6, 1.66, 0], lineStart: [0.31, 1.66, 0] },
     parts: [
-      { geometry: EYE, position: [-0.033, 1.668, 0.082] },
-      { geometry: EYE, position: [0.033, 1.668, 0.082] },
+      { geometry: EYE, position: [-0.033, 1.66, 0.084] },
+      { geometry: EYE, position: [0.033, 1.66, 0.084] },
     ],
   },
   {

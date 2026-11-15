@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Environment, Lightformer, Stars, Stats } from '@react-three/drei'
-import { EffectComposer, Selection, SelectiveBloom } from '@react-three/postprocessing'
-import { CanvasTexture, SRGBColorSpace, type AmbientLight, type DirectionalLight } from 'three'
+import { EffectComposer, Selection, SelectiveBloom, Vignette } from '@react-three/postprocessing'
+import { AdditiveBlending, CanvasTexture, SRGBColorSpace, type AmbientLight, type DirectionalLight } from 'three'
 import { Body } from './Body'
+import { BODY } from './bodyShape'
 import { RegionMesh } from './RegionMesh'
 import { Skeleton } from './Skeleton'
 import { Hint, Legend } from './Overlay'
@@ -34,22 +35,93 @@ import { BLOOM, CAMERA, EFFECTS, RENDER, SCENE, type Layer } from './config'
 import { overlayStyles as st } from './overlayStyles'
 import './theme'
 
-// Dark vertical gradient for the scene background, created once at module load.
+// Scene backdrop, drawn once at module load: a dark vertical gradient with a soft halo behind
+// the torso. A little noise is mixed in, so the dark gradient shows no visible steps (banding).
 function createBackground() {
+  const size = 512
   const canvas = document.createElement('canvas')
-  canvas.width = 2
-  canvas.height = 256
+  canvas.width = canvas.height = size
   const ctx = canvas.getContext('2d')!
-  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
+  const gradient = ctx.createLinearGradient(0, 0, 0, size)
   gradient.addColorStop(0, SCENE.backgroundTop)
   gradient.addColorStop(1, SCENE.backgroundBottom)
   ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.fillRect(0, 0, size, size)
+  const h = SCENE.halo
+  const halo = ctx.createRadialGradient(h.x * size, h.y * size, 0, h.x * size, h.y * size, h.radius * size)
+  halo.addColorStop(0, `rgba(${h.color}, ${h.alpha})`)
+  halo.addColorStop(0.5, `rgba(${h.color}, ${h.alpha * 0.35})`)
+  halo.addColorStop(1, `rgba(${h.color}, 0)`)
+  ctx.fillStyle = halo
+  ctx.fillRect(0, 0, size, size)
+  const image = ctx.getImageData(0, 0, size, size)
+  for (let i = 0; i < image.data.length; i += 4) {
+    const n = (Math.random() - 0.5) * 2.4
+    image.data[i] += n
+    image.data[i + 1] += n
+    image.data[i + 2] += n
+  }
+  ctx.putImageData(image, 0, 0)
   const texture = new CanvasTexture(canvas)
   texture.colorSpace = SRGBColorSpace
   return texture
 }
 const BACKGROUND = createBackground()
+
+// Floor glow under the body: a soft round light that fades out, with darker spots right under
+// the feet (reads as a contact shadow). One small texture, drawn once at module load.
+function createGroundTexture() {
+  const size = 256
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  const c = size / 2
+  const glow = ctx.createRadialGradient(c, c, 0, c, c, c)
+  glow.addColorStop(0, `rgba(${SCENE.ground.color}, 0.55)`)
+  glow.addColorStop(0.25, `rgba(${SCENE.ground.color}, 0.3)`)
+  glow.addColorStop(0.6, `rgba(${SCENE.ground.color}, 0.07)`)
+  glow.addColorStop(1, `rgba(${SCENE.ground.color}, 0)`)
+  ctx.fillStyle = glow
+  ctx.fillRect(0, 0, size, size)
+  // Cut the glow under each foot. Texture x = scene x, texture y = scene z (front is down).
+  const perMeter = size / SCENE.ground.size
+  ctx.globalCompositeOperation = 'destination-out'
+  for (const side of [-1, 1]) {
+    const x = c + side * BODY.ankle[0] * perMeter
+    const y = c + 0.04 * perMeter
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.scale(1, 1.9) // feet are longer than wide
+    const shadow = ctx.createRadialGradient(0, 0, 0, 0, 0, 0.085 * perMeter)
+    shadow.addColorStop(0, 'rgba(0, 0, 0, 0.9)')
+    shadow.addColorStop(0.6, 'rgba(0, 0, 0, 0.5)')
+    shadow.addColorStop(1, 'rgba(0, 0, 0, 0)')
+    ctx.fillStyle = shadow
+    ctx.fillRect(-size, -size, size * 2, size * 2)
+    ctx.restore()
+  }
+  const texture = new CanvasTexture(canvas)
+  texture.colorSpace = SRGBColorSpace
+  return texture
+}
+const GROUND_TEXTURE = createGroundTexture()
+const noRaycast = () => null // decoration: never catches hover or clicks
+
+function GroundGlow() {
+  return (
+    <mesh position={[0, SCENE.ground.y, 0]} rotation-x={-Math.PI / 2} raycast={noRaycast} renderOrder={-1}>
+      <planeGeometry args={[SCENE.ground.size, SCENE.ground.size]} />
+      <meshBasicMaterial
+        map={GROUND_TEXTURE}
+        transparent
+        opacity={SCENE.ground.opacity}
+        blending={AdditiveBlending}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </mesh>
+  )
+}
 
 // Soft studio light for reflections, built only from Lightformers (no presets, no downloads).
 // Rendered once into a small env map, so it costs nothing per frame.
@@ -179,9 +251,10 @@ export function BodyScene({
   // SelectiveBloom re-lights the selected organs, so it needs the scene lights.
   const ambient = useRef<AmbientLight>(null)
   const keyLight = useRef<DirectionalLight>(null)
+  const fillLight = useRef<DirectionalLight>(null)
   const rimLight = useRef<DirectionalLight>(null)
   // Same array on every render, so SelectiveBloom does not re-attach lights.
-  const bloomLights = useMemo(() => [ambient, keyLight, rimLight], [])
+  const bloomLights = useMemo(() => [ambient, keyLight, fillLight, rimLight], [])
   const clearSelection = useMemo(() => () => selectRegion(null), [selectRegion])
 
   return (
@@ -210,7 +283,18 @@ export function BodyScene({
           />
           <StudioEnvironment />
           <ambientLight ref={ambient} intensity={SCENE.ambientIntensity} />
-          <directionalLight ref={keyLight} position={SCENE.keyLight.position} intensity={SCENE.keyLight.intensity} />
+          <directionalLight
+            ref={keyLight}
+            position={SCENE.keyLight.position}
+            intensity={SCENE.keyLight.intensity}
+            color={SCENE.keyLight.color}
+          />
+          <directionalLight
+            ref={fillLight}
+            position={SCENE.fillLight.position}
+            intensity={SCENE.fillLight.intensity}
+            color={SCENE.fillLight.color}
+          />
           <directionalLight
             ref={rimLight}
             position={SCENE.rimLight.position}
@@ -234,8 +318,10 @@ export function BodyScene({
                 radius={BLOOM.radius}
                 mipmapBlur
               />
+              <Vignette offset={SCENE.vignette.offset} darkness={SCENE.vignette.darkness} />
             </EffectComposer>
           </Selection>
+          <GroundGlow />
           <Callouts visible={layer === 'body'} />
           <ChainLinks visible={layer === 'body'} />
           <FluidShiftLabel visible={layer === 'body'} />

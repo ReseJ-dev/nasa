@@ -161,23 +161,34 @@ function partAt(x: number, y: number, z: number): Part {
 export type ShellPartId = 'head' | 'torso' | 'arm_left' | 'arm_right' | 'leg_left' | 'leg_right'
 const SHELL_PART_IDS: ShellPartId[] = ['head', 'torso', 'arm_left', 'arm_right', 'leg_left', 'leg_right']
 
-const CELL = 0.009 // grid step: about 4.5 px at the default camera on a 1080p screen
+const CELL = 0.008 // grid step: about 4 px at the default camera on a 1080p screen
 const MIN: Vec3 = [-0.432, -0.018, -0.171]
-const SIZE = [97, 204, 43] // grid points per axis (x count is odd: one plane sits exactly on x = 0)
+const SIZE = [109, 230, 49] // grid points per axis (x count is odd: one plane sits exactly on x = 0)
 
 function buildShell(): Record<ShellPartId, BufferGeometry> {
   const [nx, ny, nz] = SIZE
   const at = (i: number, j: number, k: number) => i + nx * (j + ny * k)
 
-  // 1. Sample the field (only x >= 0, then mirror).
+  // 1. Sample the field (only x >= 0, then mirror). Most of the grid is far from the skin, so it
+  //    is sampled in blocks: one sample in the middle of a block; only blocks near the skin are
+  //    sampled point by point, the others just copy the middle value (only its sign matters).
   const field = new Float32Array(nx * ny * nz)
   const mid = (nx - 1) / 2
-  for (let k = 0; k < nz; k++)
-    for (let j = 0; j < ny; j++)
-      for (let i = mid; i < nx; i++) {
-        const v = skin(MIN[0] + i * CELL, MIN[1] + j * CELL, MIN[2] + k * CELL)
-        field[at(i, j, k)] = v
-        field[at(nx - 1 - i, j, k)] = v
+  const BLOCK = 4
+  const near = 0.03 // farther than this from the skin = the whole block is on one side (a block's corner is 0.018 from its middle)
+  for (let k0 = 0; k0 < nz; k0 += BLOCK)
+    for (let j0 = 0; j0 < ny; j0 += BLOCK)
+      for (let i0 = mid; i0 < nx; i0 += BLOCK) {
+        const h = ((BLOCK - 1) / 2) * CELL
+        const center = skin(MIN[0] + i0 * CELL + h, MIN[1] + j0 * CELL + h, MIN[2] + k0 * CELL + h)
+        const far = Math.abs(center) > near
+        for (let k = k0; k < Math.min(k0 + BLOCK, nz); k++)
+          for (let j = j0; j < Math.min(j0 + BLOCK, ny); j++)
+            for (let i = i0; i < Math.min(i0 + BLOCK, nx); i++) {
+              const v = far ? center : skin(MIN[0] + i * CELL, MIN[1] + j * CELL, MIN[2] + k * CELL)
+              field[at(i, j, k)] = v
+              field[at(nx - 1 - i, j, k)] = v
+            }
       }
 
   // 2. One vertex in every grid cell the surface passes through: the average of the points
@@ -218,17 +229,31 @@ function buildShell(): Record<ShellPartId, BufferGeometry> {
         positions.push(MIN[0] + (i + sx / n) * CELL, MIN[1] + (j + sy / n) * CELL, MIN[2] + (k + sz / n) * CELL)
       }
 
-  // 3. Normals: the direction in which the distance grows fastest.
+  // 3. Normals: the direction in which the distance grows fastest. Read from the grid
+  //    (differences between neighbor samples), blended between the 8 corners of the vertex's cell.
   const vertexCount = positions.length / 3
   const normals = new Float32Array(vertexCount * 3)
-  const e = CELL * 0.5
+  const sample = (i: number, j: number, k: number) =>
+    field[at(Math.min(Math.max(i, 0), nx - 1), Math.min(Math.max(j, 0), ny - 1), Math.min(Math.max(k, 0), nz - 1))]
   for (let v = 0; v < vertexCount; v++) {
-    const x = positions[v * 3]
-    const y = positions[v * 3 + 1]
-    const z = positions[v * 3 + 2]
-    const gx = skin(x + e, y, z) - skin(x - e, y, z)
-    const gy = skin(x, y + e, z) - skin(x, y - e, z)
-    const gz = skin(x, y, z + e) - skin(x, y, z - e)
+    const fx = (positions[v * 3] - MIN[0]) / CELL
+    const fy = (positions[v * 3 + 1] - MIN[1]) / CELL
+    const fz = (positions[v * 3 + 2] - MIN[2]) / CELL
+    const i = Math.floor(fx)
+    const j = Math.floor(fy)
+    const k = Math.floor(fz)
+    let gx = 0
+    let gy = 0
+    let gz = 0
+    for (let c = 0; c < 8; c++) {
+      const ci = i + (c & 1)
+      const cj = j + ((c >> 1) & 1)
+      const ck = k + ((c >> 2) & 1)
+      const w = (c & 1 ? fx - i : 1 - fx + i) * (c & 2 ? fy - j : 1 - fy + j) * (c & 4 ? fz - k : 1 - fz + k)
+      gx += w * (sample(ci + 1, cj, ck) - sample(ci - 1, cj, ck))
+      gy += w * (sample(ci, cj + 1, ck) - sample(ci, cj - 1, ck))
+      gz += w * (sample(ci, cj, ck + 1) - sample(ci, cj, ck - 1))
+    }
     const l = Math.hypot(gx, gy, gz) || 1
     normals[v * 3] = gx / l
     normals[v * 3 + 1] = gy / l
