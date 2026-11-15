@@ -4,6 +4,7 @@
 import type { Baseline, BonePart, HealthState, RegionId, SimInputs, Status } from '../contract/types'
 import { isolationAlerts, simulate, type SimOutput } from '../../../src/engine'
 import { PERSONAL_BASELINE as PRE_FLIGHT } from '../../../src/data/baseline'
+import { CRITICAL_TELEMETRY as CRITICAL } from '../../../src/data/scenarios'
 
 export type ScenarioId = 'healthy' | 'day60' | 'critical'
 
@@ -90,9 +91,9 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
       heartRate: 98,
       glucose: 7.8,
       bodyTempC: 37.6,
-      sleepHours: 5,
+      sleepHours: CRITICAL.sleepHours, // calibrated telemetry (src/data/scenarios.ts)
       mood: 4,
-      reactionMs: 420,
+      reactionMs: CRITICAL.reactionMs,
       environment: 'transit',
       missionDay: 180,
       baseline: PRE_FLIGHT,
@@ -106,7 +107,7 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
     events: {
       activeEvent: 'solar_flare',
       inShelter: true,
-      sleepShiftHours: 3,
+      sleepShiftHours: CRITICAL.sleepShiftHours,
       threatLinks: [
         { from: 'radiation', to: 'isolation', strength: 0.6 }, // shelter time cuts crew contact
         { from: 'isolation', to: 'environment', strength: 0.7 }, // closed shelter: CO2, heat, noise
@@ -114,16 +115,17 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
       ],
     },
     // Two days in the shelter: exercise reduced, almost no bright light, mood holds.
+    // The last day (today) is the calibrated Critical telemetry, so the charts do not jump.
     tracking: {
       brightLightMin: 20,
       reactionLapses: 5,
       activityMin: 115,
       history: week(
-        [6.8, 6.6, 6.5, 6.2, 6, 4.8, 4.2],
+        [7.2, 7, 6.9, 6.7, 6.5, 6.2, CRITICAL.sleepHours],
         [148, 145, 140, 136, 130, 120, 115],
-        [300, 305, 310, 316, 322, 345, 355],
+        [270, 274, 278, 282, 287, 294, CRITICAL.reactionMs],
         [4, 4, 4, 4, 3, 4, 4],
-        [3300, 3400, 3500, 3700, 4000, 6200, 6800], // last two days in the shelter
+        [3300, 3400, 3500, 3700, 4000, 6400, CRITICAL.co2Ppm], // last two days in the shelter
       ),
     },
   },
