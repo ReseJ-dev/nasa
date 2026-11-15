@@ -41,17 +41,22 @@ export const SCENE = {
 // glowing cyan on the silhouette edges.
 export const BODY_SHELL = {
   color: '#2a5a78', // base tint seen in the center
-  roughness: 0.4,
+  roughness: 0.35,
   rimColor: '#4fe3ff', // cyan edge glow
-  rimPower: 2.2, // higher = thinner edge
-  rimIntensity: 1.6, // brightness of the edge glow
+  // The edge glow has two parts: a wide soft falloff toward the middle of the body
+  // and a thin bright line right on the silhouette.
+  rimPower: 2.0, // wide part; higher = narrower
+  rimIntensity: 1.25, // brightness of the wide part
+  linePower: 7, // thin line; higher = thinner
+  lineIntensity: 0.9, // extra brightness of the thin line, relative to rimIntensity
+  highlightAlpha: 0.9, // how visible light reflections are on the clear middle (glass look)
   // Breathing: the edge glow slowly swells and fades, always on. One calm cycle every
   // `breathSeconds`; far slower than the warning (0.7 Hz) and critical (1.6 Hz) pulses.
   breathSeconds: 5,
   breathAmount: 0.22, // +/- share of rimIntensity
   // Opacity multipliers on top of the layer opacity (LAYERS.*.shell), result clamped to 1.
-  centerAlpha: 0.35,
-  edgeAlpha: 3.5,
+  centerAlpha: 0.3,
+  edgeAlpha: 3.6,
   renderOrder: 10, // drawn after organs and bones (see Body.tsx: stencil, front-to-back)
 }
 
@@ -264,6 +269,9 @@ export const MOOD = { dots: 5, dotSize: 9 }
 // Organ material and animation
 export const REGION = {
   roughness: 0.5,
+  // Soft edge (fresnel): how strongly the lit color and the glow show in the middle of an organ
+  // and at its outline. A darker middle with a lighter outline reads as a soft volume.
+  edge: { power: 1.2, litCenter: 0.07, litEdge: 1.9, glowCenter: 0.2, glowEdge: 1.9 },
   // How fast color and glow follow their target (higher = faster, ~0.5 s at 6).
   lerpSpeed: 6,
   dimmedBrightness: 0.15, // color/glow of non-selected organs while a region is selected
