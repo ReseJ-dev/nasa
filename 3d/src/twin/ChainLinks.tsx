@@ -3,6 +3,8 @@ import { Html } from '@react-three/drei'
 import type { ChainLink } from '../contract/types'
 import { useHealthStore } from './store'
 import { CHAIN, CHAIN_LABEL } from './config'
+import { CHAIN_LABELS } from '../sim/constants'
+import { sceneLabel } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 import { REGIONS } from './regions'
 
@@ -33,7 +35,8 @@ function LinkLabel({ link, delay }: { link: ChainLink; delay: number }) {
   return (
     <Html position={position} center style={{ pointerEvents: 'none' }}>
       <div ref={el} style={s.chainLabel}>
-        {link.label}
+        {/* Short cause label of this organ pair; the store's own text only as a fallback. */}
+        {sceneLabel(CHAIN_LABELS[`${link.from}>${link.to}`] ?? link.label)}
       </div>
     </Html>
   )
