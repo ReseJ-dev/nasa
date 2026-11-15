@@ -25,6 +25,7 @@ import { MoodDots } from './MoodDots'
 import { OfflineTag, OfflineTint } from './Offline'
 import { GravityArrow } from './GravityArrow'
 import { ChainLinks } from './ChainLinks'
+import { FluidShiftLabel } from './FluidShift'
 import type { ThreatId } from '../contract/types'
 import { LAYER_LABEL } from './labels'
 import { REGIONS } from './regions'
@@ -237,6 +238,7 @@ export function BodyScene({
           </Selection>
           <Callouts visible={layer === 'body'} />
           <ChainLinks visible={layer === 'body'} />
+          <FluidShiftLabel visible={layer === 'body'} />
           {/* Threat effects, each behind its own flag in config.ts (EFFECTS). */}
           {(EFFECTS.habitatModule || EFFECTS.cabinFog || EFFECTS.cabinSensors) && <Habitat layer={layer} />}
           {EFFECTS.cabinFlow && <CabinFlow layer={layer} />}

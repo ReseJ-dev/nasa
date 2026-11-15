@@ -106,7 +106,7 @@ function region(
   }
   if (status === 'critical' && !earthLink) advice.push(C.AUTONOMOUS_ADVICE) // escalation 'ground' -> 'crew'
   const [guidance, reference] = ADVICE[id]
-  advice.push(`${guidance} NASA HRP: ${reference}. Не медицинская рекомендация.`)
+  advice.push(`${guidance} NASA HRP: ${reference}. Not medical advice.`)
   return {
     id,
     status,

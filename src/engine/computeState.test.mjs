@@ -107,7 +107,7 @@ test('results are deterministic and bounded even with extreme inputs', () => {
       // A region whose only input is missing (lungs without a CO₂ reading) is "no data", not a zero.
       assert.ok(region.noData ? region.metrics.length === 0 && region.status === 'ok' : region.metrics.length > 0)
       assert.ok(region.metrics.every((metricId) => metricIds.has(metricId)))
-      if (!region.noData) assert.match(region.advice.at(-1), /NASA HRP.*https:\/\/.*Не медицинская рекомендация/)
+      if (!region.noData) assert.match(region.advice.at(-1), /NASA HRP.*https:\/\/.*Not medical advice/)
     }
   }
 })
