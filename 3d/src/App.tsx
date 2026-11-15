@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import type { SimEnvironment, ThreatId } from './contract/types'
-import { DISTANCE_DELAY_FULL_SEC, ENVIRONMENTS } from './sim/constants'
+import { DISTANCE_DELAY_FULL_SEC, ENVIRONMENTS } from '../../src/engine/constants'
 import { BodyScene } from './twin'
 import { Bench } from './Bench'
 import { DEMO_LABEL, useDemo } from './demo'

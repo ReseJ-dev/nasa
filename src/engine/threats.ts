@@ -1,4 +1,4 @@
-import { DISTANCE_DELAY_FULL_SEC, GRAVITY_THREAT_DAYS } from './constants'
+import { DISTANCE_DELAY_FULL_SEC, GRAVITY_THREAT_DAYS } from './constants.ts'
 
 // The ONE definition of the microgravity index and of the threat levels that follow live inputs.
 // The reference sim (simulate.ts), the app store (twin/store.ts), the threats strip and the

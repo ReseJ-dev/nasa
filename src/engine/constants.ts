@@ -1,4 +1,4 @@
-import type { BonePart, RegionId, SimEnvironment, ThreatId, Vitals } from '../contract/types'
+import type { BonePart, RegionId, SimEnvironment, ThreatId, Vitals } from '../../3d/src/contract/types'
 
 // Constants of the reference simulation. Each value has a source, or a TODO when it is a
 // placeholder that participant 3 (engine / science content) must confirm.
@@ -7,6 +7,7 @@ import type { BonePart, RegionId, SimEnvironment, ThreatId, Vitals } from '../co
 // ---- Environment defaults -------------------------------------------------------------
 // radiationLevel is a 0..1 display scale: level = dose rate (mSv/day) / RADIATION_SCALE_MSV_DAY.
 export const RADIATION_SCALE_MSV_DAY = 5 // TODO: agree the 0..1 scale with participant 3
+export const CUMULATIVE_RADIATION_SCALE_MSV = 250 // demo normalization for accumulated dose
 
 export const ENVIRONMENTS: Record<SimEnvironment, { gravityField: number; doseMsvPerDay: number; commDelaySec: number }> =
   {
@@ -137,7 +138,7 @@ export const ADVICE: Record<string, string> = {
 // Cause labels for the chain (cause -> effect), shown between organs in 3D.
 export const CHAIN_LABELS: Partial<Record<`${RegionId}>${RegionId}`, string>> = {
   'lungs>brain': 'CO₂ ↑',
-  'brain>eyes': 'intracranial pressure',
+  'brain>eyes': 'Headward fluid shift (SANS hypothesis)',
   'muscles>bones': 'less load',
 }
 
