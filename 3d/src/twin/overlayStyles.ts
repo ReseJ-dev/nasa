@@ -58,6 +58,7 @@ export const overlayStyles = {
     justifyContent: 'center',
     gap: 'var(--sp-2)',
     minWidth: 0,
+    overflow: 'hidden', // a long level text is cut inside its own slot, never over the next threat
     padding: 'var(--sp-1) var(--sp-1) var(--sp-2)',
     border: 'none',
     borderRadius: 'var(--r-2)',

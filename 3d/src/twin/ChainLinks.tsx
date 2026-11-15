@@ -19,7 +19,10 @@ function LinkLabel({ link, delay }: { link: ChainLink; delay: number }) {
   const position = useMemo(() => {
     const a = ANCHOR.get(link.from)!
     const b = ANCHOR.get(link.to)!
-    return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, Math.max(a[2], b[2]) + CHAIN_LABEL.zOffset] as [number, number, number]
+    const y = (a[1] + b[1]) / 2
+    // Both organs in the head (brain -> eyes): the label goes above the head, not over the face.
+    const lifted = y > CHAIN_LABEL.headFrom ? CHAIN_LABEL.aboveHead : y
+    return [(a[0] + b[0]) / 2, lifted, Math.max(a[2], b[2]) + CHAIN_LABEL.zOffset] as [number, number, number]
   }, [link])
 
   // Fade in once, in sync with the chain glow (no React state per frame). A ref callback, not an
