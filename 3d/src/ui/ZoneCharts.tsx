@@ -46,11 +46,12 @@ const COLOR = {
 
 const W = 300
 const H = 112
-const PAD = { left: 36, right: 10, top: 10, bottom: 20 }
+const PAD = { left: 36, right: 10, top: 20, bottom: 20 } // top: room for the y unit and the "today" label
 
 function MiniChart({
   title,
   unit,
+  yUnit,
   series,
   refs = [],
   x,
@@ -61,6 +62,7 @@ function MiniChart({
 }: {
   title: string
   unit: string
+  yUnit: string // unit of the y axis, drawn above the axis values
   series: Series[]
   refs?: RefLine[]
   x: [number, number]
@@ -95,7 +97,8 @@ function MiniChart({
         {title} <small>{unit}</small>
       </figcaption>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary}>
-        {/* y axis: min and max */}
+        {/* y axis: unit on top, then max and min */}
+        <text x={PAD.left - 5} y={9} textAnchor="end" className="mini-chart-axis mini-chart-unit">{yUnit}</text>
         {[yRange[0], yRange[1]].map((v, i) => (
           <text key={i} x={PAD.left - 5} y={sy(v) + 3} textAnchor="end" className="mini-chart-axis">
             {formatY(v)}
@@ -117,10 +120,7 @@ function MiniChart({
               strokeWidth={1}
               strokeDasharray={r.dashed ? '4 3' : undefined}
             />
-            {/* left end: the right end is where the "today" marker sits */}
-            <text x={PAD.left + 3} y={sy(r.y) - 3} className="mini-chart-ref" fill={r.color}>
-              {r.label}
-            </text>
+            {/* named in the legend below; no text in the plot, so close lines never overlap */}
           </g>
         ))}
 
@@ -128,7 +128,14 @@ function MiniChart({
         {marker >= x[0] && marker <= x[1] && (
           <g>
             <line x1={sx(marker)} x2={sx(marker)} y1={PAD.top} y2={plotBottom} stroke={COLOR.marker} strokeOpacity={0.35} />
-            <text x={sx(marker)} y={PAD.top - 2} textAnchor={sx(marker) > W - 60 ? 'end' : 'middle'} className="mini-chart-ref" fill={COLOR.marker}>
+            {/* above the plot, beside the line: never over the y axis values on the left */}
+            <text
+              x={sx(marker) + (sx(marker) > W - 60 ? -4 : sx(marker) < PAD.left + 30 ? 4 : 0)}
+              y={9}
+              textAnchor={sx(marker) > W - 60 ? 'end' : sx(marker) < PAD.left + 30 ? 'start' : 'middle'}
+              className="mini-chart-ref"
+              fill={COLOR.marker}
+            >
               today
             </text>
           </g>
@@ -220,6 +227,7 @@ function BrainCharts() {
         <MiniChart
           title="Sleep"
           unit="h · last 7 days"
+          yUnit="h"
           x={x}
           marker={day}
           xLabel={dayLabel}
@@ -235,6 +243,7 @@ function BrainCharts() {
         <MiniChart
           title="Reaction time"
           unit="ms · last 7 days"
+          yUnit="ms"
           x={x}
           marker={day}
           xLabel={dayLabel}
@@ -246,6 +255,7 @@ function BrainCharts() {
         <MiniChart
           title="Mood"
           unit="1–5 · last 7 days"
+          yUnit="1–5"
           x={x}
           y={[1, 5]}
           marker={day}
@@ -285,6 +295,7 @@ function BoneChart() {
     <MiniChart
       title="Bone density forecast"
       unit="% of pre-flight · weakest load-bearing bone"
+      yUnit="%"
       x={[0, end]}
       marker={day}
       xLabel={dayLabel}
@@ -307,6 +318,7 @@ function LungChart() {
     <MiniChart
       title="Cabin CO₂"
       unit="mmHg · last 7 days"
+      yUnit="mmHg"
       x={[day - 6, day]}
       marker={day}
       xLabel={dayLabel}
