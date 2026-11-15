@@ -45,12 +45,15 @@ export const SCENE = {
   vignette: { offset: 0.3, darkness: 0.62 },
 }
 
+// The one Normal color: legend, region dots, the Status now dot, normal organs and the body glow.
+export const NORMAL_HEX = '#4fe3ff' // soft cyan
+
 // Translucent body shell with a fresnel look: almost clear in the center,
 // glowing cyan on the silhouette edges.
 export const BODY_SHELL = {
   color: '#2a5a78', // base tint seen in the center
   roughness: 0.35,
-  rimColor: '#4fe3ff', // cyan edge glow
+  rimColor: NORMAL_HEX, // cyan edge glow = the Normal status color
   // The edge glow has two parts: a wide soft falloff toward the middle of the body
   // and a thin bright line right on the silhouette.
   rimPower: 2.0, // wide part; higher = narrower
@@ -110,6 +113,9 @@ export const LAYERS: Record<Layer, { shell: number; skeleton: number; organs: nu
 // In skeleton mode these regions are hidden completely (they overlap the bones);
 // the other organs fade to LAYERS.skeleton.organs and cannot be hovered or clicked.
 export const HIDDEN_IN_SKELETON: RegionId[] = ['muscles', 'bones']
+// Regions with no organ mesh in Body mode: the bones region (straight spine line + pelvis ring)
+// is shown only by the real bones of the Skeleton layer. Its status stays in the lists and callout.
+export const SKELETON_ONLY: RegionId[] = ['bones']
 export const LAYER_FADE_SPEED = 4 // how fast layers fade (higher = faster, ~0.7 s at 4)
 
 // Heartbeat: the heart mesh scales in a "lub-dub, pause" rhythm.
@@ -221,7 +227,7 @@ export const CIRCADIAN = {
   frontHour: 3, // hour at the front of the ring: the middle of a normal night
   normalBedtime: 23, // the sleep arc starts here when sleepShiftHours = 0
   lightStartHour: 9, // the bright-light arc starts here; length = brightLightMin
-  outlineRest: 0.45, // outline opacity when isolation is not focused (the only visible part then)
+  outlineRest: 0.45, // outline opacity while isolation is Warning / Critical but not focused
   outlineFocused: 0.9,
   sleepTube: 0.011, // tube radius of the sleep arc
   lightTube: 0.007,
@@ -294,7 +300,7 @@ export const REGION = {
   // Emissive glow strength in each state. Base glow depends on the status:
   // ok organs stay dim, warning/critical stand out.
   emissive: {
-    base: { ok: 0.1, warning: 0.35, critical: 0.5 } as Record<Status, number>,
+    base: { ok: 0.22, warning: 0.35, critical: 0.5 } as Record<Status, number>, // ok: low, soft cyan tint
     selected: 0.5,
     hover: 0.9,
   },
@@ -322,7 +328,7 @@ export const EFFECTS = {
   radiationShimmer: true, // violet shimmer on immune and brain
   solarFlare: true, // flash + track burst + dose badge
   shelter: true, // shelter capsule
-  habitatModule: true, // wireframe module (isolation)
+  habitatModule: false, // wireframe module rings around the torso (isolation): off, decorative ellipses
   cabinFog: true, // fog inside the module (environment)
   cabinSensors: true, // CO2 / temperature / noise chips (environment)
   cabinFlow: true, // air flow into the nose and lungs (environment)
@@ -353,6 +359,12 @@ export const THREAT_DIMMED_EMPHASIS = 0.2
 // Permanent callouts in 3D: every critical region, plus at most this many warnings (the lowest
 // scores first). The other warnings show their label on hover only.
 export const CALLOUTS = { maxWarnings: 2 }
+
+// One-way signal delay above which Earth cannot help in time: the strip says "Autonomous mode" and
+// escalation to the ground becomes the on-board protocol (Earth is informed with the delay).
+// Display rule chosen for the demo (5 min), not a NASA value.
+export const AUTONOMOUS_DELAY_SEC = 300
+export const isDelayedEarth = (commDelaySec: number | undefined) => (commDelaySec ?? 0) > AUTONOMOUS_DELAY_SEC
 
 export const THREAT_STRIP = {
   ring: 38, // icon ring diameter
