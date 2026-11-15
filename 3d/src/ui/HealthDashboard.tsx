@@ -43,7 +43,8 @@ function LevelValue({ label, level, note }: { label: string; level: number | und
   return (
     <div className="health-metric">
       <dt>{label}</dt>
-      <dd>{level === undefined ? <small>{NO_DATA_LABEL}</small> : <>{formatLevel(level)}{note && <> <small>{note}</small></>}</>}</dd>
+      <dd>{level === undefined ? <small>{NO_DATA_LABEL}</small> : formatLevel(level)}</dd>
+      {note && <dd className="health-metric-note">{note}</dd>}
     </div>
   )
 }
