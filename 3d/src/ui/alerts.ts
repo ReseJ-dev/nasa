@@ -1,7 +1,8 @@
 import type { Alert, AlertMetric, RegionId, RegionState, Status, ThreatId, ThreatState } from '../contract/types'
 import { REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { ZONE_INFO } from '../../../src/data/zoneInfo'
-import { delayedEarth, DELAYED_EARTH_TEXT } from '../missionDisplay'
+import { DELAYED_EARTH_TEXT } from '../missionDisplay'
+import { isDelayedEarth } from '../twin/config'
 
 // One list of alerts for the UI, built from what the engine already decided:
 // - every region with a warning/critical status (engine regions),
@@ -79,7 +80,7 @@ export function buildAlerts({
   earthLink: boolean
   commDelaySec?: number
 }): AlertItem[] {
-  const escalationNote = delayedEarth(commDelaySec) ? DELAYED_EARTH_TEXT : undefined
+  const escalationNote = isDelayedEarth(commDelaySec) ? DELAYED_EARTH_TEXT : undefined
   const adapt = (action: string) => (earthLink || escalationNote ? action : autonomousAction(action))
   const items: AlertItem[] = []
 
@@ -151,6 +152,6 @@ export function statusNowItems(items: AlertItem[], event: 'none' | 'solar_flare'
     source: 'Project storm-shelter protocol',
     verified: false,
     forecast: false,
-    ...(delayedEarth(commDelaySec) ? { escalationNote: DELAYED_EARTH_TEXT } : {}),
+    ...(isDelayedEarth(commDelaySec) ? { escalationNote: DELAYED_EARTH_TEXT } : {}),
   }, ...ordered]
 }

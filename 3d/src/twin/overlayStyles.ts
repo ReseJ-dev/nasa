@@ -50,7 +50,7 @@ export const overlayStyles = {
     border: '1px solid var(--line)',
   },
   // Presentation: a narrow centered row, no panel, so the twin below stays the hero.
-  threatsCompact: { alignSelf: 'center', width: 'min(100%, 52rem)', background: 'transparent', border: 'none' },
+  threatsCompact: { alignSelf: 'center', width: 'min(100%, 62rem)', background: 'transparent', border: 'none' },
   threatArcs: { position: 'absolute', top: 0, left: 0, width: '100%', pointerEvents: 'none', overflow: 'visible' },
   threat: {
     display: 'flex',
@@ -75,6 +75,7 @@ export const overlayStyles = {
   threatOfSelected: { boxShadow: 'inset 0 -2px 0 var(--accent)' }, // includes the selected region: underline
   threatLevel: { color: 'var(--text-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' },
   threatNoLink: { color: 'var(--st-critical-text)', fontWeight: 700 },
+  threatLimit: { color: 'var(--text-3)', fontSize: '0.9em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   // Root of the scene: threats row on top, 3D stage below.
   root: { position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' },
   stage: {
@@ -212,16 +213,6 @@ export const overlayStyles = {
     font: '600 14px system-ui, sans-serif',
     whiteSpace: 'nowrap',
     userSelect: 'none',
-  },
-  // "Dose: N%" under the radiation icon during a solar flare.
-  doseBadge: {
-    marginLeft: 'var(--sp-1)',
-    padding: '0 var(--sp-1)',
-    borderRadius: 'var(--r-1)',
-    background: 'rgba(166, 108, 255, 0.3)',
-    color: '#f0e8ff',
-    fontWeight: 600,
-    whiteSpace: 'nowrap',
   },
   // Colder frame while the link to Earth is down (multiplied over the canvas).
   coldTint: { position: 'absolute', inset: 0, mixBlendMode: 'multiply', pointerEvents: 'none' },

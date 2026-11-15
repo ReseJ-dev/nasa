@@ -7,3 +7,17 @@ body,
   overflow: hidden;
   background: #04070c;
 }
+
+/* The UI is not text to select (clicks and drags on the twin must not highlight labels);
+   inputs and text areas stay selectable and editable. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+}

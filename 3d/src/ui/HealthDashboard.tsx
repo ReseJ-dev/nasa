@@ -12,6 +12,7 @@ import { Forecast, MAX_DAY } from './ControlBar'
 import { ControlRoom } from './ControlRoom'
 import { useSound } from './sound'
 import { StatusNow } from './StatusNow'
+import { MissionTimeline } from './MissionTimeline'
 import { ZonePanel } from './ZonePanel'
 import '../twin/theme'
 import './healthDashboard.css'
@@ -24,7 +25,7 @@ const systems = ['heart', 'brain', 'bones', 'muscles', 'eyes', 'immune', 'lungs'
 
 const TEXT = {
   title: 'Astronaut Health Monitor',
-  subtitle: 'Digital twin · demonstration model',
+  subtitle: 'Digital twin · demonstration model · not a medical device',
   day: 'Mission day',
   link: 'Earth link',
   online: (reply: string) => `Online · reply in ${reply}`,
@@ -276,7 +277,8 @@ export function HealthDashboard({ slide }: { slide?: SlideScene }) {
         />
       </div>
       <div className="health-layout">
-        <section className="health-scene" aria-label="Astronaut model" inert={Boolean(slide)}>
+        <section className="health-scene" aria-label={slide ? "Astronaut model" : "Interactive astronaut model"} inert={Boolean(slide)}>
+          <div className="health-stage">
           <BodyScene
             compact
             still={Boolean(slide)}
@@ -285,6 +287,8 @@ export function HealthDashboard({ slide }: { slide?: SlideScene }) {
             focusedThreat={focus}
             onThreatClick={(id) => setView((v) => ({ ...v, focus: v.focus === id ? null : id }))}
           />
+          </div>
+          {!slide && <MissionTimeline />}
           {caption && !forecastOpen && <p className="demo-caption" role="status">{caption}</p>}
           {keysOpen && <KeyHints onClose={() => setKeysOpen(false)} />}
           {forecastOpen && <ForecastDrawer onClose={() => setForecastOpen(false)} />}

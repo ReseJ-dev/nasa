@@ -5,7 +5,8 @@ import { ZONE_INFO } from '../../../src/data/zoneInfo'
 import { AlertCard, sourceTitle, useStatusNowItems, useOpenAlert } from './AlertsPanel'
 import type { AlertItem } from './alerts'
 import type { SlideScene } from '../slideScene'
-import { AUTONOMOUS_LABEL, ESCALATION_LABEL, escalationFor } from './ZonePanel'
+import { ESCALATION_LABEL, escalationFor, escalationView } from './ZonePanel'
+import { isDelayedEarth } from '../twin/config'
 
 // "Status now": the one thing that matters right now. The highest-priority alert with its cause,
 // the concrete action and who to involve; the other alerts stay collapsed under "N more".
@@ -28,6 +29,7 @@ const TEXT = {
 function useEscalation(item: AlertItem | undefined) {
   const region = useHealthStore((s) => (item ? s.regions[item.regionId] : undefined))
   const earthLink = useHealthStore((s) => s.earthLink ?? true)
+  const delayed = useHealthStore((s) => isDelayedEarth(s.commDelaySec))
   if (!item || !region) return undefined
   if (item.escalationNote) return { level: 'autonomous', label: item.escalationNote }
   if (item.id === 'event_solar_flare') return { level: 'crew', label: ESCALATION_LABEL.crew }
@@ -35,11 +37,7 @@ function useEscalation(item: AlertItem | undefined) {
   const who = item.id.startsWith('region_')
     ? escalationFor(region.escalation, item.level, item.regionId)
     : zone.escalation[item.level].who
-  const autonomous = !earthLink && (who === 'ground' || item.level === 'critical')
-  return {
-    level: autonomous ? 'autonomous' : who,
-    label: autonomous ? AUTONOMOUS_LABEL : ESCALATION_LABEL[who],
-  }
+  return escalationView(who, item.level, zone, earthLink, delayed)
 }
 
 export function StatusNow({ slide }: { slide?: SlideScene }) {

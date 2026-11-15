@@ -16,7 +16,7 @@ import {
 } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { BonePart } from '../contract/types'
-import { BONE_DENSITY, FRACTURE_LABEL_THRESHOLD, LANDING, LAYERS, SKELETON, type Layer } from './config'
+import { BONE_DENSITY, FRACTURE_LABEL_THRESHOLD, LANDING, LAYERS, REGION, SKELETON, type Layer } from './config'
 import { boneDensityColor, STATUS_HEX } from './colors'
 import { FRACTURE_LABEL } from './labels'
 import { overlayStyles as overlay } from './overlayStyles'
@@ -254,9 +254,13 @@ function createBoneMaterial() {
 // shell even in body mode and flashes red.
 function BoneMesh({ part, layer, landing }: { part: BonePart; layer: Layer; landing: boolean }) {
   const density = useHealthStore((s) => s.boneDensity[part])
+  // The bones region has no organ mesh in Body mode: while it is selected, the bones show
+  // through the shell, so the body highlight matches the open panel.
+  const bonesSelected = useHealthStore((s) => s.selectedRegion === 'bones')
 
   const material = useMemo(createBoneMaterial, [])
-  useFadeOpacity(material, landing ? Math.max(LANDING.boneOpacity, LAYERS[layer].skeleton) : LAYERS[layer].skeleton)
+  const base = bonesSelected ? Math.max(REGION.selectedBoneOpacity, LAYERS[layer].skeleton) : LAYERS[layer].skeleton
+  useFadeOpacity(material, landing ? Math.max(LANDING.boneOpacity, base) : base)
   const landingRef = useRef(landing)
   const flashTime = useRef(0)
   useLayoutEffect(() => {

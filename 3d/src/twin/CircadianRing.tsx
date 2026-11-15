@@ -15,7 +15,8 @@ import { REGIONS } from './regions'
 // Circadian ring around the head (isolation): a 24-hour clock seen from above, tilted toward
 // the camera. Thin outline, ticks every 3 h, the sleep arc (length = sleepHours, rotated by
 // sleepShiftHours), a warm bright-light arc, and a faint norm arc behind the sleep arc.
-// Not focused: only the outline. Focused: everything fades in (see isolationStage.ts).
+// Shown only while isolation is Warning / Critical or focused, with a "Sleep rhythm" label
+// (see isolationStage.ts); hidden otherwise.
 // The arc turns yellow / red with the sleep alert; a thin line ties it to the brain while
 // any isolation alert is active. Created once; all motion in useFrame.
 
@@ -136,11 +137,12 @@ export function CircadianRing() {
       ;(ring.link.material as { opacity: number }).opacity = linkOpacity
     }
 
-    setOpacity(label.current, stage.labels)
-    if (stage.labels > 0.005) {
+    // The label belongs to the ring: shown whenever the ring is.
+    setOpacity(label.current, stage.ring)
+    if (stage.ring > 0.005) {
       const shift = Math.abs(v.shiftHours) >= 0.05 ? ` · ${L.shift} ${formatShift(v.shiftHours)}` : ''
       setText(value.current, `${formatHours(v.sleepHours)}${shift}`)
-      setText(caption.current, `${L.sleep} · ${L.norm} ${formatHours(g.normHours)}`)
+      setText(caption.current, `${L.sleepRhythm} · ${L.norm} ${formatHours(g.normHours)}`)
     }
   })
 
