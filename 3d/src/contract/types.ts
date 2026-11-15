@@ -69,6 +69,10 @@ export interface Alert {
 export interface DayRecord {
   sleepHours: number
   activityMin: number
+  // Proposed (zone panel charts), optional until agreed:
+  reactionMs?: number // mean of that day's reaction test
+  mood?: number // 1..5 self-report
+  co2Ppm?: number // daily mean cabin CO2, ppm
 }
 
 // Proposed, to agree with participant 3: the five threats from the task.

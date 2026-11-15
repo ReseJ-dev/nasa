@@ -17,8 +17,9 @@ type ScenarioData = SimOutput &
 // Pre-flight exercise, minutes per day (ISS plan: about 2.5 h including setup).
 const PRE_FLIGHT_ACTIVITY_MIN = 150
 // Last 7 days, oldest first; the last entry is today (same values as the preset's own fields).
-const week = (sleep: number[], activity: number[]) =>
-  activity.map((activityMin, i) => ({ sleepHours: sleep[i], activityMin }))
+// Synthetic demo self-tracking, hand-made to end at each preset's own values.
+const week = (sleep: number[], activity: number[], reaction: number[], mood: number[], co2: number[]) =>
+  activity.map((activityMin, i) => ({ sleepHours: sleep[i], activityMin, reactionMs: reaction[i], mood: mood[i], co2Ppm: co2[i] }))
 
 // Pre-flight values of the same crew member, shared by every preset.
 const PRE_FLIGHT: Vitals = {
@@ -50,7 +51,13 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
       brightLightMin: 120,
       reactionLapses: 0,
       activityMin: 150,
-      history: week([8, 7.8, 8.1, 8, 7.9, 8.2, 8], [148, 152, 145, 150, 155, 147, 150]),
+      history: week(
+        [8, 7.8, 8.1, 8, 7.9, 8.2, 8],
+        [148, 152, 145, 150, 155, 147, 150],
+        [252, 258, 254, 256, 251, 257, 255],
+        [4, 4, 5, 4, 4, 4, 4],
+        [2450, 2550, 2500, 2480, 2520, 2490, 2500],
+      ),
     },
   },
   // Day 60 in transit: less sleep, slower reactions, first bone and muscle loss.
@@ -76,7 +83,13 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
       brightLightMin: 60,
       reactionLapses: 2,
       activityMin: 110,
-      history: week([7.4, 7.2, 7, 6.9, 6.8, 6.6, 6.5], [145, 140, 132, 128, 120, 114, 110]),
+      history: week(
+        [7.4, 7.2, 7, 6.9, 6.8, 6.6, 6.5],
+        [145, 140, 132, 128, 120, 114, 110],
+        [282, 288, 292, 297, 301, 306, 310],
+        [4, 4, 3, 3, 3, 3, 3],
+        [2900, 2950, 3000, 3050, 3100, 3150, 3200],
+      ),
     },
   },
   // Day 180, demo scenario: solar flare, crew in the shelter, CO2 rises, sleep drops, no Earth link.
@@ -115,7 +128,13 @@ const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking:
       brightLightMin: 20,
       reactionLapses: 5,
       activityMin: 40,
-      history: week([6.8, 6.6, 6.5, 6.2, 6, 5.4, 5], [142, 138, 130, 124, 118, 45, 40]),
+      history: week(
+        [6.8, 6.6, 6.5, 6.2, 6, 5.4, 5],
+        [142, 138, 130, 124, 118, 45, 40],
+        [318, 326, 335, 346, 360, 395, 420],
+        [3, 3, 3, 3, 2, 2, 2],
+        [3300, 3400, 3500, 3700, 4000, 6200, 6800], // last two days in the shelter
+      ),
     },
   },
 }
