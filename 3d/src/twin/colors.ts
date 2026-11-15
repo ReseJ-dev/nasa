@@ -1,10 +1,10 @@
 import { Color } from 'three'
 import type { Status } from '../contract/types'
-import { BONE_DENSITY, SKELETON } from './config'
+import { BONE_DENSITY, NORMAL_HEX, SKELETON } from './config'
 
-// Status palette. ok is neutral (not green) on purpose.
+// Status palette. ok is a soft cyan (not green), the same color as the body glow.
 export const STATUS_HEX: Record<Status, string> = {
-  ok: '#74828f', // cool grey: dimmer and less saturated than warning/critical, but not dead
+  ok: NORMAL_HEX,
   warning: '#f5c242',
   critical: '#ff3b30',
 }

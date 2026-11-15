@@ -4,14 +4,15 @@ import { useHealthStore } from './store'
 import { useSceneStore } from './sceneStore'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { STATUS_HEX } from './colors'
-import { EFFECTS, THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S } from './config'
-import { EARTH_LABEL, RADIATION_LABEL, THREAT_LABEL, THREAT_STRIP_LABEL } from './labels'
+import { THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S, isDelayedEarth } from './config'
+import { EARTH_LABEL, STRIP_SOURCE, STRIP_VALUE, THREAT_LABEL, THREAT_STRIP_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
-import { formatLevel } from '../../../src/engine'
+import { ppmToMmHg } from '../../../src/engine/constants'
 
 // Five threats strip: its own row above the 3D stage (never over the astronaut).
 // Each threat: its icon inside a ring filled by level (ring color = status thresholds),
-// name and level in % next to it. Arcs above the row show threatLinks (thickness = strength).
+// then its name, one real value with its unit and the limit it is compared with.
+// Values are read from the store as they are; nothing is computed here except unit conversion. Arcs above the row show threatLinks (thickness = strength).
 // Hover previews the focus, click pins / unpins (handled by BodyScene). Never calls selectRegion.
 
 export const THREAT_IDS: ThreatId[] = ['radiation', 'isolation', 'gravity', 'distance', 'environment']
@@ -144,6 +145,39 @@ function LinkArcs({ focused }: { focused: ThreatId | null }) {
   )
 }
 
+interface StripValue {
+  value: string
+  limit: string
+}
+
+// The real value behind each threat, straight from the store (undefined = no data).
+function useStripValues(): Record<ThreatId, StripValue> {
+  const metric = (id: string) => (st: { metrics: { id: string; value: number }[] }) =>
+    st.metrics.find((m) => m.id === id)?.value
+  const dose = useHealthStore(metric('radiation_msv'))
+  const sleep = useHealthStore((st) => st.sleepHours)
+  const boneLoss = useHealthStore(metric('bone_loss_pct'))
+  const co2Ppm = useHealthStore(metric('co2_ppm'))
+  const link = useHealthStore((st) => st.earthLink ?? true)
+  const delay = useHealthStore((st) => st.commDelaySec ?? 0)
+  const known = (v: number | undefined): v is number => typeof v === 'number' && Number.isFinite(v)
+  const or = (v: number | undefined, text: (v: number) => string) => (known(v) ? text(v) : STRIP_VALUE.noData)
+  return {
+    radiation: { value: or(dose, STRIP_VALUE.radiation), limit: STRIP_VALUE.radiationLimit },
+    isolation: { value: or(sleep, STRIP_VALUE.isolation), limit: STRIP_VALUE.isolationLimit },
+    gravity: { value: or(boneLoss, STRIP_VALUE.gravity), limit: STRIP_VALUE.gravityLimit },
+    distance: {
+      value: link ? EARTH_LABEL.replyIn(delay * 2) : EARTH_LABEL.noLink, // reply = there and back
+      // no link, or a one-way delay above 5 min: the crew acts on its own
+      limit: !link || isDelayedEarth(delay) ? EARTH_LABEL.autonomous : STRIP_VALUE.oneWay(delay),
+    },
+    environment: {
+      value: or(co2Ppm, (ppm) => STRIP_VALUE.environment(ppmToMmHg(ppm))),
+      limit: STRIP_VALUE.environmentLimit,
+    },
+  }
+}
+
 export function ThreatStrip({
   iconRefs,
   onToggle,
@@ -158,13 +192,8 @@ export function ThreatStrip({
   const selected = useHealthStore((st) => st.selectedRegion)
   const setHover = useSceneStore((st) => st.setHoverThreat)
   const focused = useFocusedThreat()
-  // Dose counter next to the radiation level while a solar flare is on.
-  const flare = useHealthStore((st) => st.activeEvent === 'solar_flare')
-  const dose = useHealthStore((st) => st.radiationLevel ?? 0)
-  // Distance shows the link state and delay instead of a level.
+  const values = useStripValues()
   const link = useHealthStore((st) => st.earthLink ?? true)
-  const delay = useHealthStore((st) => st.commDelaySec ?? 0)
-  const distanceText = link ? EARTH_LABEL.replyIn(delay * 2) : EARTH_LABEL.noLink
   if (!threats) return null
 
   return (
@@ -174,10 +203,11 @@ export function ThreatStrip({
         const { level, regions } = threats[id]
         const status = levelStatus(level)
         const ofSelected = selected !== null && regions.includes(selected) // reverse highlight
+        const { value, limit } = values[id]
         return (
           <button
             key={id}
-            title={`${THREAT_LABEL[id]}: ${id === 'distance' ? distanceText : formatLevel(level)}`}
+            title={`${THREAT_LABEL[id]}: ${value} · ${limit}\n${STRIP_SOURCE[id]}`}
             aria-pressed={focused === id}
             style={{
               ...s.threat,
@@ -201,14 +231,12 @@ export function ThreatStrip({
                 style={{
                   ...s.threatLevel,
                   ...(status !== 'ok' ? { color: STATUS_HEX[status], fontWeight: 700 } : null),
-                  ...(id === 'distance' ? (link ? { color: 'var(--text-2)', fontWeight: 400 } : s.threatNoLink) : null),
+                  ...(id === 'distance' && !link ? s.threatNoLink : null),
                 }}
               >
-                {id === 'distance' ? distanceText : formatLevel(level)}
-                {id === 'radiation' && flare && EFFECTS.solarFlare && (
-                  <span style={s.doseBadge}>{RADIATION_LABEL.dose(dose)}</span>
-                )}
+                {value}
               </span>
+              <span style={s.threatLimit}>{limit}</span>
             </span>
           </button>
         )

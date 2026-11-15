@@ -77,6 +77,7 @@ export const SENSOR_LABEL = {
 // Captions are short words; values always carry their unit.
 export const ISOLATION_LABEL = {
   sleep: 'Sleep',
+  sleepRhythm: 'Sleep rhythm',
   shift: 'shift',
   norm: 'norm',
   reaction: 'Reaction',
@@ -105,6 +106,10 @@ export const EARTH_LABEL = {
   replyIn: (seconds: number) =>
     seconds < 60 ? `Reply in ${Math.round(seconds)} s` : `Reply in ${Math.round(seconds / 60)} min`,
   autonomous: 'Autonomous mode',
+  // Escalation to the ground while Earth answers too late (one-way delay above 5 min).
+  delayedEscalation: 'Follow on-board protocol; Earth informed with delay',
+  delayedText:
+    'Earth answers too late to guide you now: follow the onboard checklist with the crew medical officer, log every step and send the log to the flight surgeon on Earth.',
   noLink: 'No link',
 }
 
@@ -112,8 +117,41 @@ export const EARTH_LABEL = {
 export const formatG = (g: number) => `${Number(g.toFixed(2))} g`
 
 export const RADIATION_LABEL = {
-  dose: (level: number) => `Dose ${Math.round(level * 100)}%`,
   shelter: 'Shelter',
+}
+
+// Threats strip: one real value with its unit, the limit it is compared with, and a source
+// tooltip (wording from SOURCES.md; "project estimate" where SOURCES.md says so).
+const oneDecimal = (v: number) => v.toFixed(1)
+export const STRIP_VALUE = {
+  radiation: (msv: number) => `${Math.round(msv)} mSv`,
+  radiationLimit: 'career limit 600',
+  isolation: (h: number) => `Sleep ${oneDecimal(h)} h`,
+  isolationLimit: 'target 8.5',
+  gravity: (pct: number) => `Bone loss ${oneDecimal(pct)}%`,
+  gravityLimit: 'since day 0',
+  environment: (mmHg: number) => `CO₂ ${oneDecimal(mmHg)} mmHg`,
+  environmentLimit: 'limit 3',
+  oneWay: (seconds: number) =>
+    seconds < 60 ? `one-way ${Math.round(seconds)} s` : `one-way ${Math.round(seconds / 60)} min`,
+  noData: 'No data',
+}
+export const STRIP_SOURCE = {
+  radiation:
+    'Cumulative dose (demo model). Career limit 600 mSv: NASA-STD-3001 Vol 1 Rev C [V1 4030]. ' +
+    'Ring color uses a display scale full at 250 mSv: project estimate.',
+  isolation:
+    'Sleep last night. Target 8.5 h: NASA protected sleep time (Barger et al. 2014), ' +
+    'not a measured sleep duration.',
+  gravity:
+    'Weight-bearing bone density loss since day 0 (forecast). NASA HRP: 1–1.5% per month in ' +
+    'weight-bearing bones; the per-bone split is a project estimate.',
+  distance:
+    'Reply = signal to Earth and back. NASA HRP: up to 20 min one way at Mars. ' +
+    'The delay of this scenario is a project estimate. Above 5 min one way the crew works autonomously.',
+  environment:
+    'Cabin CO₂ partial pressure (sea-level cabin assumed: project estimate). Limit 3 mmHg: ' +
+    'NASA-STD-3001 Vol 2 Rev F [V2 6004], a 1-hour average; the app uses a daily mean.',
 }
 
 export const HINT = 'Rotate, zoom, click an organ'

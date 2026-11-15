@@ -3,6 +3,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import { STATUS_HEX } from '../twin/colors'
 import { NO_DATA_LABEL, REGION_LABEL, SOURCES_NOTE, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
+import { isDelayedEarth } from '../twin/config'
+import { EARTH_LABEL } from '../twin/labels'
 import { DISCLAIMER, ZONE_INFO } from '../../../src/data/zoneInfo'
 import { ALERT_REGION, METRIC_ALERT, autonomousAction } from './alerts'
 import { ZoneCharts } from './ZoneCharts'
@@ -22,6 +24,24 @@ export const ESCALATION_LABEL: Record<Escalation, string> = {
   ground: 'Request Earth doctor',
 }
 export const AUTONOMOUS_LABEL = 'Autonomous protocol: tell a crew member'
+
+// Who to involve, as shown. Earth link down: the autonomous protocol. Earth reachable but more
+// than 5 min away one way: a step for the ground becomes the on-board protocol, Earth gets the log.
+export function escalationView(
+  who: Escalation,
+  status: Status,
+  zone: (typeof ZONE_INFO)[RegionId],
+  earthLink: boolean,
+  delayed: boolean,
+): { level: string; label: string; text: string | undefined } {
+  if (!earthLink && (who === 'ground' || status === 'critical')) {
+    return { level: 'autonomous', label: AUTONOMOUS_LABEL, text: zone.escalation.autonomous }
+  }
+  if (delayed && who === 'ground') {
+    return { level: 'autonomous', label: EARTH_LABEL.delayedEscalation, text: EARTH_LABEL.delayedText }
+  }
+  return { level: who, label: ESCALATION_LABEL[who], text: status === 'ok' ? undefined : zone.escalation[status].text }
+}
 
 const SOURCE_LABEL = { measured: 'measured', forecast: 'forecast' }
 const TEXT = {
@@ -53,6 +73,7 @@ export function ZonePanel() {
   const metrics = useHealthStore((s) => s.metrics ?? NO_METRICS)
   const alerts = useHealthStore((s) => s.alerts ?? NO_ALERTS)
   const earthLink = useHealthStore((s) => s.earthLink ?? true)
+  const delayed = useHealthStore((s) => isDelayedEarth(s.commDelaySec))
   const select = useHealthStore((s) => s.selectRegion)
   return (
     <ZoneDetails
@@ -60,6 +81,7 @@ export function ZonePanel() {
       metrics={metrics}
       alerts={alerts}
       earthLink={earthLink}
+      delayed={delayed}
       onClose={() => select(null)}
       charts={selected ? <ZoneCharts regionId={selected} /> : null}
     />
@@ -72,6 +94,7 @@ export function ZoneDetails({
   metrics,
   alerts,
   earthLink,
+  delayed = false,
   onClose,
   charts,
 }: {
@@ -79,6 +102,7 @@ export function ZoneDetails({
   metrics: Metric[]
   alerts: Alert[]
   earthLink: boolean
+  delayed?: boolean // one-way delay to Earth above 5 min
   onClose(): void
   charts?: ReactNode // trend charts (store-driven), placed after the metrics
 }) {
@@ -107,9 +131,8 @@ export function ZoneDetails({
   // No Earth link: every action shows its autonomous version.
   const actions = status === 'ok' ? [] : zone.actions[status].map((line) => (earthLink ? line : autonomousAction(line)))
   const who = escalationFor(region.escalation, status, selected)
-  // No Earth: anything that would go to the ground goes to the crew instead.
-  const autonomous = !earthLink && (who === 'ground' || status === 'critical')
-  const whoText = status === 'ok' ? undefined : autonomous ? zone.escalation.autonomous : zone.escalation[status].text
+  // No Earth (or Earth too far to answer in time): the ground step becomes the on-board protocol.
+  const escalation = escalationView(who, status, zone, earthLink, delayed)
 
   return (
     <section className="health-card health-detail zone-panel" data-status={status} style={{ '--zone-color': color } as CSSProperties} aria-labelledby="zone-title" aria-live="polite">
@@ -183,10 +206,10 @@ export function ZoneDetails({
 
       <div className="zone-block">
         <h3>{TEXT.who}</h3>
-        <span className="zone-escalation" data-level={autonomous ? 'autonomous' : who}>
-          {autonomous ? AUTONOMOUS_LABEL : ESCALATION_LABEL[who]}
+        <span className="zone-escalation" data-level={escalation.level}>
+          {escalation.label}
         </span>
-        {whoText && <p>{whoText}</p>}
+        {escalation.text && <p>{escalation.text}</p>}
       </div>
 
       <footer className="zone-foot">
