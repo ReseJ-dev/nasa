@@ -127,12 +127,16 @@ export function Body({ layer }: { layer: Layer }) {
   useLayoutEffect(() => {
     rimGoal.current = BODY_SHELL.rimIntensity * (EFFECTS.hypokinesis && lowActivity ? ACTIVITY.shellGlowDrop : 1)
   }, [lowActivity])
-  useFrame((_, delta) => {
+  const rimBase = useRef(BODY_SHELL.rimIntensity)
+  useFrame(({ clock }, delta) => {
     const k = 1 - Math.exp(-delta * FLUID_SHIFT.lerpSpeed)
     const u = material.userData.fluid as { value: number }
     u.value += (fluidGoal.current - u.value) * k
+    // Edge glow: follows its goal, with the slow breathing wave on top.
+    rimBase.current += (rimGoal.current - rimBase.current) * k
+    const breath = Math.sin((clock.elapsedTime / BODY_SHELL.breathSeconds) * Math.PI * 2)
     const rim = material.userData.rim as { value: number }
-    rim.value += (rimGoal.current - rim.value) * k
+    rim.value = rimBase.current * (1 + BODY_SHELL.breathAmount * breath)
   })
 
   const gl = useThree((s) => s.gl)

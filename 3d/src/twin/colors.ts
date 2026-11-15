@@ -4,7 +4,7 @@ import { BONE_DENSITY, SKELETON } from './config'
 
 // Status palette. ok is neutral (not green) on purpose.
 export const STATUS_HEX: Record<Status, string> = {
-  ok: '#626b75', // dimmer and less saturated than warning/critical
+  ok: '#74828f', // cool grey: dimmer and less saturated than warning/critical, but not dead
   warning: '#f5c242',
   critical: '#ff3b30',
 }
