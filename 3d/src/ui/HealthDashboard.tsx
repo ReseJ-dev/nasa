@@ -7,6 +7,7 @@ import { formatLevel } from '../sim'
 import { GRAVITY_THREAT_DAYS } from '../sim/constants'
 import { AlertsBadge, CriticalBanner, useAlertItems } from './AlertsPanel'
 import { CheckInPanel } from './CheckInPanel'
+import { Co2Value } from './Co2Value'
 import { ControlBar, EarthLinkToggle, MAX_DAY } from './ControlBar'
 import { ZonePanel } from './ZonePanel'
 import '../twin/theme'
@@ -15,15 +16,15 @@ import { SoundControls } from './SoundControls'
 
 const scenarios: Record<ScenarioId, string> = { healthy: 'Healthy', day60: 'Day 60', critical: 'Critical' }
 const systems = ['heart', 'brain', 'bones', 'muscles', 'eyes', 'immune', 'lungs', 'metabolism'] satisfies RegionId[]
-const vitals = ['heart_rate', 'sleep_hours', 'reaction_ms', 'bone_loss_pct', 'muscle_loss_pct', 'vision_score']
+const vitals = ['heart_rate', 'sleep_hours', 'reaction_ms', 'glucose', 'bone_loss_pct', 'muscle_loss_pct', 'vision_score']
 const names: Record<string, string> = {
   heart_rate: 'Heart rate',
   sleep_hours: 'Sleep',
   reaction_ms: 'Reaction time',
+  glucose: 'Glucose',
   bone_loss_pct: 'Bone density loss',
   muscle_loss_pct: 'Muscle mass loss',
   vision_score: 'Visual acuity',
-  co2_ppm: 'Cabin CO₂',
   radiation_msv: 'Accumulated radiation dose',
 }
 const format = new Intl.NumberFormat('en', { maximumFractionDigits: 2 })
@@ -94,16 +95,16 @@ function HealthMetrics() {
       <section className="health-card" aria-labelledby="health-environment">
         <h2 id="health-environment">Environment</h2>
         <dl className="health-grid">
-          <MetricValue label={names.co2_ppm} metric={metric('co2_ppm')} />
+          <Co2Value metric={metric('co2_ppm')} />
           <MetricValue label={names.radiation_msv} metric={metric('radiation_msv')} />
           <LevelValue label="Microgravity index" level={microgravity} note="exposure now" />
-          <LevelValue label="Gravity threat level" level={gravityThreat} note={`index × day ${day} / ${GRAVITY_THREAT_DAYS}`} />
+          <LevelValue label="Gravity threat level" level={gravityThreat} note={`index × ${Math.min(day, GRAVITY_THREAT_DAYS)} / ${GRAVITY_THREAT_DAYS} days`} />
           <LevelValue label="Isolation threat level" level={isolationThreat} />
         </dl>
       </section>
       <section className="health-card" aria-labelledby="health-future">
         <h2 id="health-future">Future measurements</h2>
-        <dl className="health-grid">{['SpO₂', 'Glucose', 'Cortisol'].map(label => <MetricValue key={label} label={label} />)}</dl>
+        <dl className="health-grid">{['SpO₂', 'Cortisol'].map(label => <MetricValue key={label} label={label} />)}</dl>
       </section>
     </>
   )

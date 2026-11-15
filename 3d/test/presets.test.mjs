@@ -140,3 +140,20 @@ test('the reported screen is a real reading, not missing data', () => {
   getState().setScenario('healthy') // loading the preset clears the check-in
   assertHealthy('preset reloaded')
 })
+
+test('cabin CO₂ is shown in mmHg against the 2.5 and 3 mmHg limits, ppm is secondary', async () => {
+  const { co2Display } = await import('../src/ui/co2.ts')
+  const { computeState } = await import('../../src/engine/index.ts')
+  assert.deepEqual(co2Display(2500), { mmHg: '1.9', ppm: '2,500 ppm', status: 'ok' })
+  assert.equal(co2Display(3200).status, 'ok') // 2.4 mmHg
+  assert.equal(co2Display(3300).status, 'warning') // 2.5 mmHg
+  assert.equal(co2Display(3950).status, 'critical') // 3.0 mmHg
+  // the lungs region uses the same limits
+  const lungs = (co2Ppm) => computeState(0, { co2Ppm, sleepHours: 8, radiationMsv: 0, microgravity: 1, isolation: 0 }, { aerobic: 1, resistance: 1 }).regions.lungs.status
+  for (const ppm of [2500, 3200, 3300, 3900, 3950, 6800]) assert.equal(lungs(ppm), co2Display(ppm).status, `${ppm} ppm`)
+  // presets: the panel and the lungs region agree
+  for (const id of ['healthy', 'day60', 'critical']) {
+    getState().setScenario(id)
+    assert.equal(co2Display(metric('co2_ppm')).status, getState().regions.lungs.status, id)
+  }
+})

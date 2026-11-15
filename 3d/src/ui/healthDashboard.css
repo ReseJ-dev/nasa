@@ -95,6 +95,9 @@
 .health-metric { padding: var(--sp-2) var(--sp-3); background: var(--bg-inset); border-radius: var(--r-1); }
 .health-metric dt { color: var(--text-3); font-size: var(--fs-caption); line-height: 1.25; }
 .health-metric dd { margin: 2px 0 0; font-size: var(--fs-number); font-weight: 650; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.health-metric dd.health-metric-note { font-size: var(--fs-caption); font-weight: 450; color: var(--text-3); }
+.health-co2[data-status="warning"] dd:first-of-type { color: var(--st-warning); }
+.health-co2[data-status="critical"] dd:first-of-type { color: var(--st-critical-text); }
 .health-metric dd small { color: var(--text-2); font-weight: 450; white-space: nowrap; }
 
 /* Body systems list: one compact row per system */
