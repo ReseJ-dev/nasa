@@ -14,6 +14,7 @@ import type {
   Vitals,
 } from '../contract/types'
 import * as C from './constants'
+import { distanceThreatLevel, gravityThreatLevel, microgravityIndex } from './threats'
 
 // Reference simulation: SimInputs -> the computed part of HealthState.
 // Pure function, no React, no store. Statuses come from the deviation from the
@@ -87,8 +88,12 @@ function region(
   source: Source,
   earthLink: boolean,
 ): RegionState {
-  const sorted = [...causes].sort((a, b) => b.deviation - a.deviation)
-  const deviation = sorted[0]?.deviation ?? 0
+  // A cause without a usable number is "no data": left out, never scored as 0 or NaN.
+  const sorted = causes.filter((c) => Number.isFinite(c.deviation)).sort((a, b) => b.deviation - a.deviation)
+  if (sorted.length === 0) {
+    return { id, status: 'ok', score: 100, metrics: [], advice: [], source, escalation: 'self', noData: true }
+  }
+  const deviation = sorted[0].deviation
   const status = statusOf(deviation)
   const advice: string[] = []
   if (status !== 'ok') {
@@ -116,7 +121,7 @@ export function simulate(input: SimInputs): SimOutput {
   const earthLink = input.earthLink ?? true
   const days = input.missionDay
   const months = days / C.DAYS_PER_MONTH
-  const microgravity = 1 - gravityField // 1 in 0 g, 0 on Earth
+  const microgravity = microgravityIndex(gravityField) // 1 in 0 g, 0 on Earth
 
   // ---- Forecasts (no in-flight measurement) ----
   const boneDensity = Object.fromEntries(
@@ -186,14 +191,15 @@ export function simulate(input: SimInputs): SimOutput {
   }
 
   // ---- Threats ----
-  const moodDev = vitalDeviation('mood', input.mood, input.baseline.mood)
-  const sleepDev = vitalDeviation('sleepHours', input.sleepHours, input.baseline.sleepHours)
+  const known = (v: number) => (Number.isFinite(v) ? v : 0) // a missing value adds nothing to a level
+  const moodDev = known(vitalDeviation('mood', input.mood, input.baseline.mood))
+  const sleepDev = known(vitalDeviation('sleepHours', input.sleepHours, input.baseline.sleepHours))
   const levels: Record<ThreatId, number> = {
     radiation: radiationLevel,
     isolation: clamp01((days / C.ISOLATION_DAYS) * 0.6 + moodDev * 0.15 + sleepDev * 0.1),
-    gravity: clamp01(microgravity * (days / C.GRAVITY_THREAT_DAYS)),
-    distance: clamp01(commDelaySec / C.DISTANCE_DELAY_FULL_SEC),
-    environment: clamp01(input.co2Level),
+    gravity: gravityThreatLevel(microgravity, days),
+    distance: distanceThreatLevel(commDelaySec),
+    environment: clamp01(known(input.co2Level)),
   }
   const threats = Object.fromEntries(
     (Object.keys(levels) as ThreatId[]).map((id) => [id, { level: levels[id], regions: C.THREAT_REGIONS[id] }]),
@@ -215,7 +221,7 @@ export function simulate(input: SimInputs): SimOutput {
     m('fluid_shift', 'Fluid shift (forecast)', Math.round(fluidShift * 100), '%'),
     m('bone_density', 'Lowest bone density (forecast)', Math.round(minBone * 100), '%'),
     m('muscle_mass', 'Muscle mass (forecast)', Math.round(muscleMass * 100), '%'),
-  ]
+  ].filter((metric) => Number.isFinite(metric.value)) // a missing input has no metric
 
   return {
     regions,

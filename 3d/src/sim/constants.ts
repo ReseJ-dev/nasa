@@ -51,6 +51,14 @@ export const REGION_INPUTS: Partial<Record<RegionId, Partial<Record<keyof Vitals
   brain: { mood: 1, sleepHours: 1, reactionMs: 1 },
 }
 
+// Cabin CO₂ is shown as partial pressure (ppCO2, mmHg); ppm is the secondary unit.
+// ppm -> mmHg assumes a sea-level cabin (760 mmHg total), as on the ISS.
+export const CABIN_PRESSURE_MMHG = 760
+export const ppmToMmHg = (ppm: number) => (ppm * CABIN_PRESSURE_MMHG) / 1_000_000
+// NASA limits for cabin CO₂ (user-provided reference values, NASA OCHMO CO2 brief; not yet verified):
+// from 2.5 mmHg warning, from 3 mmHg critical.
+export const CO2_LIMITS_MMHG = { warn: 2.5, critical: 3 }
+
 // Cabin and radiation (not personal vitals): deviation = value / unit.
 export const CO2_UNIT = 0.35 // co2Level per deviation unit. TODO: map to ppm / NASA SMAC CO2 limits
 export const CO2_BRAIN_WEIGHT = 0.7 // CO2 -> headache, attention (TODO: source)

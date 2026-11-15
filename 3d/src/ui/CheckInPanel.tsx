@@ -1,14 +1,13 @@
 import { useCallback, useState, type FormEvent } from 'react'
-import type { Vitals } from '../contract/types'
 import { useHealthStore } from '../twin/store'
-import { PERSONAL_BASELINE } from '../../../src/data/baseline'
+import { checkInDefault, pressurePairValid, type CheckInKey } from './checkIn'
 import { ReactionTest, type ReactionResult } from './ReactionTest'
 
 // Left panel "Today": the daily check-in form, the reaction test and today's checklist.
 // Submit writes the values to the shared store inputs (vitals + sleepHours); the engine
 // recomputes the regions and the twin follows. Never writes regions.
 
-type FieldKey = Exclude<keyof Vitals, 'reactionMs'>
+type FieldKey = CheckInKey
 
 interface Field {
   key: FieldKey
@@ -17,17 +16,16 @@ interface Field {
   min: number // input limits: values outside are rejected as typos, not medical thresholds
   max: number
   step: number
-  metricId?: string // store metric to fall back to for "Use last value"
 }
 
 const FIELDS: Field[] = [
-  { key: 'systolic', label: 'Systolic', unit: 'mmHg', min: 70, max: 220, step: 1, metricId: 'systolic' },
-  { key: 'diastolic', label: 'Diastolic', unit: 'mmHg', min: 40, max: 140, step: 1, metricId: 'diastolic' },
-  { key: 'heartRate', label: 'Pulse', unit: 'bpm', min: 30, max: 220, step: 1, metricId: 'heart_rate' },
-  { key: 'glucose', label: 'Glucose', unit: 'mmol/L', min: 2, max: 30, step: 0.1, metricId: 'glucose' },
-  { key: 'bodyTempC', label: 'Temperature', unit: '°C', min: 34, max: 42, step: 0.1, metricId: 'body_temp' },
-  { key: 'sleepHours', label: 'Sleep', unit: 'h', min: 0, max: 16, step: 0.25, metricId: 'sleep_hours' },
-  { key: 'mood', label: 'Mood', unit: '1–5', min: 1, max: 5, step: 1, metricId: 'mood' },
+  { key: 'systolic', label: 'Systolic', unit: 'mmHg', min: 70, max: 220, step: 1 },
+  { key: 'diastolic', label: 'Diastolic', unit: 'mmHg', min: 40, max: 140, step: 1 },
+  { key: 'heartRate', label: 'Pulse', unit: 'bpm', min: 30, max: 220, step: 1 },
+  { key: 'glucose', label: 'Glucose', unit: 'mmol/L', min: 2, max: 30, step: 0.1 },
+  { key: 'bodyTempC', label: 'Temperature', unit: '°C', min: 34, max: 42, step: 0.1 },
+  { key: 'sleepHours', label: 'Sleep', unit: 'h', min: 0, max: 16, step: 0.25 },
+  { key: 'mood', label: 'Mood', unit: '1–5', min: 1, max: 5, step: 1 },
 ]
 // Full names for error messages (the form labels are short to fit two fields per row).
 const FULL_LABEL: Partial<Record<FieldKey, string>> = {
@@ -56,6 +54,7 @@ const TEXT = {
   submit: 'Submit check-in',
   saved: 'Check-in saved. The twin and statuses are updated.',
   pressurePair: 'Enter both systolic and diastolic pressure.',
+  pressureOrder: 'Systolic pressure must be higher than diastolic. Check both values.',
   range: (f: Field) => `${FULL_LABEL[f.key] ?? f.label}: enter ${f.min}–${f.max} ${f.unit === '1–5' ? '' : f.unit}`.trim(),
   reaction: 'Reaction test (30 s)',
   lastReaction: (ms: number, lapses: number) => `Last result: ${ms} ms, ${lapses} lapse${lapses === 1 ? '' : 's'}`,
@@ -88,13 +87,8 @@ export function CheckInPanel() {
   const tick = (patch: Partial<Checklist>) => setChecks({ dayKey, items: { ...today, ...patch } })
 
   // Last value: the last check-in, else the current value in the store, else the pre-flight baseline.
-  const lastValue = (f: Field): number => {
-    if (f.key === 'sleepHours') return inputs.sleepHours
-    const checked = inputs.vitals?.[f.key]
-    if (checked !== undefined) return checked
-    const metric = f.metricId ? metrics.find((m) => m.id === f.metricId)?.value : undefined
-    return metric ?? (f.key === 'mood' ? sceneMood : undefined) ?? PERSONAL_BASELINE[f.key]
-  }
+  // Same source as the metrics panel (ui/checkIn.ts).
+  const lastValue = (f: Field): number => checkInDefault(f.key, { inputs, metrics, mood: sceneMood })
   const setValue = (key: FieldKey, value: string) => {
     setSaved(false)
     setValues((v) => ({ ...v, [key]: value }))
@@ -121,6 +115,7 @@ export function CheckInPanel() {
     }
     const pressure = parsed.systolic !== undefined && parsed.diastolic !== undefined
     if ((parsed.systolic !== undefined) !== (parsed.diastolic !== undefined)) problems.push(TEXT.pressurePair)
+    else if (pressure && !pressurePairValid(parsed.systolic!, parsed.diastolic!)) problems.push(TEXT.pressureOrder)
     if (problems.length === 0 && Object.keys(parsed).length === 0) problems.push(TEXT.noChange)
     setErrors(problems)
     if (problems.length) return

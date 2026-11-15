@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { BonePart, DayRecord, RegionId } from '../contract/types'
+import { CO2_LIMITS_MMHG, ppmToMmHg } from '../sim/constants'
 import { STATUS_HEX } from '../twin/colors'
 import { useHealthStore } from '../twin/store'
 import { computeState, type Exercise } from '../../../src/engine/index'
@@ -29,14 +30,11 @@ interface RefLine {
 
 // NASA schedules 8.5 h of sleep per day for ISS crew (user-provided reference; not yet verified).
 const NASA_SLEEP_SCHEDULE_H = 8.5
-// CO2 lines in mmHg (user-provided reference values, NASA OCHMO CO2 brief; not yet verified).
+// CO2 limit lines in mmHg: the same limits the engine and the metrics panel use (sim/constants.ts).
 const CO2_LINES_MMHG = [
-  { y: 2.5, color: STATUS_HEX.warning },
-  { y: 3, color: STATUS_HEX.critical },
+  { y: CO2_LIMITS_MMHG.warn, color: STATUS_HEX.warning },
+  { y: CO2_LIMITS_MMHG.critical, color: STATUS_HEX.critical },
 ]
-// ppm -> partial pressure, assuming a sea-level cabin (760 mmHg total), as on the ISS.
-const CABIN_PRESSURE_MMHG = 760
-const ppmToMmHg = (ppm: number) => (ppm * CABIN_PRESSURE_MMHG) / 1_000_000
 
 const COLOR = {
   measured: '#73d6e8',
@@ -304,7 +302,7 @@ function LungChart() {
   const day = useHealthStore((s) => s.day)
   const history = useHealthStore((s) => s.history ?? NO_HISTORY)
   const co2Ppm = useHealthStore((s) => s.inputs.co2Ppm)
-  const points = week(history, day, (r) => (r.co2Ppm === undefined ? undefined : ppmToMmHg(r.co2Ppm)), ppmToMmHg(co2Ppm))
+  const points = week(history, day, (r) => (r.co2Ppm === undefined ? undefined : ppmToMmHg(r.co2Ppm)), co2Ppm === undefined ? undefined : ppmToMmHg(co2Ppm))
   return (
     <MiniChart
       title="Cabin CO₂"

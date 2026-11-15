@@ -22,7 +22,8 @@ const SCENARIO_DAY: Record<ScenarioId, number> = { healthy: 0, day60: 60, critic
 
 function scenarioSettings(id: ScenarioId): MissionSettings {
   const { metrics, fluidShift } = SCENARIOS[id]
-  const readMetric = (metricId: string) => metrics.find((metric) => metric.id === metricId)!.value
+  // A metric the scenario does not carry stays undefined: the engine reads it as "no data".
+  const readMetric = (metricId: string) => metrics.find((metric) => metric.id === metricId)?.value
   return {
     day: SCENARIO_DAY[id],
     inputs: {

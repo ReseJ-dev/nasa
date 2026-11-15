@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Metric, RegionId } from '../contract/types'
 import { STATUS_HEX } from '../twin/colors'
-import { REGION_LABEL, STATUS_LABEL } from '../twin/labels'
+import { NO_DATA_LABEL, REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { useHealthStore, type ScenarioId } from '../twin/store'
 import { AlertsBadge, CriticalBanner, useAlertItems } from './AlertsPanel'
 import { CheckInPanel } from './CheckInPanel'
@@ -30,7 +30,7 @@ function MetricValue({ metric, label }: { metric?: Metric; label: string }) {
   return (
     <div className="health-metric">
       <dt>{label}</dt>
-      <dd>{metric ? <>{format.format(metric.value)} <small>{metric.unit}</small></> : <small>No data</small>}</dd>
+      <dd>{metric ? <>{format.format(metric.value)} <small>{metric.unit}</small></> : <small>{NO_DATA_LABEL}</small>}</dd>
     </div>
   )
 }
@@ -81,8 +81,8 @@ function HealthMetrics() {
         <dl className="health-grid">
           <MetricValue label={names.co2_ppm} metric={metric('co2_ppm')} />
           <MetricValue label={names.radiation_msv} metric={metric('radiation_msv')} />
-          <div className="health-metric"><dt>Microgravity index</dt><dd>{format.format(microgravity)} <small>/ 1</small></dd></div>
-          <div className="health-metric"><dt>Isolation index</dt><dd>{format.format(isolation)} <small>/ 1</small></dd></div>
+          <div className="health-metric"><dt>Microgravity index</dt><dd>{format.format(microgravity ?? 0)} <small>/ 1</small></dd></div>
+          <div className="health-metric"><dt>Isolation index</dt><dd>{format.format(isolation ?? 0)} <small>/ 1</small></dd></div>
         </dl>
       </section>
       <section className="health-card" aria-labelledby="health-future">
@@ -103,14 +103,14 @@ function HealthSystems() {
         <h2 id="health-systems">Body systems <small className="health-h2-note">score / 100</small></h2>
         <ul className="health-systems">
           {systems.map(id => {
-            const { status, score } = regions[id]
+            const { status, score, noData } = regions[id]
             return (
               <li key={id}>
                 <button type="button" data-status={status} aria-pressed={selected === id} onClick={() => select(id)}>
                   <i aria-hidden="true" style={{ background: STATUS_HEX[status] }} />
                   <span>{REGION_LABEL[id]}</span>
-                  <em>{STATUS_LABEL[status]}</em>
-                  <strong>{score}</strong>
+                  <em>{noData ? NO_DATA_LABEL : STATUS_LABEL[status]}</em>
+                  <strong>{noData ? '–' : score}</strong>
                 </button>
               </li>
             )

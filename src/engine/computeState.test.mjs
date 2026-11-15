@@ -100,7 +100,9 @@ test('results are deterministic and bounded even with extreme inputs', () => {
     for (const [id, region] of Object.entries(state.regions)) {
       assert.equal(region.id, id)
       assert.ok(region.score >= 0 && region.score <= 100)
-      assert.ok(region.metrics.length && region.metrics.every((metricId) => metricIds.has(metricId)))
+      // A region whose only input is missing (lungs without a CO₂ reading) is "no data", not a zero.
+      assert.ok(region.noData ? region.metrics.length === 0 && region.status === 'ok' : region.metrics.length > 0)
+      assert.ok(region.metrics.every((metricId) => metricIds.has(metricId)))
       assert.match(region.advice[0], /NASA HRP.*https:\/\/.*Не медицинская рекомендация/)
     }
   }
