@@ -1,5 +1,5 @@
 import type { Status } from '../contract/types'
-import { CO2_LIMITS_MMHG, ppmToMmHg } from '../sim/constants'
+import { CO2_LIMITS_MMHG, ppmToMmHg } from '../../../src/engine/constants'
 
 // Cabin CO₂ for display: partial pressure in mmHg first, ppm as secondary text, and the status
 // against the NASA limits (same limits as the engine's lungs region and the lungs chart).

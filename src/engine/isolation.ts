@@ -1,6 +1,6 @@
-import type { Alert, AlertMetric, Vitals } from '../contract/types'
-import * as C from './constants'
-import { statusOf, vitalDeviation } from './simulate'
+import type { Alert, AlertMetric, Vitals } from '../../3d/src/contract/types'
+import * as C from './constants.ts'
+import { statusOf, vitalDeviation } from './simulate.ts'
 
 // Isolation and confinement: which self-tracked values are off the personal baseline.
 // Pure function, same deviation scale as the regions. The 3D twin only displays the result.
