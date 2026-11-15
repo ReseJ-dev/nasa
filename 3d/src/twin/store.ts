@@ -73,6 +73,11 @@ function sceneMetrics(state: Pick<HealthStore, 'metrics' | 'day'>) {
   }
 }
 
+// The crew follows the exercise plan unless the user switches it off: "With exercise" is the
+// default after every scenario load, "Without exercise" is the what-if. The scenario presets
+// themselves do not depend on it; it applies from the first change of day, inputs or exercise.
+const DEFAULT_EXERCISE = { aerobic: 1, resistance: 1 }
+
 const clamp01 = (v: number) => Math.min(Math.max(v, 0), 1)
 
 // Cumulative dose of an environment by mission day (the engine takes the cumulative dose in mSv).
@@ -137,6 +142,7 @@ export const useHealthStore = create<TwinStore>()((set, get) => {
     ...scenePreset('healthy'),
     ...health,
     ...sceneMetrics(health),
+    exercise: DEFAULT_EXERCISE,
     baseline: mergeBaseline(health.baseline, 'healthy'),
     environment: null,
     highlightAlertId: null,
@@ -152,7 +158,7 @@ export const useHealthStore = create<TwinStore>()((set, get) => {
     },
     setScenario: (id) => {
       health.setScenario(id)
-      set(state => ({ ...scenePreset(id), ...sceneMetrics(state), environment: null }))
+      set(state => ({ ...scenePreset(id), ...sceneMetrics(state), environment: null, exercise: DEFAULT_EXERCISE }))
     },
     setDay: (day) => {
       const env = get().environment
