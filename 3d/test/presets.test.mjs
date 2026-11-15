@@ -5,7 +5,7 @@ import { beforeEach, test } from 'node:test'
 // The app's own store (shared engine store + scene presets), exactly as the dashboard uses it.
 const { useHealthStore } = await import('../src/twin/store.ts')
 const { buildAlerts } = await import('../src/ui/alerts.ts')
-const { gravityThreatLevel, distanceThreatLevel, formatLevel, microgravityIndex } = await import('../src/sim/index.ts')
+const { gravityThreatLevel, distanceThreatLevel, formatLevel, microgravityIndex } = await import('../../src/engine/index.ts')
 const { checkInDefault } = await import('../src/ui/checkIn.ts')
 const { THREAT_LEVEL } = await import('../src/twin/config.ts')
 
@@ -68,26 +68,25 @@ test('Healthy preset stays healthy after neutral user actions', () => {
   }
 })
 
-test('Day 60 preset: bones, muscles and eyes are warnings, the rest normal', () => {
+test('Day 60 preset: exercise limits bone and muscle loss, eyes are a warning', () => {
   getState().setScenario('day60')
   assert.equal(getState().day, 60)
-  assert.deepEqual(statuses(), { ...allOk, bones: 'warning', muscles: 'warning', eyes: 'warning' })
+  assert.deepEqual(statuses(), { ...allOk, eyes: 'warning' })
   const list = alerts()
   assert.ok(list.length > 0 && list.every((a) => a.level === 'warning'))
-  assert.deepEqual(list.filter((a) => a.id.startsWith('region_')).map((a) => a.regionId).sort(), ['bones', 'eyes', 'muscles'])
+  assert.deepEqual(list.filter((a) => a.id.startsWith('region_')).map((a) => a.regionId).sort(), ['eyes'])
   assert.equal(getState().threats.gravity.level, 0.5)
 })
 
-test('Critical preset: brain, bones and lungs are critical, the rest warnings', () => {
+test('Critical preset: brain, immune and lungs are critical and eyes are a warning', () => {
   getState().setScenario('critical')
   assert.equal(getState().day, 180)
   assert.deepEqual(statuses(), {
-    heart: 'warning', brain: 'critical', bones: 'critical', muscles: 'warning',
-    eyes: 'warning', immune: 'warning', lungs: 'critical', metabolism: 'warning',
+    ...allOk, brain: 'critical', eyes: 'warning', immune: 'critical', lungs: 'critical',
   })
   const list = alerts()
   assert.equal(list[0].level, 'critical')
-  assert.equal(list.filter((a) => a.id.startsWith('region_')).length, 8)
+  assert.equal(list.filter((a) => a.id.startsWith('region_')).length, 4)
   assert.equal(getState().threats.gravity.level, 1)
   assert.ok(getState().threats.radiation.level >= THREAT_LEVEL.criticalAt)
 })
@@ -134,11 +133,42 @@ test('check-in defaults are the values the metrics panel shows', () => {
 test('the reported screen is a real reading, not missing data', () => {
   getState().setInputs({ sleepHours: 6.25, vitals: { systolic: 118, diastolic: 140 } })
   assert.deepEqual([getState().regions.heart.status, getState().regions.heart.score], ['critical', 0])
-  assert.deepEqual([getState().regions.immune.status, getState().regions.immune.score], ['critical', 19])
-  assert.equal(alerts().length, 3)
+  assert.deepEqual([getState().regions.immune.status, getState().regions.immune.score], ['critical', 4])
+  assert.equal(alerts().length, 4)
   assert.equal(metric('heart_rate'), 64)
   getState().setScenario('healthy') // loading the preset clears the check-in
   assertHealthy('preset reloaded')
+})
+
+test('exercise, day and environment preserve the scene data and update the same store used by demo', () => {
+  getState().setScenario('critical')
+  getState().selectRegion('brain')
+  const initial = getState()
+  getState().setExercise({ aerobic: 0, resistance: 0 })
+  const withoutExercise = getState()
+  assert.ok(withoutExercise.boneDensity.pelvis < initial.boneDensity.pelvis)
+  assert.ok(withoutExercise.muscleMass < initial.muscleMass)
+  assert.ok(metric('heart_rate') > initial.metrics.find(m => m.id === 'heart_rate').value)
+  assert.equal(withoutExercise.chain, initial.chain)
+  getState().setDay(90)
+  getState().setEnvironment('mars_surface')
+  const current = getState()
+  assert.equal(current.selectedRegion, 'brain')
+  assert.equal(current.history, initial.history)
+  assert.equal(current.inShelter, true)
+  assert.equal(current.activeEvent, 'solar_flare')
+  assert.equal(current.baseline, initial.baseline)
+  assert.ok(current.inputs.baseline.systolic > 0)
+  assert.ok(current.alerts.some(alert => alert.metric === 'sleep'))
+  assert.equal(current.regions.brain.escalation, 'crew')
+  assert.equal(current.regions.bones.source, 'forecast')
+  assert.equal(current.gravityField, 0.38)
+  getState().setEarthLink(true)
+  assert.equal(getState().regions.brain.escalation, 'ground')
+  getState().patch({ inShelter: false })
+  getState().setThreatLevel('isolation', 0.9)
+  assert.equal(getState().inShelter, false)
+  assert.equal(getState().threats.isolation.level, 0.9)
 })
 
 test('cabin CO₂ is shown in mmHg against the 2.5 and 3 mmHg limits, ppm is secondary', async () => {

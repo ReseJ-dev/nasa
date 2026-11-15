@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { beforeEach, test } from 'node:test'
 import { SCENARIOS } from '../data/scenarios.ts'
-import { computeState } from '../engine/index.ts'
+import { missionSimulation, simulate } from '../engine/index.ts'
 import { initializeHealthStore } from './useHealthStore.ts'
 
 const requireFromApp = createRequire(new URL('../../3d/package.json', import.meta.url))
@@ -12,7 +12,14 @@ const { getState, getInitialState, setState, subscribe } = useHealthStore
 
 beforeEach(() => setState(getInitialState(), true))
 
-test('scenario selection loads all fixture fields and preserves selection', () => {
+function verifyComputation(state) {
+  const { input, options } = missionSimulation(state.day, state.inputs, state.exercise, state)
+  const computed = simulate(input, options)
+  for (const [key, value] of Object.entries(computed)) assert.deepEqual(state[key], value)
+  return state
+}
+
+test('scenario selection computes all three presets and preserves selection', () => {
   getState().selectRegion('brain')
   for (const [id, day] of [['day60', 60], ['critical', 180], ['healthy', 0]]) {
     getState().setScenario(id)
@@ -20,8 +27,11 @@ test('scenario selection loads all fixture fields and preserves selection', () =
     assert.equal(state.scenario, id)
     assert.equal(state.day, day)
     assert.equal(state.selectedRegion, 'brain')
-    for (const [key, value] of Object.entries(SCENARIOS[id])) {
-      assert.deepEqual(state[key], value)
+    verifyComputation(state)
+    const preset = SCENARIOS[id]
+    for (const key of ['activeEvent', 'baseline', 'commDelaySec', 'earthLink']) assert.deepEqual(state[key], preset[key])
+    for (const key of ['co2_ppm', 'sleep_hours', 'radiation_msv']) {
+      assert.equal(state.metrics.find(m => m.id === key).value, preset.metrics.find(m => m.id === key).value)
     }
   }
   assert.notEqual(getState().baseline, SCENARIOS.healthy.baseline)
@@ -31,23 +41,17 @@ test('scenario selection loads all fixture fields and preserves selection', () =
 test('day, environment and exercise updates use the engine and keep scenario metadata', () => {
   const original = structuredClone(SCENARIOS.critical)
   getState().setScenario('critical')
+  getState().setExercise({ aerobic: 0, resistance: 0 })
   const baseline = getState().baseline
   const inputs = Object.freeze({ co2Ppm: 4800, sleepHours: 7 })
   const exercise = Object.freeze({ resistance: 0.8 })
-  const verifyComputation = () => {
-    const state = getState()
-    const computed = computeState(state.day, state.inputs, state.exercise)
-    for (const [key, value] of Object.entries(computed)) assert.deepEqual(state[key], value)
-    return state
-  }
-
   getState().setDay(90)
-  const afterDay = verifyComputation()
+  const afterDay = verifyComputation(getState())
   assert.equal(afterDay.day, 90)
   getState().setInputs(inputs)
-  assert.equal(verifyComputation().inputs.co2Ppm, 4800)
+  assert.equal(verifyComputation(getState()).inputs.co2Ppm, 4800)
   getState().setExercise(exercise)
-  const computed = verifyComputation()
+  const computed = verifyComputation(getState())
   assert.equal(computed.exercise.resistance, 0.8)
   assert.ok(computed.boneDensity.pelvis > afterDay.boneDensity.pelvis)
   assert.equal(computed.commDelaySec, original.commDelaySec)
@@ -57,9 +61,9 @@ test('day, environment and exercise updates use the engine and keep scenario met
   assert.deepEqual(SCENARIOS.critical, original)
 
   getState().setScenario('critical')
-  assert.deepEqual(getState().regions, original.regions)
+  verifyComputation(getState())
   assert.equal(getState().inputs.co2Ppm, 6800)
-  assert.equal(getState().exercise.resistance, 0)
+  assert.equal(getState().exercise.resistance, 1)
 })
 
 test('selection changes only selectedRegion and repeated selection is a no-op', () => {
@@ -89,7 +93,7 @@ test('unchanged parts reuse references across calculations and scenario reloads'
   fixture.setDay(181)
   const before = getState()
   assert.equal(before.chain, fixture.chain)
-  assert.notEqual(before.chainLinks, fixture.chainLinks)
+  assert.equal(before.chainLinks, fixture.chainLinks)
 
   before.setInputs({ sleepHours: 7 })
   const after = getState()
@@ -100,8 +104,8 @@ test('unchanged parts reuse references across calculations and scenario reloads'
   assert.equal(after.baseline, before.baseline)
   assert.equal(after.regions.heart, before.regions.heart)
   assert.equal(after.regions.lungs, before.regions.lungs)
-  assert.notEqual(after.regions.brain, before.regions.brain)
-  assert.equal(after.regions.brain.advice, before.regions.brain.advice)
+  assert.notEqual(after.regions.metabolism, before.regions.metabolism)
+  assert.equal(after.regions.metabolism.metrics, before.regions.metabolism.metrics)
   assert.equal(after.metrics.find(m => m.id === 'co2_ppm'), before.metrics.find(m => m.id === 'co2_ppm'))
   after.setInputs({ sleepHours: 7 })
   after.setExercise({})
