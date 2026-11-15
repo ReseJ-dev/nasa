@@ -172,7 +172,8 @@ export function BodyScene({
   const focused = useFocusedThreat()
   useSolarFlareWatcher() // flare effects start only on the transition to 'solar_flare'
   // Same array object until the scenario changes, so organs re-render only on real changes.
-  const focus = useHealthStore((s) => (focused ? (s.threats?.[focused].regions ?? null) : null))
+  // A highlighted alert (from the alerts list) wins over the threat focus.
+  const focus = useHealthStore((s) => s.highlightRegions ?? (focused ? (s.threats?.[focused].regions ?? null) : null))
   // Shared between the HTML overlay and the Canvas for the focus lines (no React state per frame).
   const container = useRef<HTMLDivElement>(null)
   const iconRefs = useRef<Partial<Record<ThreatId, HTMLElement | null>>>({})
