@@ -63,7 +63,7 @@ test('day, environment and exercise updates use the engine and keep scenario met
   getState().setScenario('critical')
   verifyComputation(getState())
   assert.equal(getState().inputs.co2Ppm, 6800)
-  assert.equal(getState().exercise.resistance, 1)
+  assert.equal(getState().exercise.resistance, 0.6)
 })
 
 test('selection changes only selectedRegion and repeated selection is a no-op', () => {
@@ -104,8 +104,8 @@ test('unchanged parts reuse references across calculations and scenario reloads'
   assert.equal(after.baseline, before.baseline)
   assert.equal(after.regions.heart, before.regions.heart)
   assert.equal(after.regions.lungs, before.regions.lungs)
-  assert.notEqual(after.regions.metabolism, before.regions.metabolism)
-  assert.equal(after.regions.metabolism.metrics, before.regions.metabolism.metrics)
+  assert.notEqual(after.regions.brain, before.regions.brain)
+  assert.equal(after.regions.brain.metrics, before.regions.brain.metrics)
   assert.equal(after.metrics.find(m => m.id === 'co2_ppm'), before.metrics.find(m => m.id === 'co2_ppm'))
   after.setInputs({ sleepHours: 7 })
   after.setExercise({})
