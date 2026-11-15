@@ -1,5 +1,5 @@
 import type { Alert, Escalation, Metric, RegionId, RegionState, Status } from '../contract/types'
-import type { CSSProperties, ReactNode } from 'react'
+import { useMemo, type CSSProperties, type ReactNode } from 'react'
 import { STATUS_HEX } from '../twin/colors'
 import { NO_DATA_LABEL, REGION_LABEL, SOURCES_NOTE, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
@@ -16,6 +16,28 @@ import { Co2Value } from './Co2Value'
 // Reads the store live (every input change re-renders); writes only selectRegion(null).
 
 const NO_METRICS: Metric[] = []
+const NO_MEASURED: ReadonlySet<string> = new Set()
+
+// Model outputs with no in-flight measurement: always a forecast.
+const FORECAST_METRICS = new Set(['bone_density', 'bone_loss_pct', 'muscle_mass', 'muscle_loss_pct', 'fluid_shift', 'vision_score'])
+// Vitals the engine fills with a model value until the user measures them (check-in, reaction test).
+const MODELLED_VITALS: Record<string, 'heartRate' | 'glucose' | 'reactionMs'> = {
+  heart_rate: 'heartRate',
+  glucose: 'glucose',
+  reaction_ms: 'reactionMs',
+}
+// Same quantity shown twice: the second one is hidden when the first is there.
+const DUPLICATE_OF: Record<string, string> = {
+  bone_density: 'bone_loss_pct', // lowest density = 100 % minus the loss, already shown
+  muscle_mass: 'muscle_loss_pct', // muscle mass = 100 % minus the loss, already shown
+}
+export function metricSource(id: string, measuredVitals: ReadonlySet<string>): 'measured' | 'forecast' {
+  if (FORECAST_METRICS.has(id)) return 'forecast'
+  if (id in MODELLED_VITALS) return measuredVitals.has(id) ? 'measured' : 'forecast'
+  return 'measured'
+}
+// The source is shown as a badge, so the "(forecast)" suffix of the engine label is dropped.
+const metricLabel = (label: string) => label.replace(/\s*\(forecast\)$/, '')
 const NO_ALERTS: Alert[] = []
 
 export const ESCALATION_LABEL: Record<Escalation, string> = {
@@ -73,6 +95,12 @@ export function ZonePanel() {
   const metrics = useHealthStore((s) => s.metrics ?? NO_METRICS)
   const alerts = useHealthStore((s) => s.alerts ?? NO_ALERTS)
   const earthLink = useHealthStore((s) => s.earthLink ?? true)
+  const vitals = useHealthStore((s) => s.inputs.vitals)
+  // Modelled vitals the user has actually measured (check-in, reaction test).
+  const measuredVitals = useMemo(
+    () => new Set(Object.entries(MODELLED_VITALS).filter(([, key]) => Number.isFinite(vitals?.[key])).map(([id]) => id)),
+    [vitals],
+  )
   const delayed = useHealthStore((s) => isDelayedEarth(s.commDelaySec))
   const select = useHealthStore((s) => s.selectRegion)
   return (
@@ -82,6 +110,7 @@ export function ZonePanel() {
       alerts={alerts}
       earthLink={earthLink}
       delayed={delayed}
+      measuredVitals={measuredVitals}
       onClose={() => select(null)}
       charts={selected ? <ZoneCharts regionId={selected} /> : null}
     />
@@ -95,6 +124,7 @@ export function ZoneDetails({
   alerts,
   earthLink,
   delayed = false,
+  measuredVitals = NO_MEASURED,
   onClose,
   charts,
 }: {
@@ -103,6 +133,7 @@ export function ZoneDetails({
   alerts: Alert[]
   earthLink: boolean
   delayed?: boolean // one-way delay to Earth above 5 min
+  measuredVitals?: ReadonlySet<string> // modelled vitals the user has measured
   onClose(): void
   charts?: ReactNode // trend charts (store-driven), placed after the metrics
 }) {
@@ -123,8 +154,8 @@ export function ZoneDetails({
   const zone = ZONE_INFO[selected]
   const { status } = region
   const color = STATUS_HEX[status]
-  const source = region.source ?? zone.measurement
   const regionMetrics = region.metrics
+    .filter((id) => !(DUPLICATE_OF[id] && region.metrics.includes(DUPLICATE_OF[id])))
     .map((id) => metrics.find((m) => m.id === id))
     .filter((m): m is Metric => m !== undefined)
   const regionAlerts = alerts.filter((a) => ALERT_REGION[a.metric] === selected)
@@ -143,18 +174,17 @@ export function ZoneDetails({
         <button type="button" className="zone-close" onClick={onClose} aria-label={TEXT.close}>×</button>
       </header>
 
-      <div className="zone-badges">
-        <span className="zone-badge" data-source={source}>{SOURCE_LABEL[source]}</span>
-      </div>
-
       <dl className="health-grid zone-metrics">
         <div className="health-metric">
           <dt>{TEXT.score}</dt>
           <dd style={{ color }}>{region.noData ? <small>{NO_DATA_LABEL}</small> : <>{region.score} <small>/ 100</small></>}</dd>
         </div>
-        {regionMetrics.map((m) => m.id === 'co2_ppm' ? <Co2Value key={m.id} metric={m} /> : (
+        {regionMetrics.map((m) => m.id === 'co2_ppm' ? <Co2Value key={m.id} metric={m} badge /> : (
           <div key={m.id} className="health-metric">
-            <dt>{m.label}</dt>
+            <dt>
+              {metricLabel(m.label)}{' '}
+              <span className="zone-badge" data-source={metricSource(m.id, measuredVitals)}>{SOURCE_LABEL[metricSource(m.id, measuredVitals)]}</span>
+            </dt>
             <dd>{format.format(m.value)} {m.unit && <small>{m.unit}</small>}</dd>
           </div>
         ))}
