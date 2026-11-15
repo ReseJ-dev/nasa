@@ -73,14 +73,14 @@ const METRIC_IDS: Record<RegionId, string[]> = {
 
 // Guidance applies to hazards/research, not clinical advice for a specific person.
 const NASA_ADVICE: Record<RegionId, string> = {
-  heart: 'По данным NASA HRP рекомендуются регулярные аэробные тренировки для поддержания сердечно-сосудистой формы.',
-  brain: 'По данным NASA HRP исследуется влияние недосыпа, изоляции и повышенного CO₂ на самочувствие и работоспособность; важны мониторинг среды и режим сна.',
-  bones: 'По данным NASA HRP рекомендуются упражнения с сопротивлением и наблюдение за потерей плотности нагружаемых костей.',
-  muscles: 'По данным NASA HRP рекомендуются упражнения с сопротивлением для снижения потери мышечной силы в невесомости.',
-  eyes: 'По данным NASA HRP исследуется связь сдвига жидкостей к голове с SANS; при изменениях зрения применяется медицинский мониторинг.',
-  immune: 'По данным NASA HRP исследуются изменения иммунной системы под влиянием факторов полёта; доза радиации сама по себе не доказывает нарушение иммунитета.',
-  lungs: 'По данным NASA HRP рекомендуется контроль и удаление CO₂ из воздуха; высокий CO₂ означает риск среды, а не доказанное поражение лёгких.',
-  metabolism: 'По данным NASA HRP изучаются изменения обмена веществ в полёте; уровень глюкозы отслеживается вместе с питанием и нагрузкой.',
+  heart: 'NASA HRP recommends regular aerobic exercise to keep cardiovascular fitness.',
+  brain: 'NASA HRP studies how sleep loss, isolation and high CO₂ affect well-being and performance; cabin monitoring and a sleep routine matter.',
+  bones: 'NASA HRP recommends resistance exercise and tracking density loss in weight-bearing bones.',
+  muscles: 'NASA HRP recommends resistance exercise to reduce muscle strength loss in weightlessness.',
+  eyes: 'NASA HRP studies the link between headward fluid shift and SANS; vision changes call for medical monitoring.',
+  immune: 'NASA HRP studies immune changes caused by spaceflight factors; radiation dose alone does not prove immune damage.',
+  lungs: 'NASA HRP recommends monitoring and removing CO₂ from cabin air; high CO₂ is an environment risk, not proven lung damage.',
+  metabolism: 'NASA HRP studies metabolic changes in flight; glucose is tracked together with meals and exercise.',
 }
 
 type RegionFlags = Record<RegionId, readonly [Status, number]>
@@ -93,7 +93,7 @@ function makeRegions(flags: RegionFlags): Record<RegionId, RegionState> {
       status: flags[id][0],
       score: flags[id][1],
       metrics: METRIC_IDS[id],
-      advice: [NASA_ADVICE[id] + ' Не медицинская рекомендация.'],
+      advice: [NASA_ADVICE[id] + ' Not medical advice.'],
     } satisfies RegionState,
   ])) as Record<RegionId, RegionState>
 }
@@ -168,7 +168,7 @@ const day60: Omit<ScenarioData, 'baseline'> = {
   fluidShift: 0.49,
   chainLinks: [{
     from: 'brain', to: 'eyes',
-    label: 'сдвиг жидкостей к голове — гипотеза SANS',
+    label: 'fluid shift: SANS theory',
   }],
 }
 
@@ -198,7 +198,7 @@ const critical: Omit<ScenarioData, 'baseline'> = {
   fluidShift: 0.7,
   chainLinks: [{
     from: 'lungs', to: 'brain',
-    label: 'повышенный CO₂ — риск головной боли',
+    label: 'high CO₂: headache risk',
   }],
 }
 

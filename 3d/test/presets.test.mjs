@@ -225,3 +225,49 @@ test('cabin CO₂ is shown in mmHg against the 2.5 and 3 mmHg limits, ppm is sec
     assert.equal(co2Display(metric('co2_ppm')).status, getState().regions.lungs.status, id)
   }
 })
+
+// Alert budget of the scene presets (scene mood and activity, src/twin/mockStore.ts).
+const counts = () => {
+  const list = alerts()
+  return { total: list.length, critical: list.filter((a) => a.level === 'critical').length, ids: list.map((a) => a.id) }
+}
+
+test('alert counts: Healthy 0, Day 60 exactly 3 warnings, Critical at most 6', () => {
+  getState().setScenario('healthy')
+  assert.equal(counts().total, 0)
+  getState().setScenario('day60')
+  const day60 = counts()
+  assert.deepEqual(day60.ids.sort(), ['isolation_activity', 'isolation_sleep', 'region_eyes'])
+  assert.equal(day60.critical, 0)
+  getState().setScenario('critical')
+  const critical = counts()
+  assert.ok(critical.total <= 6, `Critical has ${critical.total} alerts: ${critical.ids.join(', ')}`)
+  // mood and activity are back within the personal norm: no isolation alert for them
+  assert.ok(!critical.ids.includes('isolation_mood') && !critical.ids.includes('isolation_activity'))
+})
+
+// Fails today: sleep (4.2 h) and reaction (355 ms) come from src/data/scenarios.ts through the
+// engine and are critical on their own, on top of brain, immune and lungs. Needs the teammate's
+// scenario values; kept as a todo so the target stays visible.
+test('Critical preset has at most 3 critical alerts', { todo: 'sleep and reaction values live in src/data/scenarios.ts' }, () => {
+  getState().setScenario('critical')
+  assert.ok(counts().critical <= 3, `critical alerts: ${counts().ids.join(', ')}`)
+})
+
+test('the last history point is what the store shows today (no jump at the end of the charts)', () => {
+  for (const id of ['healthy', 'day60', 'critical']) {
+    getState().setScenario(id)
+    const s = getState()
+    const last = s.history.at(-1)
+    assert.equal(last.mood, s.mood, `${id}: mood`)
+    assert.equal(last.activityMin, s.activityMin, `${id}: activity`)
+    assert.equal(last.sleepHours, s.sleepHours, `${id}: sleep`)
+    assert.equal(last.reactionMs, s.reactionMs, `${id}: reaction`)
+    assert.equal(last.co2Ppm, metric('co2_ppm'), `${id}: CO2`)
+  }
+  getState().setScenario('day60')
+  assert.equal(getState().mood, 4)
+  getState().setScenario('critical')
+  assert.equal(getState().mood, 4)
+  assert.equal(getState().activityMin, 115)
+})

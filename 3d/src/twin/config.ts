@@ -447,6 +447,9 @@ export const FLUID_SHIFT = {
   // SANS: faint glow at the eyes region from this fluidShift up.
   eyesFrom: 0.6,
   eyesGlow: 0.6, // extra emissive at fluidShift = 1
+  // "Headward fluid shift" label: shown above the head from this fluidShift up (gravity threat active).
+  labelFrom: 0.3,
+  labelPosition: [-0.45, 1.6, 0.1] as Vec3, // left of the head, between the brain and lungs callouts
 }
 
 // Muscle mass: thigh and calf parts get thinner (x and z) as muscleMass drops.
