@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { RegionId } from '../contract/types'
 import { BodyScene } from '../twin'
 import { STATUS_HEX } from '../twin/colors'
@@ -6,6 +6,7 @@ import { NO_DATA_LABEL, REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
 import { CriticalBanner, useAlertItems } from './AlertsPanel'
 import { Forecast, MAX_DAY } from './ControlBar'
+import { ControlRoom } from './ControlRoom'
 import { StatusNow } from './StatusNow'
 import { ZonePanel } from './ZonePanel'
 import '../twin/theme'
@@ -125,11 +126,30 @@ function ForecastDrawer({ onClose }: { onClose(): void }) {
   )
 }
 
+// ?mode=control opens the Control room at start; ?mode=present (or nothing) keeps it hidden.
+const START_IN_CONTROL = new URLSearchParams(location.search).get('mode') === 'control'
+
+const typing = (e: KeyboardEvent) =>
+  e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement
+
 export function HealthDashboard() {
   const selected = useHealthStore((s) => s.selectedRegion)
   const [forecastOpen, setForecastOpen] = useState(false)
+  const [controlOpen, setControlOpen] = useState(START_IN_CONTROL)
+  const [checkInOpen, setCheckInOpen] = useState(false)
+
+  // Keys: C toggles the Control room.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (typing(e) || e.ctrlKey || e.metaKey || e.altKey || checkInOpen) return
+      if (e.key.toLowerCase() === 'c') setControlOpen((o) => !o)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [checkInOpen])
+
   return (
-    <main className="health-dashboard">
+    <main className="health-dashboard" data-control={controlOpen}>
       <TopBar forecastOpen={forecastOpen} onForecast={() => setForecastOpen((o) => !o)} />
       <div className="health-layout">
         <section className="health-scene" aria-label="Interactive astronaut model">
@@ -144,6 +164,9 @@ export function HealthDashboard() {
           {/* A selected region replaces "Status now" with its zone panel; closing it returns. */}
           {selected ? <ZonePanel /> : <StatusNow />}
         </aside>
+        {controlOpen && (
+          <ControlRoom onClose={() => setControlOpen(false)} checkInOpen={checkInOpen} onCheckIn={setCheckInOpen} />
+        )}
       </div>
     </main>
   )

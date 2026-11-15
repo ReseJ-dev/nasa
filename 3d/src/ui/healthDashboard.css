@@ -84,13 +84,15 @@
 
 /* ---- Twin (hero) + right column ---- */
 .health-layout {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 25rem;
   gap: var(--sp-3);
   min-height: 0;
   padding: var(--sp-2) var(--sp-4) var(--sp-3);
 }
-.health-scene { position: relative; min-width: 0; min-height: 0; }
+.health-scene { position: relative; grid-row: 1; min-width: 0; min-height: 0; }
+.health-layout > .health-column { grid-row: 1; }
 .health-column { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; min-height: 0; overflow-y: auto; }
 .health-column > * { flex: none; }
 
@@ -202,6 +204,28 @@
 /* "Without exercise" is the what-if state: highlighted in the warning color when chosen */
 .control-segment button[data-whatif="true"][aria-pressed="true"] { color: var(--st-warning); background: var(--st-warning-bg); box-shadow: inset 0 0 0 1px var(--st-warning); }
 
+/* ---- Control room (ControlRoom.tsx): a drawer over the left edge, hidden in presentation mode ---- */
+.health-dashboard[data-control="true"] .health-layout { grid-template-columns: 24rem minmax(0, 1fr) 25rem; }
+.control-room { grid-column: 1; grid-row: 1; min-height: 0; margin: calc(-1 * var(--sp-2)) 0 calc(-1 * var(--sp-3)) calc(-1 * var(--sp-4)); display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4) var(--sp-4); overflow-y: auto; background: var(--bg-panel); border-right: 1px solid var(--line-strong); scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; animation: drawer-in 0.2s ease-out; }
+@keyframes drawer-in { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+.control-room > * { flex: none; }
+.control-room > header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
+.control-room > header h2 { margin: 0; font-size: var(--fs-h1); }
+.control-room > header p { margin: 2px 0 0; color: var(--text-3); font-size: var(--fs-caption); }
+.control-room .health-card { background: var(--bg-page); }
+.control-room h3 { margin: 0 0 var(--sp-2); font-size: var(--fs-caption); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
+.control-room .health-presets { display: flex; }
+.control-room .health-presets button { flex: 1; padding: var(--sp-2); }
+.control-room .control-inputs { grid-template-columns: minmax(0, 1fr); }
+.control-row { display: grid; gap: var(--sp-3); }
+.control-row .earth-toggle { justify-self: start; }
+.control-checkin { width: 100%; }
+/* Modal for the daily check-in (manual items) */
+.modal-overlay { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: var(--sp-4); background: rgba(2, 5, 10, 0.8); }
+.modal-dialog { width: min(30rem, 100%); max-height: 100%; overflow-y: auto; display: grid; gap: var(--sp-2); }
+.modal-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: var(--r-2); }
+.modal-dialog > header p { margin: 0; color: var(--text-2); }
+
 /* ---- Mission controls and forecast table (ControlBar.tsx) ---- */
 .control-inputs { display: grid; grid-template-columns: minmax(9.5rem, 1fr) auto auto; gap: var(--sp-2) var(--sp-4); align-items: end; }
 .control-day, .control-environment, .control-exercise { display: grid; gap: var(--sp-1); color: var(--text-3); font-size: var(--fs-caption); }
@@ -295,7 +319,7 @@
 @keyframes alert-dot { 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) {
   .critical-vignette { animation-duration: 0.01s; }
-  .critical-banner, .alert-summary i, .forecast-drawer { animation: none !important; }
+  .critical-banner, .alert-summary i, .forecast-drawer, .control-room { animation: none !important; }
 }
 
 /* ---- Zone panel mini charts (ZoneCharts.tsx) ---- */
@@ -316,7 +340,8 @@
   .health-dashboard { height: auto; min-height: 100dvh; overflow: visible; display: block; }
   .health-header { flex-wrap: wrap; }
   .health-telemetry { justify-content: flex-start; flex-wrap: wrap; }
-  .health-layout { grid-template-columns: minmax(0, 1fr); }
+  .health-layout, .health-dashboard[data-control="true"] .health-layout { grid-template-columns: minmax(0, 1fr); }
+  .health-scene, .health-layout > .health-column, .control-room { grid-row: auto; grid-column: 1; margin: 0; }
   .health-scene { height: clamp(480px, 70dvh, 680px); }
   .health-column { overflow: visible; }
   .control-forecast { overflow-x: auto; }
