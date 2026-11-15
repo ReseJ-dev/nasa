@@ -1,12 +1,12 @@
 /* Dashboard styles. Every color, size and radius comes from the design system
    (src/twin/theme.css + theme.ts); no magic values here except layout tracks. */
 
-/* ---- App frame: header / three columns / bottom bar, exactly one viewport tall ---- */
+/* ---- App frame: slim top bar / twin + right column, exactly one viewport tall ---- */
 .health-dashboard {
   box-sizing: border-box;
   height: 100dvh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
   background: var(--bg-page);
   color: var(--text-1);
@@ -20,31 +20,30 @@
 .health-dashboard small { font-size: var(--fs-caption); }
 
 /* Thin dark scrollbars for the panels that scroll inside themselves */
-.health-column, .alerts-drawer { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+.health-column { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 
 /* ---- Header ---- */
 .health-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: var(--sp-4);
-  padding: var(--sp-2) var(--sp-4);
+  padding: var(--sp-1) var(--sp-4);
   border-bottom: 1px solid var(--line);
   transition: border-color 0.4s, box-shadow 0.4s;
 }
 .health-header[data-level="critical"] { border-bottom-color: var(--st-critical-line); box-shadow: 0 1px 18px rgba(255, 59, 48, 0.18); }
-.health-brand { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); min-width: 0; }
 .health-title { min-width: 0; }
 .health-title h1 { margin: 0; font-size: var(--fs-h1); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; white-space: nowrap; }
 .health-title p { margin: 0; color: var(--text-3); font-size: var(--fs-caption); white-space: nowrap; }
 
 /* Chips on the right: one height, one shape; caption above, value below */
 .health-telemetry { display: flex; justify-content: flex-end; align-items: stretch; gap: var(--sp-2); margin: 0; min-width: 0; }
-.health-chip, .earth-toggle, .alerts-badge {
+.health-chip, .earth-toggle, .top-button {
   display: grid;
   align-content: center;
   gap: 0;
-  min-height: 3.1rem;
+  min-height: 2.7rem;
   margin: 0;
   padding: var(--sp-1) var(--sp-3);
   text-align: left;
@@ -53,12 +52,31 @@
   border: 1px solid var(--line);
   border-radius: var(--r-2);
 }
-.health-chip dt, .earth-toggle small, .alerts-badge small { color: var(--text-3); font-size: var(--fs-caption); line-height: 1.25; }
-.health-chip dd, .earth-toggle span, .alerts-badge span { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.health-chip dt, .earth-toggle small { color: var(--text-3); font-size: var(--fs-caption); line-height: 1.25; }
+.health-chip dd, .earth-toggle span { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.3; }
 .health-chip dd small { color: var(--text-3); font-weight: 450; }
 .health-chip[data-alert="true"] { border-color: var(--st-critical-line); background: var(--st-critical-bg); }
 .health-chip[data-alert="true"] dd { color: var(--st-critical-text); }
-.earth-toggle:hover, .alerts-badge:hover { border-color: var(--line-strong); }
+.earth-toggle:hover, .top-button:hover { border-color: var(--line-strong); }
+.health-chip[data-online="false"] { border-color: var(--hz-distance); }
+.health-chip[data-online="false"] dd { color: var(--hz-distance); }
+/* Alert summary: counts of critical and warning alerts, read-only */
+.alert-summary dd { display: flex; gap: var(--sp-3); }
+.alert-summary dd span { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.alert-summary i { width: 0.6rem; height: 0.6rem; border-radius: 50%; }
+.alert-summary [data-level="critical"] { color: var(--st-critical-text); }
+.alert-summary [data-level="critical"] i { background: var(--st-critical); animation: alert-dot 1.2s ease-in-out infinite; }
+.alert-summary [data-level="warning"] { color: var(--st-warning); }
+.alert-summary [data-level="warning"] i { background: var(--st-warning); }
+.alert-summary[data-level="critical"] { border-color: var(--st-critical-line); background: var(--st-critical-bg); }
+.alert-summary[data-level="warning"] { border-color: rgba(245, 194, 66, 0.5); }
+.top-button { font-weight: 650; color: var(--text-1); }
+/* Tiny speaker icon: muted (dim, crossed) or on (accent) */
+.sound-icon { align-self: center; display: grid; place-items: center; width: 2rem; height: 2rem; padding: 0; color: var(--text-3); background: none; border: 1px solid transparent; border-radius: var(--r-1); }
+.sound-icon svg { width: 1.2rem; height: 1.2rem; }
+.sound-icon:hover { border-color: var(--line-strong); }
+.sound-icon[aria-pressed="true"] { color: var(--accent); }
+.top-button[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent-line); }
 .earth-toggle[data-online="false"] { border-color: var(--hz-distance); }
 .earth-toggle[data-online="false"] span { color: var(--hz-distance); }
 
@@ -69,19 +87,19 @@
 .health-presets button[aria-pressed="true"] { color: var(--text-1); font-weight: 650; background: var(--bg-raised); }
 .health-presets button[aria-pressed="true"][data-scenario="critical"] { color: #fff; background: var(--st-critical-bg); box-shadow: inset 0 0 0 1px var(--st-critical-line); }
 
-/* ---- Three columns ---- */
+/* ---- Twin (hero) + right column ---- */
 .health-layout {
+  position: relative;
   display: grid;
-  grid-template-columns: 21rem minmax(0, 1fr) 23rem;
+  grid-template-columns: minmax(0, 1fr) 25rem;
   gap: var(--sp-3);
   min-height: 0;
-  padding: var(--sp-3) var(--sp-4);
+  padding: var(--sp-2) var(--sp-4) var(--sp-3);
 }
-.health-scene { position: relative; grid-column: 2; grid-row: 1; min-width: 0; min-height: 0; }
+.health-scene { position: relative; grid-row: 1; min-width: 0; min-height: 0; }
+.health-layout > .health-column { grid-row: 1; }
 .health-column { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; min-height: 0; overflow-y: auto; }
 .health-column > * { flex: none; }
-/* Left column: the fade at the bottom edge shows that it scrolls */
-.health-data { grid-column: 1; grid-row: 1; padding-bottom: var(--sp-5); mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent); }
 
 /* Panels: quiet surfaces, no heavy boxes */
 .health-card { min-width: 0; padding: var(--sp-3) var(--sp-4); background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--r-3); }
@@ -100,15 +118,16 @@
 .health-co2[data-status="critical"] dd:first-of-type { color: var(--st-critical-text); }
 .health-metric dd small { color: var(--text-2); font-weight: 450; white-space: nowrap; }
 
-/* Body systems list: one compact row per system */
-.health-systems { list-style: none; display: grid; gap: 2px; margin: 0 calc(-1 * var(--sp-2)); padding: 0; }
+/* Body systems list: compact, two columns of dot, name and score */
+.system-card { padding-bottom: var(--sp-2); }
+.health-systems { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--sp-3); margin: 0 calc(-1 * var(--sp-2)); padding: 0; }
 .health-systems button {
   width: 100%;
   display: grid;
-  grid-template-columns: auto 1fr auto 2.2rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sp-2);
-  padding: 0.3rem var(--sp-2);
+  padding: 0.2rem var(--sp-2);
   text-align: left;
   background: none;
   border: 1px solid transparent;
@@ -117,11 +136,47 @@
 .health-systems button:hover { background: var(--bg-inset); }
 .health-systems button[aria-pressed="true"] { background: var(--bg-raised); border-color: var(--accent-line); }
 .health-systems i { width: 0.65rem; height: 0.65rem; border-radius: 50%; }
-.health-systems em { font-style: normal; font-size: var(--fs-caption); color: var(--text-3); }
-.health-systems [data-status="warning"] em { color: var(--st-warning); }
-.health-systems [data-status="critical"] em { color: var(--st-critical-text); font-weight: 650; }
+.health-systems span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.health-systems [data-status="warning"] strong { color: var(--st-warning); }
 .health-systems strong { text-align: right; font-variant-numeric: tabular-nums; }
 .health-systems [data-status="critical"] strong { color: var(--st-critical-text); }
+
+/* ---- Status now (StatusNow.tsx): the highest-priority alert, then "N more" ---- */
+.status-now { display: grid; gap: var(--sp-2); }
+.status-now h2 { margin: 0; }
+.status-now[data-level="critical"] { border-color: var(--st-critical-line); }
+.status-top { display: grid; gap: var(--sp-1); padding: var(--sp-3); background: var(--bg-inset); border-left: 4px solid; border-radius: var(--r-2); }
+.status-level { display: flex; align-items: center; gap: var(--sp-2); }
+.health-card .status-top p { margin: 0; }
+.health-card .status-message { font-size: var(--fs-number); font-weight: 650; line-height: 1.25; color: var(--text-1); }
+.status-cause b { color: var(--text-1); font-weight: 600; }
+.status-top h3 { margin: var(--sp-2) 0 0; font-size: var(--fs-caption); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
+.health-card .status-action { color: var(--text-1); font-size: var(--fs-title); line-height: 1.35; }
+.status-top .zone-escalation { justify-self: start; }
+.status-open { justify-self: start; margin-top: var(--sp-2); padding: var(--sp-1) var(--sp-3); background: var(--bg-raised); border: 1px solid var(--line-strong); border-radius: var(--r-1); }
+.status-open:hover { border-color: var(--accent-line); }
+.health-card .status-clear { display: flex; align-items: center; gap: var(--sp-2); margin: 0; font-size: var(--fs-number); font-weight: 650; color: var(--text-1); }
+.status-clear i { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.status-more summary { padding: var(--sp-1) var(--sp-2); color: var(--text-2); font-weight: 600; cursor: pointer; border-radius: var(--r-1); }
+.status-more summary:hover { background: var(--bg-inset); }
+.status-more ul { list-style: none; display: grid; gap: var(--sp-2); margin: var(--sp-2) 0 0; padding: 0; }
+
+/* Key hints (H): a small list in the middle of the stage */
+.keys-icon { font-size: var(--fs-caption); font-weight: 700; }
+.key-hints { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 16; width: min(24rem, calc(100% - 1.5rem)); padding: var(--sp-3) var(--sp-4); background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: var(--r-3); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); }
+.key-hints header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); }
+.key-hints h2 { margin: 0; font-size: var(--fs-title); }
+.key-hints dl { display: grid; gap: var(--sp-1); margin: 0; }
+.key-hints dl div { display: grid; grid-template-columns: 3rem minmax(0, 1fr); align-items: baseline; gap: var(--sp-2); }
+.key-hints dd { margin: 0; color: var(--text-2); }
+.key-hints kbd { display: inline-block; min-width: 1.8rem; padding: 1px var(--sp-1); text-align: center; font: 600 var(--fs-caption) var(--font); color: var(--text-1); background: var(--bg-inset); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: var(--r-1); }
+
+/* Demo caption: one line at the bottom of the stage while the scripted demo runs */
+.demo-caption { position: absolute; left: 50%; bottom: var(--sp-3); z-index: 10; transform: translateX(-50%); margin: 0; padding: var(--sp-1) var(--sp-4); max-width: calc(100% - 2rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs-title); font-weight: 600; color: var(--text-1); background: var(--bg-overlay); border: 1px solid var(--line-strong); border-radius: var(--r-pill); pointer-events: none; }
+
+/* ---- Forecast drawer: slides over the bottom edge of the stage, closed by default ---- */
+.forecast-drawer { position: absolute; left: var(--sp-3); right: var(--sp-3); bottom: var(--sp-3); z-index: 15; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: var(--r-3); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); animation: drawer-up 0.2s ease-out; }
+@keyframes drawer-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
 /* ---- Zone panel (ZonePanel.tsx): fills the rest of the right column, scrolls inside ---- */
 .health-column > .health-detail { flex: 1 1 auto; min-height: 9rem; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
@@ -139,7 +194,7 @@
 .zone-status[data-status="warning"] { color: var(--st-warning); background: var(--st-warning-bg); }
 .zone-status[data-status="critical"] { color: #fff; background: var(--st-critical); }
 .zone-status[data-status="ok"] { color: var(--text-2); background: var(--bg-inset); }
-.zone-close, .alerts-drawer header button { width: 1.9rem; height: 1.9rem; padding: 0; line-height: 1; font-size: 1.2rem; background: var(--bg-inset); border: 1px solid var(--line); border-radius: var(--r-1); }
+.zone-close { width: 1.9rem; height: 1.9rem; padding: 0; line-height: 1; font-size: 1.2rem; background: var(--bg-inset); border: 1px solid var(--line); border-radius: var(--r-1); }
 .zone-badges { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-2); }
 .zone-badge { padding: 1px var(--sp-2); border-radius: var(--r-pill); font-size: var(--fs-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .zone-badge[data-source="measured"] { color: var(--accent); border: 1px solid var(--accent-line); background: var(--accent-bg); }
@@ -167,16 +222,37 @@
 /* "Without exercise" is the what-if state: highlighted in the warning color when chosen */
 .control-segment button[data-whatif="true"][aria-pressed="true"] { color: var(--st-warning); background: var(--st-warning-bg); box-shadow: inset 0 0 0 1px var(--st-warning); }
 
-/* ---- Bottom control bar (ControlBar.tsx): its own row, never over the content ---- */
-.control-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
-  gap: var(--sp-2) var(--sp-5);
-  align-items: center;
-  padding: var(--sp-2) var(--sp-4) var(--sp-3);
-  background: var(--bg-panel);
-  border-top: 1px solid var(--line);
-}
+/* ---- Control room (ControlRoom.tsx): a drawer over the left edge, hidden in presentation mode ---- */
+.health-dashboard[data-control="true"] .health-layout { grid-template-columns: clamp(19rem, 22vw, 24rem) minmax(0, 1fr) clamp(21rem, 24vw, 25rem); }
+.control-room { grid-column: 1; grid-row: 1; min-height: 0; margin: calc(-1 * var(--sp-2)) 0 calc(-1 * var(--sp-3)) calc(-1 * var(--sp-4)); display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4) var(--sp-4); overflow-y: auto; background: var(--bg-panel); border-right: 1px solid var(--line-strong); scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; animation: drawer-in 0.2s ease-out; }
+@keyframes drawer-in { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+.control-room > * { flex: none; }
+.control-room > header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
+.control-room > header h2 { margin: 0; font-size: var(--fs-h1); }
+.control-room > header p { margin: 2px 0 0; color: var(--text-3); font-size: var(--fs-caption); }
+.control-room .health-card { background: var(--bg-page); }
+.control-room h3 { margin: 0 0 var(--sp-2); font-size: var(--fs-caption); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
+.control-room .health-presets { display: flex; }
+.control-room .health-presets button { flex: 1; padding: var(--sp-2); }
+.preset-custom { flex: 1; display: grid; place-items: center; padding: var(--sp-2); font-weight: 650; color: var(--st-warning); background: var(--st-warning-bg); border-radius: var(--r-1); box-shadow: inset 0 0 0 1px var(--st-warning); }
+.health-card .preset-note { margin: var(--sp-2) 0 0; font-size: var(--fs-caption); color: var(--text-3); }
+.control-room .control-inputs { grid-template-columns: minmax(0, 1fr); }
+.control-room .control-exercise .control-segment { display: flex; }
+.control-room .control-exercise .control-segment button { flex: 1; }
+.control-row { display: grid; gap: var(--sp-3); }
+.control-demo { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.control-demo button { padding: var(--sp-1) var(--sp-3); background: var(--bg-inset); border: 1px solid var(--line-strong); border-radius: var(--r-1); }
+.control-demo button:hover { border-color: var(--accent-line); }
+.control-demo button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.control-row .earth-toggle { justify-self: start; }
+.control-checkin { width: 100%; }
+/* Modal for the daily check-in (manual items) */
+.modal-overlay { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: var(--sp-4); background: rgba(2, 5, 10, 0.8); }
+.modal-dialog { width: min(30rem, 100%); max-height: 100%; overflow-y: auto; display: grid; gap: var(--sp-2); }
+.modal-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: var(--r-2); }
+.modal-dialog > header p { margin: 0; color: var(--text-2); }
+
+/* ---- Mission controls and forecast table (ControlBar.tsx) ---- */
 .control-inputs { display: grid; grid-template-columns: minmax(9.5rem, 1fr) auto auto; gap: var(--sp-2) var(--sp-4); align-items: end; }
 .control-day, .control-environment, .control-exercise { display: grid; gap: var(--sp-1); color: var(--text-3); font-size: var(--fs-caption); }
 .control-day span { white-space: nowrap; }
@@ -248,43 +324,28 @@
 .reaction-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-top: var(--sp-4); color: var(--text-2); font-variant-numeric: tabular-nums; }
 .reaction-actions button { padding: var(--sp-2) var(--sp-4); color: inherit; font: inherit; cursor: pointer; background: var(--bg-inset); border: 1px solid var(--line); border-radius: var(--r-1); }
 
-/* ---- Alerts: badge, drawer, banner, vignette (AlertsPanel.tsx) ---- */
-.alerts { position: relative; display: flex; }
-.alerts-badge { min-width: 7.5rem; }
-.alerts-badge span { display: flex; align-items: center; gap: var(--sp-2); }
-.alerts-badge i { width: 0.65rem; height: 0.65rem; border-radius: 50%; }
-.alerts-badge[data-level="warning"] { border-color: var(--st-warning); background: var(--st-warning-bg); }
-.alerts-badge[data-level="warning"] span { color: var(--st-warning); }
-.alerts-badge[data-level="critical"] { border-color: var(--st-critical); background: var(--st-critical-bg); }
-.alerts-badge[data-level="critical"] small { color: #ffc4bf; }
-.alerts-badge[data-level="critical"] span { color: #fff; }
-.alerts-badge[data-level="critical"] i { animation: alert-dot 1.2s ease-in-out infinite; }
-.alerts-drawer { position: absolute; right: 0; top: calc(100% + var(--sp-2)); z-index: 30; width: min(28rem, calc(100vw - 2rem)); max-height: min(70dvh, 46rem); overflow: auto; padding: var(--sp-3); background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: var(--r-3); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); white-space: normal; }
-.alerts-drawer header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); }
-.alerts-drawer h2 { margin: 0; font-size: var(--fs-title); }
-.alerts-drawer h2 small { color: var(--text-3); font-weight: 500; }
-.alerts-drawer > p { margin: 0; padding: var(--sp-4) var(--sp-2); text-align: center; color: var(--text-2); border: 1px dashed var(--line-strong); border-radius: var(--r-2); }
-.alerts-drawer ul { list-style: none; display: grid; gap: var(--sp-2); margin: 0; padding: 0; }
+/* ---- Alerts: card, banner, vignette (AlertsPanel.tsx) ---- */
 .alert-item { width: 100%; display: grid; gap: 2px; text-align: left; padding: var(--sp-2) var(--sp-3); background: var(--bg-inset); border: 1px solid transparent; border-left: 3px solid; border-radius: var(--r-1); }
 .alert-item:hover, .alert-item[aria-current="true"] { border-color: var(--accent-line); }
 .alert-top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-caption); text-transform: uppercase; letter-spacing: 0.05em; }
 .alert-message { font-weight: 600; }
 .alert-item small { color: var(--text-3); }
 .alert-action { color: var(--text-2); }
-/* Banner: over the threats row of the scene column, so it never covers the twin */
-.critical-banner { position: absolute; top: 0; left: 50%; z-index: 20; transform: translateX(-50%); width: min(46rem, 100%); animation: banner-in 0.25s ease-out; }
+/* Banner: top of the right column, under the top bar, in the flow; never over the threats strip or the twin */
+.critical-banner { animation: banner-in 0.25s ease-out; }
 .critical-banner button { width: 100%; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0 var(--sp-3); text-align: left; padding: var(--sp-2) var(--sp-4); color: #fff; background: #4a0e0b; border: 1px solid var(--st-critical); border-radius: var(--r-2); box-shadow: 0 10px 30px rgba(255, 59, 48, 0.35); }
 .critical-banner strong { grid-row: 1 / 3; padding: var(--sp-1) var(--sp-2); color: #fff; background: var(--st-critical); border-radius: var(--r-1); text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--fs-caption); }
-.critical-banner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.critical-banner span { min-width: 0; overflow-wrap: anywhere; }
+.critical-banner .alert-action { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .critical-banner > button > span:first-of-type { font-weight: 650; }
 .critical-banner small, .critical-banner .alert-action { color: #ffc4bf; }
 .critical-vignette { position: fixed; inset: 0; z-index: 55; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(255, 30, 20, 0.55) 100%); opacity: 0; animation: vignette-flash 1.4s ease-out; }
 @keyframes vignette-flash { 0% { opacity: 0; } 15% { opacity: 1; } 40% { opacity: 0.35; } 55% { opacity: 0.8; } 100% { opacity: 0; } }
-@keyframes banner-in { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes banner-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 @keyframes alert-dot { 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) {
   .critical-vignette { animation-duration: 0.01s; }
-  .critical-banner, .alerts-badge i { animation: none !important; }
+  .critical-banner, .alert-summary i, .forecast-drawer, .control-room { animation: none !important; }
 }
 
 /* ---- Zone panel mini charts (ZoneCharts.tsx) ---- */
@@ -303,16 +364,14 @@
 /* ---- Narrow screens: stack and let the page scroll (not the pitch layout) ---- */
 @media (max-width: 1040px) {
   .health-dashboard { height: auto; min-height: 100dvh; overflow: visible; display: block; }
-  .health-header { grid-template-columns: 1fr; }
+  .health-header { flex-wrap: wrap; }
   .health-telemetry { justify-content: flex-start; flex-wrap: wrap; }
-  .health-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .health-scene { grid-column: 1 / -1; height: clamp(480px, 70dvh, 680px); }
-  .health-data { grid-row: auto; mask-image: none; }
+  .health-layout, .health-dashboard[data-control="true"] .health-layout { grid-template-columns: minmax(0, 1fr); }
+  .health-scene, .health-layout > .health-column, .control-room { grid-row: auto; grid-column: 1; margin: 0; }
+  .health-scene { height: clamp(480px, 70dvh, 680px); }
   .health-column { overflow: visible; }
-  .control-bar { grid-template-columns: 1fr; }
   .control-forecast { overflow-x: auto; }
 }
 @media (max-width: 600px) {
-  .health-layout { display: flex; flex-direction: column; }
   .control-inputs { grid-template-columns: 1fr; }
 }

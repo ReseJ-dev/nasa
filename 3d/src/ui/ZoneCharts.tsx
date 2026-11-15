@@ -28,7 +28,7 @@ interface RefLine {
   faint?: boolean
 }
 
-// NASA schedules 8.5 h of sleep per day for ISS crew (user-provided reference; not yet verified).
+// NASA regulations require 8.5 h of protected sleep time per night (Barger et al., Lancet Neurol 2014).
 const NASA_SLEEP_SCHEDULE_H = 8.5
 // CO2 limit lines in mmHg: the same limits the engine and the metrics panel use (sim/constants.ts).
 const CO2_LINES_MMHG = [
@@ -227,7 +227,7 @@ function BrainCharts() {
           series={[{ label: 'Sleep (measured)', points: sleepPts, color: COLOR.measured, dots: true }]}
           refs={[
             base(`${sleepBase} h`, sleepBase),
-            { y: NASA_SLEEP_SCHEDULE_H, label: `NASA schedule ${NASA_SLEEP_SCHEDULE_H} h`, color: COLOR.measured, faint: true },
+            { y: NASA_SLEEP_SCHEDULE_H, label: `NASA sleep time ${NASA_SLEEP_SCHEDULE_H} h`, color: COLOR.measured, faint: true },
           ]}
         />
       )}

@@ -4,9 +4,9 @@ import { Html } from '@react-three/drei'
 import { Select } from '@react-three/postprocessing'
 import { MeshStandardMaterial, type Group, type Mesh } from 'three'
 import { useHealthStore } from './store'
-import { STATUS_COLOR } from './colors'
+import { STATUS_COLOR, STATUS_HEX } from './colors'
 import { EFFECTS, HIDDEN_IN_SKELETON, LAYERS, REGION, type Layer } from './config'
-import { REGION_LABEL } from './labels'
+import { REGION_LABEL, sceneLabel } from './labels'
 import { overlayStyles as overlay } from './overlayStyles'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
 import { useChainGlow } from './hooks/useChainGlow'
@@ -24,6 +24,7 @@ import type { RegionId } from '../contract/types'
 // focus: regions highlighted by a threat in the strip (null = none). Regions outside it dim.
 export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer; focus: RegionId[] | null }) {
   const status = useHealthStore((s) => s.regions[def.id].status)
+  const score = useHealthStore((s) => s.regions[def.id].score)
   const isSelected = useHealthStore((s) => s.selectedRegion === def.id)
   // Another region is selected: this one dims so the selected one stands out.
   const otherSelected = useHealthStore((s) => s.selectedRegion !== null && s.selectedRegion !== def.id)
@@ -110,8 +111,10 @@ export function RegionMesh({ def, layer, focus }: { def: RegionDef; layer: Layer
       </Select>
       {hovered && (
         <Html position={def.labelPosition} center style={{ pointerEvents: 'none' }}>
-          <div style={overlay.hoverLabel}>
-            {REGION_LABEL[def.id]}
+          {/* Warning / critical: the same label as a callout (name + score), for regions without one. */}
+          <div style={status === 'ok' ? overlay.hoverLabel : { ...overlay.callout, border: `1px solid ${STATUS_HEX[status]}` }}>
+            {sceneLabel(REGION_LABEL[def.id])}
+            {status !== 'ok' && <span style={{ ...overlay.calloutScore, color: STATUS_HEX[status] }}>{Math.round(score)}</span>}
           </div>
         </Html>
       )}

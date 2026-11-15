@@ -6,7 +6,8 @@ import { REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
 import { computeState, type Exercise } from '../../../src/engine/index'
 
-// Bottom control bar: mission day, exercise, environment, and the +30 / +90 day forecast.
+// Mission controls (day, exercise, environment; shown in the Control room) and the +30 / +90 day
+// forecast table (shown in the Forecast drawer).
 // Writes only shared store inputs (setDay, setExercise, setEnvironment); never regions.
 // The forecast calls the engine on a copy of the inputs and shows the result; nothing is stored.
 
@@ -67,7 +68,7 @@ function weakestBone(density: Record<BonePart, number>): BonePart {
   return weakest
 }
 
-function Forecast() {
+export function Forecast() {
   const [horizon, setHorizon] = useState<Horizon>(30)
   const day = useHealthStore((s) => s.day)
   const inputs = useHealthStore((s) => s.inputs)
@@ -129,7 +130,8 @@ function Forecast() {
   )
 }
 
-export function ControlBar() {
+// Mission day, exercise plan and environment (Control room).
+export function MissionControls() {
   const day = useHealthStore((s) => s.day)
   const setDay = useHealthStore((s) => s.setDay)
   const exercising = useHealthStore((s) => s.exercise.aerobic > 0 || s.exercise.resistance > 0)
@@ -138,8 +140,7 @@ export function ControlBar() {
   const setEnvironment = useHealthStore((s) => s.setEnvironment)
 
   return (
-    <div className="control-bar" role="region" aria-label="Mission controls">
-      <div className="control-inputs">
+      <div className="control-inputs" role="group" aria-label="Mission controls">
         <label className="control-day">
           <span>
             {TEXT.day} <strong>{day}</strong> / {MAX_DAY}
@@ -183,8 +184,6 @@ export function ControlBar() {
           </select>
         </label>
       </div>
-      <Forecast />
-    </div>
   )
 }
 

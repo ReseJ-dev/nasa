@@ -49,6 +49,8 @@ export const overlayStyles = {
     background: 'var(--bg-panel)',
     border: '1px solid var(--line)',
   },
+  // Presentation: a narrow centered row, no panel, so the twin below stays the hero.
+  threatsCompact: { alignSelf: 'center', width: 'min(100%, 52rem)', background: 'transparent', border: 'none' },
   threatArcs: { position: 'absolute', top: 0, left: 0, width: '100%', pointerEvents: 'none', overflow: 'visible' },
   threat: {
     display: 'flex',
@@ -56,6 +58,7 @@ export const overlayStyles = {
     justifyContent: 'center',
     gap: 'var(--sp-2)',
     minWidth: 0,
+    overflow: 'hidden', // a long level text is cut inside its own slot, never over the next threat
     padding: 'var(--sp-1) var(--sp-1) var(--sp-2)',
     border: 'none',
     borderRadius: 'var(--r-2)',
@@ -67,7 +70,7 @@ export const overlayStyles = {
     textAlign: 'left',
   },
   threatText: { display: 'flex', flexDirection: 'column', minWidth: 0 },
-  threatName: { fontWeight: 600, whiteSpace: 'nowrap' },
+  threatName: { fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   threatFocused: { background: 'var(--bg-raised)' },
   threatOfSelected: { boxShadow: 'inset 0 -2px 0 var(--accent)' }, // includes the selected region: underline
   threatLevel: { color: 'var(--text-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' },

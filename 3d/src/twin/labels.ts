@@ -21,6 +21,11 @@ export const STATUS_LABEL: Record<Status, string> = {
 // Shown instead of a score or a value when the engine has no input for it.
 export const NO_DATA_LABEL = 'No data'
 
+// Labels drawn over the 3D scene stay short: at most this many characters.
+export const SCENE_LABEL_MAX = 25
+export const sceneLabel = (text: string) =>
+  text.length <= SCENE_LABEL_MAX ? text : `${text.slice(0, SCENE_LABEL_MAX - 1).trimEnd()}…`
+
 export const DENSITY_LABEL = {
   normal: 'normal',
   low: 'low density',
@@ -79,6 +84,10 @@ const signed = (v: number, digits = 0) => {
 export const formatHours = (h: number) => `${h.toFixed(1)} h` // "5.2 h"
 export const formatShift = (h: number) => `${signed(h, 1)} h` // "+3 h"
 export const formatMs = (ms: number) => `${Math.round(ms)} ms` // "412 ms"
+// Shown wherever the app shows thresholds (metrics panel, zone panel).
+export const SOURCES_NOTE =
+  'Thresholds are drawn from NASA-STD-3001 where marked; others are project estimates. Not a medical device.'
+
 export const formatMinutes = (min: number) => `${Math.round(min)} min`
 // Change against the personal baseline: "+31%", "−73%", "±0%".
 export const formatChange = (value: number, baseline: number) =>

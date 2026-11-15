@@ -4,18 +4,14 @@ import { STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
 import { buildAlerts, type AlertItem } from './alerts'
 
-// Alerts: a counter badge in the top bar that opens a drawer with the list, plus a 4 s banner
-// and a red vignette flash whenever a new critical alert appears.
+// Alerts: the alert card used by the "Status now" list, plus a 4 s banner and a red vignette
+// flash whenever a new critical alert appears.
 // Clicking an alert highlights it in 3D (focus on its regions) and opens its zone panel.
 
 const TEXT = {
-  alerts: 'Alerts',
-  clear: 'All normal',
-  none: 'No active alerts. Keep up the daily check-in.',
   cause: 'Cause',
   forecast: 'forecast',
   unverified: 'not yet verified',
-  close: 'Close alerts',
   more: (n: number) => `+${n} more`,
 }
 const BANNER_MS = 4000
@@ -29,7 +25,7 @@ export function useAlertItems(): AlertItem[] {
   return useMemo(() => buildAlerts({ regions, alerts, threats, earthLink }), [regions, alerts, threats, earthLink])
 }
 
-function useOpenAlert() {
+export function useOpenAlert() {
   const setHighlight = useHealthStore((s) => s.setHighlightAlert)
   const select = useHealthStore((s) => s.selectRegion)
   return (item: AlertItem) => {
@@ -38,93 +34,34 @@ function useOpenAlert() {
   }
 }
 
-function sourceTitle(item: AlertItem) {
+export function sourceTitle(item: AlertItem) {
   return `Rule source: ${item.source}${item.verified ? '' : ` (${TEXT.unverified})`}`
 }
 
-export function AlertsBadge() {
-  const items = useAlertItems()
-  const [open, setOpen] = useState(false)
+// One alert as a card: level, message, cause hazard and the concrete action. Click opens its zone.
+export function AlertCard({ item }: { item: AlertItem }) {
   const highlight = useHealthStore((s) => s.highlightAlertId)
   const openAlert = useOpenAlert()
-  const worst = items[0]?.level
-  const drawer = useRef<HTMLDivElement>(null)
-
-  // Esc or a click outside closes the drawer.
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
-    const onDown = (e: PointerEvent) => {
-      if (!drawer.current?.parentElement?.contains(e.target as Node)) setOpen(false)
-    }
-    window.addEventListener('keydown', onKey)
-    window.addEventListener('pointerdown', onDown)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      window.removeEventListener('pointerdown', onDown)
-    }
-  }, [open])
-
   return (
-    <div className="alerts">
-      <button
-        type="button"
-        className="alerts-badge"
-        data-level={worst ?? 'ok'}
-        aria-expanded={open}
-        aria-controls="alerts-drawer"
-        onClick={() => setOpen((o) => !o)}
-      >
-        <small>{TEXT.alerts}</small>
-        <span>
-          {worst && <i aria-hidden="true" style={{ background: STATUS_HEX[worst] }} />}
-          <b>{items.length}</b>
-          {worst ? STATUS_LABEL[worst] : TEXT.clear}
-        </span>
-      </button>
-      {open && (
-        <div ref={drawer} id="alerts-drawer" className="alerts-drawer" role="dialog" aria-label={TEXT.alerts}>
-          <header>
-            <h2>
-              {TEXT.alerts} <small>{items.length}</small>
-            </h2>
-            <button type="button" onClick={() => setOpen(false)} aria-label={TEXT.close}>×</button>
-          </header>
-          {items.length === 0 ? (
-            <p>{TEXT.none}</p>
-          ) : (
-            <ul>
-              {items.map((item) => (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    className="alert-item"
-                    data-level={item.level}
-                    aria-current={highlight === item.id}
-                    title={sourceTitle(item)}
-                    style={{ borderLeftColor: STATUS_HEX[item.level] }}
-                    onClick={() => {
-                      openAlert(item)
-                      setOpen(false)
-                    }}
-                  >
-                    <span className="alert-top">
-                      <strong style={{ color: STATUS_HEX[item.level] }}>{STATUS_LABEL[item.level]}</strong>
-                      {item.forecast && <span className="zone-badge" data-source="forecast">{TEXT.forecast}</span>}
-                    </span>
-                    <span className="alert-message">{item.message}</span>
-                    <small>
-                      {TEXT.cause}: {THREAT_LABEL[item.hazard]}
-                    </small>
-                    <span className="alert-action">{item.action}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </div>
+    <button
+      type="button"
+      className="alert-item"
+      data-level={item.level}
+      aria-current={highlight === item.id}
+      title={sourceTitle(item)}
+      style={{ borderLeftColor: STATUS_HEX[item.level] }}
+      onClick={() => openAlert(item)}
+    >
+      <span className="alert-top">
+        <strong style={{ color: STATUS_HEX[item.level] }}>{STATUS_LABEL[item.level]}</strong>
+        {item.forecast && <span className="zone-badge" data-source="forecast">{TEXT.forecast}</span>}
+      </span>
+      <span className="alert-message">{item.message}</span>
+      <small>
+        {TEXT.cause}: {THREAT_LABEL[item.hazard]}
+      </small>
+      <span className="alert-action">{item.action}</span>
+    </button>
   )
 }
 
@@ -146,7 +83,15 @@ export function CriticalBanner() {
     clearTimeout(timer.current)
     timer.current = setTimeout(() => setBanner(null), BANNER_MS)
   }, [items])
-  useEffect(() => () => clearTimeout(timer.current), [])
+  // On unmount forget what was seen too: a remount (React StrictMode) then shows the banner
+  // again with a fresh timer instead of leaving it on screen without one.
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current)
+      seen.current = new Set()
+    },
+    [],
+  )
 
   if (!banner) return null
   const { item, more } = banner

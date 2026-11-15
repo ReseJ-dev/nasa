@@ -1,161 +1,293 @@
-import type { ReactNode } from 'react'
-import type { Metric, RegionId } from '../contract/types'
+import { useEffect, useState } from 'react'
+import { DEMO_LABEL, useDemo } from '../demo'
+import type { RegionId } from '../contract/types'
+import { BodyScene } from '../twin'
 import { STATUS_HEX } from '../twin/colors'
 import { NO_DATA_LABEL, REGION_LABEL, STATUS_LABEL } from '../twin/labels'
-import { useHealthStore, type ScenarioId } from '../twin/store'
-import { formatLevel } from '../../../src/engine'
-import { GRAVITY_THREAT_DAYS } from '../../../src/engine/constants'
-import { AlertsBadge, CriticalBanner, useAlertItems } from './AlertsPanel'
-import { CheckInPanel } from './CheckInPanel'
-import { Co2Value } from './Co2Value'
-import { ControlBar, EarthLinkToggle, MAX_DAY } from './ControlBar'
+import { useHealthStore } from '../twin/store'
+import { CriticalBanner, useAlertItems } from './AlertsPanel'
+import { Forecast, MAX_DAY } from './ControlBar'
+import { ControlRoom } from './ControlRoom'
+import { useSound } from './sound'
+import { StatusNow } from './StatusNow'
 import { ZonePanel } from './ZonePanel'
 import '../twin/theme'
 import './healthDashboard.css'
-import { SoundControls } from './SoundControls'
 
-const scenarios: Record<ScenarioId, string> = { healthy: 'Healthy', day60: 'Day 60', critical: 'Critical' }
+// Presentation screen (default): only the result. The twin is the hero, the right column says
+// what matters now. Sensors feed the data, so nothing here is an input; everything for driving
+// the demo lives in the Control room.
+
 const systems = ['heart', 'brain', 'bones', 'muscles', 'eyes', 'immune', 'lungs', 'metabolism'] satisfies RegionId[]
-const vitals = ['heart_rate', 'sleep_hours', 'reaction_ms', 'glucose', 'bone_loss_pct', 'muscle_loss_pct', 'vision_score']
-const names: Record<string, string> = {
-  heart_rate: 'Heart rate',
-  sleep_hours: 'Sleep',
-  reaction_ms: 'Reaction time',
-  glucose: 'Glucose',
-  bone_loss_pct: 'Bone density loss',
-  muscle_loss_pct: 'Muscle mass loss',
-  vision_score: 'Visual acuity',
-  radiation_msv: 'Accumulated radiation dose',
-}
-const format = new Intl.NumberFormat('en', { maximumFractionDigits: 2 })
 
-function MetricValue({ metric, label }: { metric?: Metric; label: string }) {
+const TEXT = {
+  title: 'Astronaut Health Monitor',
+  subtitle: 'Digital twin · demonstration model',
+  day: 'Mission day',
+  link: 'Earth link',
+  online: (reply: string) => `Online · reply in ${reply}`,
+  offline: 'Offline · autonomous',
+  flare: 'Solar flare',
+  flareActive: 'Active',
+  alerts: 'Alerts',
+  clear: 'All normal',
+  critical: 'critical',
+  warning: 'warning',
+  forecast: 'Forecast',
+  closeForecast: 'Close forecast',
+  systems: 'Body systems',
+  soundOn: 'Sound on (click to mute)',
+  soundOff: 'Sound muted (click to unmute)',
+  keys: 'Keys',
+  keysButton: 'Keyboard shortcuts (H)',
+  closeKeys: 'Close',
+}
+
+// Key hint overlay (H). The same keys are handled in HealthDashboard below.
+const KEYS: [string, string][] = [
+  ['C', 'Control room: presets, mission controls, check-in'],
+  ['D', 'Run the scripted demo'],
+  ['I', 'Isolation step only'],
+  ['F', 'Forecast: with and without exercise'],
+  ['S', 'Body / skeleton'],
+  ['Esc', 'Stop the demo and reset to Healthy'],
+  ['H', 'Show or hide this list'],
+]
+
+function KeyHints({ onClose }: { onClose(): void }) {
   return (
-    <div className="health-metric">
-      <dt>{label}</dt>
-      <dd>{metric ? <>{format.format(metric.value)} <small>{metric.unit}</small></> : <small>{NO_DATA_LABEL}</small>}</dd>
+    <div className="key-hints" role="dialog" aria-label={TEXT.keys}>
+      <header>
+        <h2>{TEXT.keys}</h2>
+        <button type="button" className="zone-close" onClick={onClose} aria-label={TEXT.closeKeys}>×</button>
+      </header>
+      <dl>
+        {KEYS.map(([key, text]) => (
+          <div key={key}>
+            <dt><kbd>{key}</kbd></dt>
+            <dd>{text}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   )
 }
 
-// A 0..1 index or threat level, in the one format the threats strip uses (whole percent).
-function LevelValue({ label, level, note }: { label: string; level: number | undefined; note?: string }) {
+// Tiny speaker icon: the only sound control in presentation mode (the slider is in the Control room).
+function SoundIcon() {
+  const enabled = useSound((s) => s.enabled)
+  const setEnabled = useSound((s) => s.setEnabled)
+  const label = enabled ? TEXT.soundOn : TEXT.soundOff
   return (
-    <div className="health-metric">
-      <dt>{label}</dt>
-      <dd>{level === undefined ? <small>{NO_DATA_LABEL}</small> : formatLevel(level)}</dd>
-      {note && <dd className="health-metric-note">{note}</dd>}
-    </div>
+    <button type="button" className="sound-icon" aria-pressed={enabled} aria-label={label} title={label} onClick={() => setEnabled(!enabled)}>
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M3 7.5h3l4-3.5v12l-4-3.5H3z" fill="currentColor" stroke="none" />
+        {enabled ? <path d="M13 7a4.2 4.2 0 0 1 0 6M15.3 4.8a7.4 7.4 0 0 1 0 10.4" /> : <path d="M13 7.5l5 5M18 7.5l-5 5" />}
+      </svg>
+    </button>
   )
 }
 
-function MissionHeader() {
-  const day = useHealthStore(state => state.day)
-  const scenario = useHealthStore(state => state.scenario)
-  const setScenario = useHealthStore(state => state.setScenario)
-  const flare = useHealthStore(state => state.activeEvent === 'solar_flare')
-  const level = useAlertItems()[0]?.level ?? 'ok'
+// Read-only chips: mission day, Earth link, solar flare (only while active), alert counts.
+function TopBar({
+  forecastOpen,
+  onForecast,
+  keysOpen,
+  onKeys,
+}: {
+  forecastOpen: boolean
+  onForecast(): void
+  keysOpen: boolean
+  onKeys(): void
+}) {
+  // missionDay is the day the scene shows (the scripted demo moves it); same as `day` otherwise.
+  const day = useHealthStore((s) => s.missionDay ?? s.day)
+  const flare = useHealthStore((s) => s.activeEvent === 'solar_flare')
+  const online = useHealthStore((s) => s.earthLink ?? true)
+  const reply = useHealthStore((s) => (s.commDelaySec ?? 0) * 2) // there and back
+  const items = useAlertItems()
+  const critical = items.filter((i) => i.level === 'critical').length
+  const warning = items.length - critical
+  const level = items[0]?.level ?? 'ok'
+  const replyText = reply < 60 ? `${Math.round(reply)} s` : `${Math.round(reply / 60)} min`
   return (
     <header className="health-header" data-level={level}>
-      <div className="health-brand">
-        <div className="health-title">
-          <h1>Astronaut Health Monitor</h1>
-          <p>Demonstration model · simulated values</p>
-        </div>
-        <SoundControls />
-      </div>
-      <div className="health-presets" role="group" aria-label="Mission scenario">
-        {Object.entries(scenarios).map(([id, label]) => (
-          <button key={id} type="button" data-scenario={id} aria-pressed={scenario === id} onClick={() => setScenario(id as ScenarioId)}>{label}</button>
-        ))}
+      <div className="health-title">
+        <h1>{TEXT.title}</h1>
+        <p>{TEXT.subtitle}</p>
       </div>
       <div className="health-telemetry">
-        <dl className="health-chip"><dt>Mission day</dt><dd>{day} <small>/ {MAX_DAY}</small></dd></dl>
-        <dl className="health-chip" data-alert={flare}><dt>Solar flare</dt><dd>{flare ? 'Active' : 'None'}</dd></dl>
-        <EarthLinkToggle />
-        <AlertsBadge />
+        <dl className="health-chip">
+          <dt>{TEXT.day}</dt>
+          <dd>{day} <small>/ {MAX_DAY}</small></dd>
+        </dl>
+        {flare && (
+          <dl className="health-chip" data-alert="true">
+            <dt>{TEXT.flare}</dt>
+            <dd>{TEXT.flareActive}</dd>
+          </dl>
+        )}
+        <dl className="health-chip" data-online={online}>
+          <dt>{TEXT.link}</dt>
+          <dd>{online ? TEXT.online(replyText) : TEXT.offline}</dd>
+        </dl>
+        <dl className="health-chip alert-summary" data-level={level}>
+          <dt>{TEXT.alerts}</dt>
+          <dd>
+            {items.length === 0 && TEXT.clear}
+            {critical > 0 && <span data-level="critical"><i aria-hidden="true" />{critical} {TEXT.critical}</span>}
+            {warning > 0 && <span data-level="warning"><i aria-hidden="true" />{warning} {TEXT.warning}</span>}
+          </dd>
+        </dl>
+        <button type="button" className="top-button" aria-pressed={forecastOpen} onClick={onForecast}>
+          {TEXT.forecast}
+        </button>
+        <SoundIcon />
+        <button type="button" className="sound-icon keys-icon" aria-pressed={keysOpen} aria-label={TEXT.keysButton} title={TEXT.keysButton} onClick={onKeys}>
+          H
+        </button>
       </div>
     </header>
   )
 }
 
-function HealthMetrics() {
-  const metrics = useHealthStore(state => state.metrics)
-  const microgravity = useHealthStore(state => state.inputs.microgravity)
-  // Threat levels come from the same store field as the threats strip, in the same format.
-  const gravityThreat = useHealthStore(state => state.threats?.gravity.level)
-  const isolationThreat = useHealthStore(state => state.threats?.isolation.level)
-  const day = useHealthStore(state => state.day)
-  const metric = (id: string) => metrics.find(item => item.id === id)
+// Compact system list: two columns of status dot, name and score. Click opens the zone panel.
+function SystemList() {
+  const regions = useHealthStore((s) => s.regions)
+  const selected = useHealthStore((s) => s.selectedRegion)
+  const select = useHealthStore((s) => s.selectRegion)
   return (
-    <>
-      <section className="health-card" aria-labelledby="health-vitals">
-        <h2 id="health-vitals">Body metrics</h2>
-        <dl className="health-grid">{vitals.map(id => <MetricValue key={id} label={names[id]} metric={metric(id)} />)}</dl>
-      </section>
-      <section className="health-card" aria-labelledby="health-environment">
-        <h2 id="health-environment">Environment</h2>
-        <dl className="health-grid">
-          <Co2Value metric={metric('co2_ppm')} />
-          <MetricValue label={names.radiation_msv} metric={metric('radiation_msv')} />
-          <LevelValue label="Microgravity index" level={microgravity} note="exposure now" />
-          <LevelValue label="Gravity threat level" level={gravityThreat} note={`index × ${Math.min(day, GRAVITY_THREAT_DAYS)} / ${GRAVITY_THREAT_DAYS} days`} />
-          <LevelValue label="Isolation threat level" level={isolationThreat} />
-        </dl>
-      </section>
-      <section className="health-card" aria-labelledby="health-future">
-        <h2 id="health-future">Future measurements</h2>
-        <dl className="health-grid">{['SpO₂', 'Cortisol'].map(label => <MetricValue key={label} label={label} />)}</dl>
-      </section>
-    </>
+    <section className="health-card system-card" aria-labelledby="health-systems">
+      <h2 id="health-systems">{TEXT.systems} <small className="health-h2-note">score / 100</small></h2>
+      <ul className="health-systems">
+        {systems.map((id) => {
+          const { status, score, noData } = regions[id]
+          return (
+            <li key={id}>
+              <button
+                type="button"
+                data-status={status}
+                aria-pressed={selected === id}
+                title={`${REGION_LABEL[id]}: ${noData ? NO_DATA_LABEL : STATUS_LABEL[status]}`}
+                onClick={() => select(selected === id ? null : id)}
+              >
+                <i aria-hidden="true" style={{ background: STATUS_HEX[status] }} />
+                <span>{REGION_LABEL[id]}</span>
+                <strong>{noData ? '–' : score}</strong>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 
-function HealthSystems() {
-  const regions = useHealthStore(state => state.regions)
-  const selected = useHealthStore(state => state.selectedRegion)
-  const select = useHealthStore(state => state.selectRegion)
+// Forecast drawer: the forecast table (with / without exercise), closed by default.
+function ForecastDrawer({ onClose }: { onClose(): void }) {
   return (
-    <aside className="health-column">
-      <section className="health-card" aria-labelledby="health-systems">
-        <h2 id="health-systems">Body systems <small className="health-h2-note">score / 100</small></h2>
-        <ul className="health-systems">
-          {systems.map(id => {
-            const { status, score, noData } = regions[id]
-            return (
-              <li key={id}>
-                <button type="button" data-status={status} aria-pressed={selected === id} onClick={() => select(id)}>
-                  <i aria-hidden="true" style={{ background: STATUS_HEX[status] }} />
-                  <span>{REGION_LABEL[id]}</span>
-                  <em>{noData ? NO_DATA_LABEL : STATUS_LABEL[status]}</em>
-                  <strong>{noData ? '–' : score}</strong>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-      <ZonePanel />
-    </aside>
+    <div className="forecast-drawer" role="dialog" aria-label={TEXT.forecast}>
+      <Forecast />
+      <button type="button" className="zone-close" onClick={onClose} aria-label={TEXT.closeForecast}>×</button>
+    </div>
   )
 }
 
-export function HealthDashboard({ children }: { children: ReactNode }) {
+// ?mode=control opens the Control room at start; ?mode=present (or nothing) keeps it hidden.
+const START_IN_CONTROL = new URLSearchParams(location.search).get('mode') === 'control'
+
+const typing = (e: KeyboardEvent) =>
+  e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement
+
+export function HealthDashboard() {
+  const selected = useHealthStore((s) => s.selectedRegion)
+  const [forecastOpen, setForecastOpen] = useState(false)
+  const [controlOpen, setControlOpen] = useState(START_IN_CONTROL)
+  const [checkInOpen, setCheckInOpen] = useState(false)
+  const [keysOpen, setKeysOpen] = useState(false)
+
+  // The scripted demo drives the layer and the focused threat, so both are controlled here.
+  const demo = useDemo()
+  const { start, startIsolation, stop, setView } = demo
+  const { layer, focus, caption } = demo.view
+
+  // Browsers allow audio only after a user gesture: the first key press or click unmutes.
+  useEffect(() => {
+    const unlock = (e: Event) => {
+      // a first click on a sound control is that control's own decision
+      if (e.target instanceof Element && e.target.closest('.sound-icon, .sound-controls')) return
+      useSound.getState().setEnabled(true)
+    }
+    const options = { once: true, capture: true }
+    window.addEventListener('keydown', unlock, options)
+    window.addEventListener('pointerdown', unlock, options)
+    return () => {
+      window.removeEventListener('keydown', unlock, options)
+      window.removeEventListener('pointerdown', unlock, options)
+    }
+  }, [])
+
+  // Keys (listed in KEYS above): C Control room, D demo, I isolation step, F forecast,
+  // S body / skeleton, H key hints, Esc stops the demo and resets to Healthy.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (typing(e) || e.ctrlKey || e.metaKey || e.altKey || checkInOpen) return
+      const key = e.key.toLowerCase()
+      if (key === 'c') setControlOpen((o) => !o)
+      else if (key === 'd') start()
+      else if (key === 'i') startIsolation()
+      else if (key === 'f') setForecastOpen((o) => !o)
+      else if (key === 's') setView((v) => ({ ...v, layer: v.layer === 'body' ? 'skeleton' : 'body' }))
+      else if (key === 'h') setKeysOpen((o) => !o)
+      else if (key === 'escape') {
+        setKeysOpen(false)
+        setForecastOpen(false)
+        stop()
+        useHealthStore.getState().selectRegion(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [checkInOpen, start, startIsolation, stop, setView])
+
   return (
-    <main className="health-dashboard">
-      <MissionHeader />
+    <main className="health-dashboard" data-control={controlOpen}>
+      <TopBar
+        forecastOpen={forecastOpen}
+        onForecast={() => setForecastOpen((o) => !o)}
+        keysOpen={keysOpen}
+        onKeys={() => setKeysOpen((o) => !o)}
+      />
       <div className="health-layout">
         <section className="health-scene" aria-label="Interactive astronaut model">
-          {children}
-          <CriticalBanner />
+          <BodyScene
+            compact
+            layer={layer}
+            onLayerChange={(l) => setView((v) => ({ ...v, layer: l }))}
+            focusedThreat={focus}
+            onThreatClick={(id) => setView((v) => ({ ...v, focus: v.focus === id ? null : id }))}
+          />
+          {caption && !forecastOpen && <p className="demo-caption" role="status">{caption}</p>}
+          {keysOpen && <KeyHints onClose={() => setKeysOpen(false)} />}
+          {forecastOpen && <ForecastDrawer onClose={() => setForecastOpen(false)} />}
         </section>
-        <div className="health-column health-data">
-          <CheckInPanel />
-          <HealthMetrics />
-        </div>
-        <HealthSystems />
+        <aside className="health-column">
+          {/* New critical alert: first thing in the right column, right under the top bar.
+              It is in the column's flow, so it can never cover the threats strip or the twin. */}
+          <CriticalBanner />
+          <SystemList />
+          {/* A selected region replaces "Status now" with its zone panel; closing it returns. */}
+          {selected ? <ZonePanel /> : <StatusNow />}
+        </aside>
+        {controlOpen && (
+          <ControlRoom
+            onClose={() => setControlOpen(false)}
+            checkInOpen={checkInOpen}
+            onCheckIn={setCheckInOpen}
+            demo={{ running: demo.running, start, startIsolation, stop, label: DEMO_LABEL }}
+          />
+        )}
       </div>
-      <ControlBar />
     </main>
   )
 }

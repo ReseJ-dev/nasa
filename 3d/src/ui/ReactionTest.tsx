@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-// 30-second reaction test (shortened PVT-B style). A signal appears after a random 1–4 s wait;
+// 30-second reaction test (shortened PVT-B style; PVT-B itself is 3 min with a 355 ms lapse cut-off,
+// Basner et al. 2011. The 30 s length and the 500 ms cut-off are project estimates, see SOURCES.md). A signal appears after a random 1–4 s wait;
 // the user clicks the area or presses Space as fast as possible. Responses slower than
 // LAPSE_MS, and signals left without a response, count as lapses. Early presses are false starts.
 // Timing uses performance.now(); the signal time is taken in the next animation frame, when the
@@ -20,7 +21,7 @@ export interface ReactionResult {
 
 const TEXT = {
   title: 'Reaction test',
-  label: "Based on NASA's Reaction Self-Test (PVT-B), shortened for demo",
+  label: 'Shortened PVT-B style test (Basner et al. 2011); test length and lapse cut-off are project estimates',
   intro:
     'For 30 seconds, a signal appears at random moments. Click the box or press Space as soon as you see it. Do not press before it appears.',
   start: 'Start test',
