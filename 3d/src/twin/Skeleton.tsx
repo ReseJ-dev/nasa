@@ -2,7 +2,6 @@ import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import {
-  BoxGeometry,
   BufferGeometry,
   CapsuleGeometry,
   Color,
@@ -25,6 +24,8 @@ import { FONT } from './theme'
 import { useHealthStore } from './store'
 import { useFadeOpacity } from './hooks/useFadeOpacity'
 import { useSceneStore } from './sceneStore'
+import { BODY } from './bodyShape'
+import { blob } from './shapes'
 
 // Skeleton built from primitives, one mesh per BonePart (mesh name = BonePart).
 // Each part is colored by boneDensity from the store; the weakest part gets a fracture-risk label.
@@ -45,25 +46,66 @@ function place(geo: BufferGeometry, position: Vec3, rotation: Vec3 = [0, 0, 0], 
 
 // Joins many primitives into one geometry, so each bone part is a single mesh.
 function merge(parts: BufferGeometry[], groupPosition?: Vec3, groupRotation?: Vec3) {
+  parts.forEach((p) => p.deleteAttribute('uv')) // not used; smooth shapes from shapes.ts have none
   const geo = mergeGeometries(parts)
   parts.forEach((p) => p.dispose())
   if (groupPosition) place(geo, groupPosition, groupRotation)
   return geo
 }
 
+// A long bone from `a` to `b`: a shaft that tapers from radius ra to rb, with a round knob at each end.
+const UP = new Vector3(0, 1, 0)
+function bone(a: Vec3, b: Vec3, ra: number, rb: number, knob = 1.35) {
+  const from = new Vector3(...a)
+  const to = new Vector3(...b)
+  const length = from.distanceTo(to)
+  const m = new Matrix4().compose(
+    from.clone().add(to).multiplyScalar(0.5),
+    new Quaternion().setFromUnitVectors(UP, to.clone().sub(from).normalize()),
+    new Vector3(1, 1, 1),
+  )
+  // CylinderGeometry: radiusTop is at +y, which is `b` after the rotation.
+  const shaft = new CylinderGeometry(rb, ra, length, 12).applyMatrix4(m)
+  return [shaft, place(new SphereGeometry(ra * knob, 12, 10), a), place(new SphereGeometry(rb * knob, 12, 10), b)]
+}
+
+const mirror = (p: Vec3, side: number): Vec3 => [p[0] * side, p[1], p[2]]
+
+// Skull: one smooth shape. The lower half narrows to the chin and leans forward (the face);
+// the eye sockets and the nose opening are pressed in, so the light draws them.
 function skull() {
-  return merge([
-    place(new SphereGeometry(0.1, 24, 16), [0, 1.685, -0.005], [0, 0, 0], [1, 1.05, 1.1]), // cranium
-    place(new BoxGeometry(0.09, 0.035, 0.07), [0, 1.575, 0.045]), // jaw
-  ])
+  const dent = (p: Vector3, x: number, y: number, radius: number, depth: number) => {
+    if (p.z <= 0) return
+    const d = Math.hypot(p.x - x, p.y - y) / radius
+    if (d < 1) p.z -= depth * (1 - d * d) ** 2
+  }
+  return blob(
+    [0.072, 0.1, 0.088],
+    (p) => {
+      const low = Math.max(-p.y, 0)
+      const narrow = 1 - 0.32 * low ** 1.4
+      p.x *= narrow
+      p.z = p.z * (1 - 0.3 * low) + 0.16 * low // the face sits in front of the neck
+      dent(p, -0.36, -0.1, 0.25, 0.3) // eye sockets
+      dent(p, 0.36, -0.1, 0.25, 0.3)
+      dent(p, 0, -0.38, 0.12, 0.22) // nose
+    },
+    [0, 1.69, -0.006],
+    2,
+  )
+}
+
+// Depth (z) of the spine at a height: follows the back of the body shell, with a slight S curve.
+function spineZ(y: number) {
+  const t = (y - 0.93) / 0.67 // 0 at the pelvis, 1 at the skull
+  return -0.05 - 0.03 * Math.sin(Math.min(t, 0.78) * Math.PI * 1.28) + (t > 0.78 ? (t - 0.78) * 0.2 : 0)
 }
 
 function spine() {
   const vertebrae: BufferGeometry[] = []
-  for (let y = 0.97; y <= 1.56; y += 0.034) {
-    // slight S-curve: the neck and lower back lean a little forward
-    const z = -0.075 + 0.012 * Math.cos(((y - 0.97) / 0.59) * Math.PI * 2)
-    vertebrae.push(place(new CylinderGeometry(0.024, 0.024, 0.024, 10), [0, y, z]))
+  for (let y = 0.94; y <= 1.6; y += 0.03) {
+    const r = 0.021 - 0.009 * ((y - 0.94) / 0.66) // thick lumbar vertebrae, thin neck ones
+    vertebrae.push(place(new CylinderGeometry(r, r, 0.02, 12), [0, y, spineZ(y)]))
   }
   return merge(vertebrae)
 }
@@ -71,55 +113,87 @@ function spine() {
 function ribs() {
   const parts: BufferGeometry[] = []
   const gap = 0.35 // half-angle of the open front, radians
-  for (let i = 0; i < 6; i++) {
-    const y = 1.42 - i * 0.055
-    const r = 0.12 + Math.sin(((i + 1) / 7) * Math.PI) * 0.03 // wider in the middle of the rib cage
+  for (let i = 0; i < 7; i++) {
+    const y = 1.43 - i * 0.045
+    // Rib cage outline: follows the chest of the body shell, a little inside it.
+    const r = 0.14 * Math.sqrt(Math.max(1 - ((y - 1.28) / 0.21) ** 2, 0.2))
     // Torus arc lying flat, rotated so the gap faces forward (+z).
     parts.push(
-      place(new TorusGeometry(r, 0.008, 6, 28, Math.PI * 2 - gap * 2), [0, y, -0.01], [Math.PI / 2, 0, Math.PI / 2 + gap], [1.05, 0.62, 1]),
+      place(new TorusGeometry(r, 0.007, 8, 32, Math.PI * 2 - gap * 2), [0, y, -0.012], [Math.PI / 2, 0, Math.PI / 2 + gap], [1, 0.62, 1]),
     )
   }
-  parts.push(place(new BoxGeometry(0.025, 0.22, 0.012), [0, 1.3, 0.075])) // sternum
-  // collarbones
-  parts.push(place(new CapsuleGeometry(0.01, 0.15, 4, 8), [-0.1, 1.46, 0.03], [0, 0, Math.PI / 2]))
-  parts.push(place(new CapsuleGeometry(0.01, 0.15, 4, 8), [0.1, 1.46, 0.03], [0, 0, Math.PI / 2]))
+  parts.push(place(new CapsuleGeometry(0.012, 0.19, 6, 12), [0, 1.32, 0.066], [0, 0, 0], [1, 1, 0.5])) // sternum
+  // collarbones: from the top of the sternum to the shoulders
+  for (const side of [-1, 1]) parts.push(...bone([side * 0.015, 1.436, 0.05], [side * 0.188, 1.464, -0.008], 0.009, 0.008, 1.2))
   return merge(parts)
 }
 
-// side: +1 = astronaut's left (+x), -1 = right. Matches the arm groups in Body.tsx.
+// side: +1 = astronaut's left (+x), -1 = right. Same landmarks as the body shell (bodyShape.ts).
 function arm(side: number) {
-  return merge(
-    [
-      place(new CapsuleGeometry(0.018, 0.24, 4, 10), [0, -0.16, 0]), // humerus
-      place(new CapsuleGeometry(0.011, 0.22, 4, 8), [-0.012, -0.45, 0]), // radius
-      place(new CapsuleGeometry(0.011, 0.22, 4, 8), [0.012, -0.45, 0]), // ulna
-      place(new BoxGeometry(0.045, 0.075, 0.018), [0, -0.63, 0]), // hand
-    ],
-    [side * 0.24, 1.45, 0],
-    [0, 0, side * 0.12],
-  )
+  const [wx, wy, wz] = BODY.wrist
+  const dx = Math.sin(BODY.armAngle)
+  const dy = -Math.cos(BODY.armAngle)
+  const palmEnd: Vec3 = [wx + dx * 0.075, wy + dy * 0.075, wz + 0.01]
+  const parts = [
+    ...bone(BODY.shoulder, BODY.elbow, 0.016, 0.013, 1.5), // humerus
+    ...bone([BODY.elbow[0] - 0.011, BODY.elbow[1], BODY.elbow[2]], [wx - 0.009, wy, wz], 0.009, 0.008, 1.15), // radius
+    ...bone([BODY.elbow[0] + 0.011, BODY.elbow[1], BODY.elbow[2]], [wx + 0.009, wy, wz], 0.009, 0.007, 1.15), // ulna
+    ...bone([wx, wy - 0.012, wz], palmEnd, 0.013, 0.011, 1.1), // palm
+  ]
+  // fingers: the palm faces the thigh, so they fan out front to back
+  for (const z of [-0.016, -0.005, 0.006, 0.017])
+    parts.push(...bone([palmEnd[0], palmEnd[1], palmEnd[2] + z * 0.6], [palmEnd[0] + dx * 0.075, palmEnd[1] + dy * 0.075, palmEnd[2] + z + 0.008], 0.0048, 0.004, 1.1))
+  const geo = merge(parts)
+  if (side < 0) geo.scale(-1, 1, 1) // mirror for the right arm
+  return side < 0 ? flipFaces(geo) : geo
+}
+
+// After a mirror the triangles face inward; swap two corners of each to turn them back.
+function flipFaces(geo: BufferGeometry) {
+  const index = geo.getIndex()
+  if (index) {
+    for (let i = 0; i < index.count; i += 3) {
+      const a = index.getX(i)
+      index.setX(i, index.getX(i + 1))
+      index.setX(i + 1, a)
+    }
+  }
+  return geo
 }
 
 function pelvis() {
-  return merge([
-    place(new SphereGeometry(0.07, 16, 12), [-0.075, 0.96, -0.02], [0, -0.5, 0], [1, 0.9, 0.35]), // right iliac wing
-    place(new SphereGeometry(0.07, 16, 12), [0.075, 0.96, -0.02], [0, 0.5, 0], [1, 0.9, 0.35]), // left iliac wing
-    place(new TorusGeometry(0.065, 0.018, 8, 20), [0, 0.88, 0], [Math.PI / 2, 0, 0], [1.2, 0.9, 1]), // pelvic ring
-  ])
+  const parts: BufferGeometry[] = []
+  for (const side of [-1, 1]) {
+    // hip blade: a thin plate, wide at the top, narrowing down to the hip socket
+    const blade = blob([0.066, 0.06, 0.012], (p) => {
+      p.x *= 0.5 + 0.5 * (0.5 + p.y * 0.5)
+    })
+    parts.push(place(blade.toNonIndexed(), [side * 0.088, 0.975, -0.028], [0.12, side * -0.6, side * -0.38]))
+    blade.dispose()
+    // lower branch: from the hip socket down to the middle, closing the ring at the front
+    parts.push(...bone([side * 0.078, 0.925, -0.005], [side * 0.012, 0.868, 0.035], 0.012, 0.011, 1.1).map((g) => g.toNonIndexed()))
+  }
+  // sacrum: a wedge between the blades, at the back
+  parts.push(place(new CylinderGeometry(0.04, 0.012, 0.11, 12), [0, 0.965, -0.058], [0.2, 0, 0], [1, 1, 0.45]).toNonIndexed())
+  return merge(parts)
 }
 
-// side: +1 = astronaut's left (+x), -1 = right. Matches the leg groups in Body.tsx.
+// side: +1 = astronaut's left (+x), -1 = right. Same landmarks as the body shell (bodyShape.ts).
 function leg(side: number) {
-  return merge(
-    [
-      place(new CapsuleGeometry(0.022, 0.36, 4, 10), [0, -0.22, 0]), // femur
-      place(new SphereGeometry(0.02, 10, 8), [0, -0.43, 0.04]), // kneecap
-      place(new CapsuleGeometry(0.018, 0.34, 4, 10), [0, -0.62, 0]), // tibia
-      place(new CapsuleGeometry(0.01, 0.32, 4, 8), [side * 0.024, -0.62, -0.01]), // fibula
-      place(new BoxGeometry(0.055, 0.025, 0.15), [0, -0.875, 0.04]), // foot
-    ],
-    [side * 0.09, 0.9, 0],
-  )
+  const hip = mirror(BODY.hip, side)
+  const knee = mirror(BODY.knee, side)
+  const ankle = mirror(BODY.ankle, side)
+  return merge([
+    place(new SphereGeometry(0.024, 14, 10), [side * 0.07, 0.925, -0.005]), // femoral head, in the hip socket
+    ...bone([side * 0.07, 0.925, -0.005], [hip[0] + side * 0.022, hip[1] + 0.005, 0], 0.014, 0.016, 1.2), // femoral neck
+    ...bone([hip[0] + side * 0.022, hip[1] + 0.005, 0], knee, 0.019, 0.018, 1.45), // femur
+    place(new SphereGeometry(0.019, 12, 10), [knee[0], knee[1] + 0.005, knee[2] + 0.04], [0, 0, 0], [1, 1.15, 0.6]), // kneecap
+    ...bone([knee[0], knee[1] - 0.03, knee[2]], ankle, 0.019, 0.013, 1.35), // tibia
+    ...bone([knee[0] + side * 0.027, knee[1] - 0.045, knee[2] - 0.012], [ankle[0] + side * 0.02, ankle[1] + 0.01, ankle[2] - 0.004], 0.007, 0.006, 1.3), // fibula
+    place(new SphereGeometry(0.024, 12, 10), [ankle[0], 0.04, -0.03]), // heel
+    ...bone([ankle[0], 0.045, -0.015], [ankle[0] + side * 0.005, 0.022, 0.085], 0.02, 0.014, 1.1), // foot
+    ...bone([ankle[0] + side * 0.005, 0.022, 0.085], [ankle[0] + side * 0.007, 0.014, 0.13], 0.011, 0.008, 1.1), // toes
+  ])
 }
 
 // Created once at module load.
@@ -141,8 +215,8 @@ const LABEL_POSITION: Record<BonePart, Vec3> = {
   skull: [0.25, 1.75, 0],
   spine: [0.25, 1.2, -0.08],
   ribs: [0.3, 1.32, 0],
-  arm_left: [0.5, 1.05, 0],
-  arm_right: [-0.5, 1.05, 0],
+  arm_left: [0.55, 1.05, 0],
+  arm_right: [-0.55, 1.05, 0],
   pelvis: [0.3, 0.92, 0],
   leg_left: [0.3, 0.45, 0],
   leg_right: [-0.3, 0.45, 0],
