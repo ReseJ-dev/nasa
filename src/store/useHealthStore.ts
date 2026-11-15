@@ -1,6 +1,7 @@
 import type { HealthState } from '../../3d/src/contract/types'
 import { SCENARIOS, type ScenarioData, type ScenarioId } from '../data/scenarios.ts'
-import { computeState, type Exercise, type MissionInputs } from '../engine/index.ts'
+import { PERSONAL_BASELINE } from '../data/baseline.ts'
+import { missionSimulation, simulate, type Exercise, type MissionInputs } from '../engine/index.ts'
 
 export type { ScenarioId } from '../data/scenarios.ts'
 
@@ -16,9 +17,11 @@ export interface HealthStore extends Omit<HealthState, keyof ScenarioData>, Scen
   setDay(day: number): void
   setInputs(patch: Partial<MissionInputs>): void
   setExercise(patch: Partial<Exercise>): void
+  recalculate(): void
 }
 
 const SCENARIO_DAY: Record<ScenarioId, number> = { healthy: 0, day60: 60, critical: 180 }
+const DEFAULT_EXERCISE: Exercise = { aerobic: 1, resistance: 1 }
 
 function scenarioSettings(id: ScenarioId): MissionSettings {
   const { metrics, fluidShift } = SCENARIOS[id]
@@ -33,10 +36,18 @@ function scenarioSettings(id: ScenarioId): MissionSettings {
       microgravity: 1,
       isolation: 0,
       fluidShift,
+      baseline: PERSONAL_BASELINE,
     },
-    // The scenarios don't specify isolation or completed exercise.
-    exercise: { aerobic: 0, resistance: 0 },
+    exercise: { ...DEFAULT_EXERCISE },
   }
+}
+
+function calculate(
+  { day, inputs, exercise }: MissionSettings,
+  context: Pick<HealthState, 'earthLink' | 'commDelaySec' | 'cabinTempC' | 'noiseDb'>,
+) {
+  const { input, options } = missionSimulation(day, inputs, exercise, context)
+  return simulate(input, options)
 }
 
 // Reconcile the plain objects and ordered arrays returned by the engine and fixtures.
@@ -71,31 +82,33 @@ type SetHealthState = (update: (state: HealthStore) => Partial<HealthStore>) => 
 
 // The application binds this initializer to its own Zustand installation.
 export function initializeHealthStore(set: SetHealthState): HealthStore {
-  function updateMission(patch: (state: HealthStore) => Partial<MissionSettings>) {
+  function updateMission(patch?: (state: HealthStore) => Partial<MissionSettings>) {
     set((state) => {
-      const next = patch(state)
-      const settings = changedFields<MissionSettings>(state, next)
-      if (Object.keys(settings).length === 0) return state
-
-      const day = settings.day ?? state.day
-      const inputs = settings.inputs ?? state.inputs
-      const exercise = settings.exercise ?? state.exercise
-      return { ...settings, ...changedFields<HealthStore>(state, computeState(day, inputs, exercise)) }
+      const settings = patch ? changedFields<MissionSettings>(state, patch(state)) : {}
+      if (patch && Object.keys(settings).length === 0) return state
+      const changes = { ...settings, ...changedFields<HealthStore>(state, calculate({ ...state, ...settings }, state)) }
+      return Object.keys(changes).length ? changes : state
     })
   }
 
+  function loadScenario(id: ScenarioId) {
+    const preset = SCENARIOS[id]
+    const settings = scenarioSettings(id)
+    return {
+      baseline: preset.baseline,
+      activeEvent: preset.activeEvent,
+      ...settings,
+      ...calculate(settings, preset),
+      scenario: id,
+    }
+  }
+
   return {
-    ...structuredClone(SCENARIOS.healthy),
-    ...scenarioSettings('healthy'),
-    scenario: 'healthy',
+    ...structuredClone(loadScenario('healthy')),
     selectedRegion: null,
     selectRegion: (id) => set((state) => state.selectedRegion === id ? state : { selectedRegion: id }),
     setScenario: (id) => set((state) => {
-      const changes = changedFields<HealthStore>(state, {
-        ...SCENARIOS[id],
-        ...scenarioSettings(id),
-        scenario: id,
-      })
+      const changes = changedFields<HealthStore>(state, loadScenario(id))
       return Object.keys(changes).length > 0 ? changes : state
     }),
     setDay: (day) => updateMission(() => ({
@@ -103,5 +116,6 @@ export function initializeHealthStore(set: SetHealthState): HealthStore {
     })),
     setInputs: (patch) => updateMission((state) => ({ inputs: { ...state.inputs, ...patch } })),
     setExercise: (patch) => updateMission((state) => ({ exercise: { ...state.exercise, ...patch } })),
+    recalculate: () => updateMission(),
   }
 }

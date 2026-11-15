@@ -1,8 +1,8 @@
 import type { Metric } from '../contract/types'
 import { NO_DATA_LABEL, SOURCES_NOTE } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
-import { formatLevel } from '../sim'
-import { GRAVITY_THREAT_DAYS } from '../sim/constants'
+import { formatLevel } from '../../../src/engine'
+import { GRAVITY_THREAT_DAYS } from '../../../src/engine/constants'
 import { Co2Value } from './Co2Value'
 
 // Body metrics, environment and future measurements cards (Control room).

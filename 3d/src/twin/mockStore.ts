@@ -1,8 +1,9 @@
 // Presentation presets for the 3D scene and scripted demo.
-// Scenario data is produced by the reference simulation (src/sim) from SimInputs presets;
+// Scenario data is produced by the shared engine from SimInputs presets;
 // only events (flare, shelter, sleep shift, threat links) are set by hand here.
-import type { Baseline, BonePart, HealthState, RegionId, SimInputs, Status, Vitals } from '../contract/types'
-import { isolationAlerts, simulate, type SimOutput } from '../sim'
+import type { Baseline, BonePart, HealthState, RegionId, SimInputs, Status } from '../contract/types'
+import { isolationAlerts, simulate, type SimOutput } from '../../../src/engine'
+import { PERSONAL_BASELINE as PRE_FLIGHT } from '../../../src/data/baseline'
 
 export type ScenarioId = 'healthy' | 'day60' | 'critical'
 
@@ -20,18 +21,6 @@ const PRE_FLIGHT_ACTIVITY_MIN = 150
 // Synthetic demo self-tracking, hand-made to end at each preset's own values.
 const week = (sleep: number[], activity: number[], reaction: number[], mood: number[], co2: number[]) =>
   activity.map((activityMin, i) => ({ sleepHours: sleep[i], activityMin, reactionMs: reaction[i], mood: mood[i], co2Ppm: co2[i] }))
-
-// Pre-flight values of the same crew member, shared by every preset.
-const PRE_FLIGHT: Vitals = {
-  systolic: 118,
-  diastolic: 76,
-  heartRate: 62,
-  glucose: 5.0,
-  bodyTempC: 36.6,
-  sleepHours: 8,
-  mood: 4,
-  reactionMs: 255,
-}
 
 const PRESETS: Record<ScenarioId, { inputs: SimInputs; events: Events; tracking: Tracking }> = {
   // Day 0 on the station: everything at baseline.

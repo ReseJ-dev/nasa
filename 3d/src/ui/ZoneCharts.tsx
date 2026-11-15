@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { BonePart, DayRecord, RegionId } from '../contract/types'
-import { CO2_LIMITS_MMHG, ppmToMmHg } from '../sim/constants'
+import { CO2_LIMITS_MMHG, ppmToMmHg } from '../../../src/engine/constants'
 import { STATUS_HEX } from '../twin/colors'
 import { useHealthStore } from '../twin/store'
 import { computeState, type Exercise } from '../../../src/engine/index'

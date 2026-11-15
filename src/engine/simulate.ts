@@ -12,9 +12,10 @@ import type {
   ThreatId,
   ThreatState,
   Vitals,
-} from '../contract/types'
-import * as C from './constants'
-import { distanceThreatLevel, gravityThreatLevel, microgravityIndex } from './threats'
+} from '../../3d/src/contract/types'
+import * as C from './constants.ts'
+import { distanceThreatLevel, gravityThreatLevel, microgravityIndex } from './threats.ts'
+import { ADVICE } from './advice.ts'
 
 // Reference simulation: SimInputs -> the computed part of HealthState.
 // Pure function, no React, no store. Statuses come from the deviation from the
@@ -42,6 +43,8 @@ export type SimOutput = Pick<HealthState, 'regions' | 'metrics' | 'boneDensity' 
   >
 
 const clamp01 = (v: number) => Math.min(Math.max(v, 0), 1)
+const bounded = (value: number | undefined, max: number) =>
+  typeof value === 'number' && !Number.isNaN(value) ? Math.max(0, Math.min(max, value)) : NaN
 
 export function statusOf(deviation: number): Status {
   if (deviation >= C.CRITICAL_AT) return 'critical'
@@ -102,6 +105,8 @@ function region(
     if (advice.length === 0 && sorted[0]) advice.push(C.ADVICE[sorted[0].key])
   }
   if (status === 'critical' && !earthLink) advice.push(C.AUTONOMOUS_ADVICE) // escalation 'ground' -> 'crew'
+  const [guidance, reference] = ADVICE[id]
+  advice.push(`${guidance} NASA HRP: ${reference}. Не медицинская рекомендация.`)
   return {
     id,
     status,
@@ -113,28 +118,72 @@ function region(
   }
 }
 
-export function simulate(input: SimInputs): SimOutput {
+type LiveInputs = Omit<Partial<SimInputs>, 'environment' | 'missionDay' | 'baseline'> &
+  Pick<SimInputs, 'environment' | 'missionDay' | 'baseline'>
+
+interface MissionOptions {
+  aerobic: number
+  resistance: number
+  co2Ppm?: number
+  cumulativeDoseMsv?: number
+  isolation?: number
+  fluidShift?: number
+}
+
+export function simulate(raw: LiveInputs, options?: MissionOptions): SimOutput {
+  const input = {
+    ...raw,
+    ...Object.fromEntries((Object.keys(C.TOLERANCE) as (keyof Vitals)[]).map(key => {
+      const value = raw[key]
+      return [key, typeof value === 'number' && Number.isFinite(value) && (value > 0 || key === 'sleepHours' && value === 0) ? value : NaN]
+    })),
+  } as LiveInputs & Vitals
   const env = C.ENVIRONMENTS[input.environment]
   const gravityField = input.gravityField ?? env.gravityField
-  const radiationLevel = input.radiationLevel ?? clamp01(env.doseMsvPerDay / C.RADIATION_SCALE_MSV_DAY)
+  const dose = bounded(options?.cumulativeDoseMsv, Number.MAX_VALUE)
+  const radiationLevel = options
+    ? (Number.isFinite(dose) ? clamp01(dose / C.CUMULATIVE_RADIATION_SCALE_MSV) : 0)
+    : input.radiationLevel ?? clamp01(env.doseMsvPerDay / C.RADIATION_SCALE_MSV_DAY)
   const commDelaySec = input.commDelaySec ?? env.commDelaySec
   const earthLink = input.earthLink ?? true
-  const days = input.missionDay
+  const days = bounded(input.missionDay, Number.MAX_VALUE) || 0
   const months = days / C.DAYS_PER_MONTH
   const microgravity = microgravityIndex(gravityField) // 1 in 0 g, 0 on Earth
+  const resistance = bounded(options?.resistance, 1) || 0
+  const aerobic = bounded(options?.aerobic, 1) || 0
+  const unloadedMonths = months * microgravity
 
   // ---- Forecasts (no in-flight measurement) ----
   const boneDensity = Object.fromEntries(
     (Object.keys(C.BONE_LOSS_PER_MONTH) as BonePart[]).map((p) => [
       p,
-      clamp01(1 - C.BONE_LOSS_PER_MONTH[p] * months * microgravity),
+      clamp01(1 - C.BONE_LOSS_PER_MONTH[p] * unloadedMonths * (1 - 0.65 * resistance)),
     ]),
   ) as Record<BonePart, number>
   const boneSource = Object.fromEntries(
     (Object.keys(boneDensity) as BonePart[]).map((p) => [p, days > 0 ? 'forecast' : 'measured']),
   ) as Record<BonePart, Source> // in flight bones are always a forecast; day 0 = pre-flight scan
-  const muscleMass = clamp01(1 - C.MUSCLE_LOSS_PER_MONTH * months * microgravity)
-  const fluidShift = clamp01((C.FLUID_SHIFT_START + days * C.FLUID_SHIFT_PER_DAY) * microgravity)
+  const muscleMass = clamp01(1 - C.MUSCLE_LOSS_PER_MONTH * unloadedMonths * (1 - 0.7 * resistance))
+  const fluidOverride = options?.fluidShift
+  const fluidShift = typeof fluidOverride === 'number' && Number.isFinite(fluidOverride) ? clamp01(fluidOverride)
+    : clamp01((days === 0 && options ? 0 : C.FLUID_SHIFT_START + days * C.FLUID_SHIFT_PER_DAY) * microgravity)
+  const ppm = bounded(options?.co2Ppm, 1_000_000)
+  const co2Level = options ? clamp01((ppm - 2500) / 4500) : input.co2Level ?? NaN
+  const mmHg = C.ppmToMmHg(ppm)
+  const { warn, critical } = C.CO2_LIMITS_MMHG
+  const co2Dev = options
+    ? mmHg < warn ? 0 : mmHg < critical ? 1 + (mmHg - warn) / (critical - warn) : 2 + (mmHg - critical) / 2
+    : co2Level / C.CO2_UNIT
+  const known = (v: number) => (Number.isFinite(v) ? v : 0)
+  const measured = { heart: Number.isFinite(input.heartRate), reaction: Number.isFinite(input.reactionMs), glucose: Number.isFinite(input.glucose) }
+  const deconditioning = clamp01(unloadedMonths / 6) * (1 - 0.65 * aerobic)
+  const sleepDeficit = known(clamp01((8 - input.sleepHours) / 6))
+  const isolation = bounded(options?.isolation, 1) || 0
+  if (options) {
+    if (!measured.heart) input.heartRate = Math.round(64 + 30 * deconditioning)
+    if (!measured.reaction) input.reactionMs = Math.round(255 + 180 * clamp01(0.5 * sleepDeficit + 0.25 * isolation + 0.25 * known(co2Level)))
+    if (!measured.glucose) input.glucose = 5 + 3 * clamp01(0.5 * deconditioning + 0.5 * sleepDeficit)
+  }
 
   // ---- Regions ----
   const vitalCauses = (id: RegionId): Cause[] =>
@@ -143,38 +192,39 @@ export function simulate(input: SimInputs): SimOutput {
       return { key: k, deviation: weight! * vitalDeviation(k, input[k], input.baseline[k]) }
     })
   const vitalMetrics = (id: RegionId) => Object.keys(C.REGION_INPUTS[id] ?? {}).map((k) => VITAL_METRIC[k as keyof Vitals])
-  const co2Dev = input.co2Level / C.CO2_UNIT
+  const co2Metric = options ? 'co2_ppm' : 'co2'
+  const radiationMetric = options ? 'radiation_msv' : 'radiation'
   const minBone = Math.min(...Object.values(boneDensity))
   const r = (id: RegionId, causes: Cause[], metrics: string[], source: Source) =>
     region(id, causes, metrics, source, earthLink)
 
   const regions: Record<RegionId, RegionState> = {
-    heart: r('heart', vitalCauses('heart'), vitalMetrics('heart'), 'measured'),
+    heart: r('heart', vitalCauses('heart'), vitalMetrics('heart'), measured.heart ? 'measured' : 'forecast'),
     immune: r(
       'immune',
-      [...vitalCauses('immune'), { key: 'radiation', deviation: radiationLevel / C.RADIATION_UNIT }],
-      [...vitalMetrics('immune'), 'radiation'],
+      [...vitalCauses('immune'), { key: 'radiation', deviation: options && !Number.isFinite(dose) ? NaN : radiationLevel / C.RADIATION_UNIT }],
+      [...vitalMetrics('immune'), radiationMetric],
       'measured',
     ),
-    metabolism: r('metabolism', vitalCauses('metabolism'), vitalMetrics('metabolism'), 'measured'),
+    metabolism: r('metabolism', vitalCauses('metabolism'), vitalMetrics('metabolism'), measured.glucose ? 'measured' : 'forecast'),
     brain: r(
       'brain',
-      [...vitalCauses('brain'), { key: 'co2', deviation: co2Dev * C.CO2_BRAIN_WEIGHT }],
-      [...vitalMetrics('brain'), 'co2'],
-      'measured',
+      [...vitalCauses('brain'), { key: 'co2', deviation: (options ? co2Level / C.CO2_UNIT : co2Dev) * C.CO2_BRAIN_WEIGHT }],
+      [...vitalMetrics('brain'), co2Metric],
+      measured.reaction || Number.isFinite(input.sleepHours) || Number.isFinite(input.mood) ? 'measured' : 'forecast',
     ),
-    lungs: r('lungs', [{ key: 'co2', deviation: co2Dev }], ['co2'], 'measured'),
+    lungs: r('lungs', [{ key: 'co2', deviation: co2Dev }], [co2Metric], 'measured'),
     eyes: r(
       'eyes',
       [{ key: 'eyes', deviation: Math.max(fluidShift - C.EYES_FLUID_FROM, 0) / C.EYES_UNIT }],
-      ['fluid_shift'],
+      ['vision_score', 'fluid_shift'],
       days > 0 ? 'forecast' : 'measured',
     ),
-    bones: r('bones', [{ key: 'bones', deviation: (1 - minBone) / C.BONE_UNIT }], ['bone_density'], days > 0 ? 'forecast' : 'measured'),
+    bones: r('bones', [{ key: 'bones', deviation: (1 - minBone) / C.BONE_UNIT }], ['bone_loss_pct', 'bone_density'], days > 0 ? 'forecast' : 'measured'),
     muscles: r(
       'muscles',
       [{ key: 'muscles', deviation: (1 - muscleMass) / C.MUSCLE_UNIT }],
-      ['muscle_mass'],
+      ['muscle_loss_pct', 'muscle_mass'],
       days > 0 ? 'forecast' : 'measured',
     ),
   }
@@ -182,7 +232,8 @@ export function simulate(input: SimInputs): SimOutput {
   // ---- Cause chains (both ends not ok) ----
   const bad = (id: RegionId) => regions[id].status !== 'ok'
   let chain: RegionId[] = []
-  if (bad('lungs') && bad('brain')) chain = bad('eyes') ? ['lungs', 'brain', 'eyes'] : ['lungs', 'brain']
+  if (bad('lungs') && co2Level / C.CO2_UNIT * C.CO2_BRAIN_WEIGHT >= C.WARN_AT) chain = ['lungs', 'brain']
+  else if (bad('eyes')) chain = ['brain', 'eyes']
   else if (bad('muscles') && bad('bones')) chain = ['muscles', 'bones']
   const chainLinks: ChainLink[] = []
   for (let i = 0; i + 1 < chain.length; i++) {
@@ -191,15 +242,14 @@ export function simulate(input: SimInputs): SimOutput {
   }
 
   // ---- Threats ----
-  const known = (v: number) => (Number.isFinite(v) ? v : 0) // a missing value adds nothing to a level
   const moodDev = known(vitalDeviation('mood', input.mood, input.baseline.mood))
   const sleepDev = known(vitalDeviation('sleepHours', input.sleepHours, input.baseline.sleepHours))
   const levels: Record<ThreatId, number> = {
     radiation: radiationLevel,
-    isolation: clamp01((days / C.ISOLATION_DAYS) * 0.6 + moodDev * 0.15 + sleepDev * 0.1),
+    isolation: Math.max(isolation, clamp01((days / C.ISOLATION_DAYS) * 0.6 + moodDev * 0.15 + sleepDev * 0.1)),
     gravity: gravityThreatLevel(microgravity, days),
     distance: distanceThreatLevel(commDelaySec),
-    environment: clamp01(known(input.co2Level)),
+    environment: clamp01(known(co2Level)),
   }
   const threats = Object.fromEntries(
     (Object.keys(levels) as ThreatId[]).map((id) => [id, { level: levels[id], regions: C.THREAT_REGIONS[id] }]),
@@ -216,12 +266,19 @@ export function simulate(input: SimInputs): SimOutput {
     m('sleep_hours', 'Sleep', input.sleepHours, 'h'),
     m('mood', 'Mood', input.mood, '/5'),
     m('reaction_ms', 'Reaction time', input.reactionMs, 'ms'),
-    m('co2', 'Cabin CO2', Math.round(input.co2Level * 100), '%'),
+    m('co2', 'Cabin CO2', Math.round(co2Level * 100), '%'),
+    m('co2_ppm', 'Cabin CO₂', ppm, 'ppm'),
+    m('radiation_msv', 'Cumulative dose (demo)', dose, 'mSv'),
     m('radiation', 'Radiation', Math.round(radiationLevel * 100), '%'),
     m('fluid_shift', 'Fluid shift (forecast)', Math.round(fluidShift * 100), '%'),
     m('bone_density', 'Lowest bone density (forecast)', Math.round(minBone * 100), '%'),
     m('muscle_mass', 'Muscle mass (forecast)', Math.round(muscleMass * 100), '%'),
+    m('bone_loss_pct', 'Weight-bearing bone density loss (forecast)', 100 * (1 - (boneDensity.spine + boneDensity.pelvis + boneDensity.leg_left + boneDensity.leg_right) / 4), '%'),
+    m('muscle_loss_pct', 'Muscle loss (forecast)', (1 - muscleMass) * 100, '%'),
+    m('vision_score', 'Visual acuity (forecast)', 1 - 0.35 * fluidShift, ''),
   ].filter((metric) => Number.isFinite(metric.value)) // a missing input has no metric
+  const available = new Set(metrics.map(metric => metric.id))
+  for (const region of Object.values(regions)) region.metrics = region.metrics.filter(id => available.has(id))
 
   return {
     regions,
@@ -237,9 +294,9 @@ export function simulate(input: SimInputs): SimOutput {
     gravityField,
     fluidShift,
     muscleMass,
-    co2Level: input.co2Level,
-    cabinTempC: input.cabinTempC,
-    noiseDb: input.noiseDb,
+    co2Level: known(co2Level),
+    cabinTempC: input.cabinTempC ?? 0,
+    noiseDb: input.noiseDb ?? 0,
     sleepHours: input.sleepHours,
     missionDay: days,
   }
