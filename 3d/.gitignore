@@ -31,5 +31,5 @@ bench-result.json
 # UI review screenshots
 screenshots
 
-# Final presentation screenshots (large PNGs)
-deck-assets/final
+# Presentation screenshots (large PNGs) and the script that takes them
+deck-assets/
