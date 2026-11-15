@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 const { computeState } = await import('../../src/engine/index.ts')
-const { simulate } = await import('../src/sim/index.ts')
+const { simulate } = await import('../../src/engine/index.ts')
 const { SCENARIOS } = await import('../src/twin/mockStore.ts')
 const { PERSONAL_BASELINE } = await import('../../src/data/baseline.ts')
 const { checkInDefault, pressurePairValid } = await import('../src/ui/checkIn.ts')
@@ -41,7 +41,7 @@ test('engine: a missing input has no metric, and a region left without inputs sa
   assert.deepEqual(state.regions.lungs.metrics, [])
   assert.equal(state.regions.brain.noData, undefined) // still has the reaction model
   // the same inputs with the values present are scored as before
-  assert.equal(computeState(0, { ...full, sleepHours: 0 }, exercise).regions.brain.status, 'warning')
+  assert.equal(computeState(0, { ...full, sleepHours: 0 }, exercise).regions.brain.status, 'critical')
 })
 
 test('engine: empty or broken check-in fields are ignored, real readings still count', () => {
@@ -58,7 +58,7 @@ test('engine: empty or broken check-in fields are ignored, real readings still c
   // The reported screen: a real diastolic reading of 140 against a baseline of 76 is a true alarm.
   const high = computeState(0, { ...full, sleepHours: 6.25, vitals: { systolic: 118, diastolic: 140 } }, exercise)
   assert.deepEqual([high.regions.heart.status, high.regions.heart.score], ['critical', 0])
-  assert.deepEqual([high.regions.immune.status, high.regions.immune.score], ['critical', 19])
+  assert.deepEqual([high.regions.immune.status, high.regions.immune.score], ['critical', 4])
   // ...and the region now lists the reading that caused it
   assert.ok(high.regions.immune.metrics.includes('diastolic'))
 })

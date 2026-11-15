@@ -1,5 +1,5 @@
 // Test helper: lets Node run the app's TypeScript sources directly.
-// The app imports modules without an extension (bundler style: '../sim', './constants');
+// The app imports modules without an extension (bundler style: '../twin/store');
 // Node needs the real file, so a failed relative import is retried as <name>.ts, <name>.tsx
 // and <name>/index.ts. Import this file first in a test, then load the sources with import().
 import { registerHooks } from 'node:module'
