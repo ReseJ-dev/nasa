@@ -222,24 +222,40 @@ const LABEL_POSITION: Record<BonePart, Vec3> = {
   leg_right: [-0.3, 0.45, 0],
 }
 
+// Bone material, in the same style as the body shell: the lit bone (its color = density) plus a
+// soft cyan light on the outline (fresnel), and a slightly darker middle so the bones read as
+// round. The density color itself is not changed: it is still `material.color`.
+function createBoneMaterial() {
+  const material = new MeshStandardMaterial({
+    color: SKELETON.color,
+    roughness: SKELETON.roughness,
+    transparent: true,
+    opacity: LAYERS.body.skeleton,
+    emissive: STATUS_HEX.critical,
+    emissiveIntensity: 0,
+  })
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uBoneRim = { value: new Color(SKELETON.rimColor) }
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\n      uniform vec3 uBoneRim;')
+      .replace(
+        '#include <opaque_fragment>',
+        `// 0 where the surface faces the camera, 1 at the bone's outline
+        float boneEdge = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), ${SKELETON.rimPower.toFixed(2)});
+        outgoingLight = outgoingLight * mix(${SKELETON.centerShade.toFixed(2)}, 1.0, boneEdge) + uBoneRim * boneEdge * ${SKELETON.rimIntensity.toFixed(2)};
+        #include <opaque_fragment>`,
+      )
+  }
+  return material
+}
+
 // One bone part: own material, color follows its density, fades with the layer.
 // landing = true: this is the weakest part during the landing moment: it shows through the
 // shell even in body mode and flashes red.
 function BoneMesh({ part, layer, landing }: { part: BonePart; layer: Layer; landing: boolean }) {
   const density = useHealthStore((s) => s.boneDensity[part])
 
-  const material = useMemo(
-    () =>
-      new MeshStandardMaterial({
-        color: SKELETON.color,
-        roughness: SKELETON.roughness,
-        transparent: true,
-        opacity: LAYERS.body.skeleton,
-        emissive: STATUS_HEX.critical,
-        emissiveIntensity: 0,
-      }),
-    [],
-  )
+  const material = useMemo(createBoneMaterial, [])
   useFadeOpacity(material, landing ? Math.max(LANDING.boneOpacity, LAYERS[layer].skeleton) : LAYERS[layer].skeleton)
   const landingRef = useRef(landing)
   const flashTime = useRef(0)
