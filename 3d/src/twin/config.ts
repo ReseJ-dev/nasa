@@ -45,12 +45,15 @@ export const SCENE = {
   vignette: { offset: 0.3, darkness: 0.62 },
 }
 
+// The one Normal color: legend, region dots, the Status now dot, normal organs and the body glow.
+export const NORMAL_HEX = '#4fe3ff' // soft cyan
+
 // Translucent body shell with a fresnel look: almost clear in the center,
 // glowing cyan on the silhouette edges.
 export const BODY_SHELL = {
   color: '#2a5a78', // base tint seen in the center
   roughness: 0.35,
-  rimColor: '#4fe3ff', // cyan edge glow
+  rimColor: NORMAL_HEX, // cyan edge glow = the Normal status color
   // The edge glow has two parts: a wide soft falloff toward the middle of the body
   // and a thin bright line right on the silhouette.
   rimPower: 2.0, // wide part; higher = narrower
@@ -294,7 +297,7 @@ export const REGION = {
   // Emissive glow strength in each state. Base glow depends on the status:
   // ok organs stay dim, warning/critical stand out.
   emissive: {
-    base: { ok: 0.1, warning: 0.35, critical: 0.5 } as Record<Status, number>,
+    base: { ok: 0.22, warning: 0.35, critical: 0.5 } as Record<Status, number>, // ok: low, soft cyan tint
     selected: 0.5,
     hover: 0.9,
   },
