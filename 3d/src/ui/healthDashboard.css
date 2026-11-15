@@ -224,7 +224,17 @@
 .zone-badge { padding: 1px var(--sp-2); border-radius: var(--r-pill); font-size: var(--fs-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .zone-badge[data-source="measured"] { color: var(--accent); border: 1px solid var(--accent-line); background: var(--accent-bg); }
 .zone-badge[data-source="forecast"] { color: #cdbfff; border: 1px dashed #8a76d6; background: #1a1630; }
-.zone-block { margin-top: var(--sp-4); }
+.zone-block { margin-top: var(--sp-3); }
+/* Zone panel, compact: it must fit 1366x768 with the action visible without scrolling */
+.zone-panel .health-grid { gap: var(--sp-1); }
+.zone-panel .health-metric { padding: var(--sp-1) var(--sp-2); }
+.zone-panel .health-metric dt .zone-badge { font-size: 0.68rem; padding: 0 var(--sp-1); vertical-align: 1px; }
+.zone-panel .mini-chart-key { display: none; } /* every chart line is named in its legend */
+.zone-why-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.zone-why[data-open="true"] .zone-why-text { display: block; -webkit-line-clamp: unset; }
+.zone-why-how { margin-top: var(--sp-2) !important; }
+.zone-more { margin-top: var(--sp-1); padding: 0; background: none; border: none; color: var(--accent); font: inherit; font-size: var(--fs-caption); font-weight: 600; cursor: pointer; }
+.zone-more:hover { text-decoration: underline; }
 .zone-block h3 { margin: 0 0 var(--sp-1); font-size: var(--fs-caption); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
 .zone-block p { margin: var(--sp-1) 0 0; }
 .zone-panel ul, .zone-panel ol { margin: 0; padding-left: 1.2rem; color: var(--text-2); display: grid; gap: var(--sp-1); overflow-wrap: anywhere; }
@@ -234,7 +244,7 @@
 .zone-escalation[data-level="crew"] { color: var(--st-warning); border-color: rgba(245, 194, 66, 0.5); }
 .zone-escalation[data-level="ground"] { color: var(--st-critical-text); border-color: var(--st-critical-line); }
 .zone-escalation[data-level="autonomous"] { color: var(--hz-distance); border-color: var(--hz-distance); }
-.zone-foot { margin-top: var(--sp-4); padding-top: var(--sp-2); border-top: 1px solid var(--line); }
+.zone-foot { margin-top: var(--sp-3); padding-top: var(--sp-2); border-top: 1px solid var(--line); }
 .zone-foot p { margin: var(--sp-1) 0 0; font-size: var(--fs-caption); color: var(--text-3); }
 .zone-disclaimer { font-weight: 650; }
 
