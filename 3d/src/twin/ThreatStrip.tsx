@@ -147,9 +147,11 @@ function LinkArcs({ focused }: { focused: ThreatId | null }) {
 export function ThreatStrip({
   iconRefs,
   onToggle,
+  compact = false,
 }: {
   iconRefs: RefObject<Partial<Record<ThreatId, HTMLElement | null>>> // ring elements, for the focus lines
   onToggle(id: ThreatId): void
+  compact?: boolean // narrow centered row without the panel chrome
 }) {
   // New objects only on scenario change, so this re-renders rarely.
   const threats = useHealthStore((st) => st.threats)
@@ -166,7 +168,7 @@ export function ThreatStrip({
   if (!threats) return null
 
   return (
-    <div style={{ ...s.threats, paddingTop: S.arcSpace }} onMouseLeave={() => setHover(null)}>
+    <div style={{ ...s.threats, ...(compact ? s.threatsCompact : null), paddingTop: S.arcSpace }} onMouseLeave={() => setHover(null)}>
       <LinkArcs focused={focused} />
       {THREAT_IDS.map((id) => {
         const { level, regions } = threats[id]

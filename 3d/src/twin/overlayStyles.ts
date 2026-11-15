@@ -49,6 +49,8 @@ export const overlayStyles = {
     background: 'var(--bg-panel)',
     border: '1px solid var(--line)',
   },
+  // Presentation: a narrow centered row, no panel, so the twin below stays the hero.
+  threatsCompact: { alignSelf: 'center', width: 'min(100%, 52rem)', background: 'transparent', border: 'none' },
   threatArcs: { position: 'absolute', top: 0, left: 0, width: '100%', pointerEvents: 'none', overflow: 'visible' },
   threat: {
     display: 'flex',
