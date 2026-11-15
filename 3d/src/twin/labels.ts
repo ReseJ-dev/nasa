@@ -77,6 +77,7 @@ export const SENSOR_LABEL = {
 // Captions are short words; values always carry their unit.
 export const ISOLATION_LABEL = {
   sleep: 'Sleep',
+  sleepRhythm: 'Sleep rhythm',
   shift: 'shift',
   norm: 'norm',
   reaction: 'Reaction',
