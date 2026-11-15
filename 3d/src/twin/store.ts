@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { HealthState, ThreatId } from '../contract/types'
+import type { Baseline, HealthState, ThreatId } from '../contract/types'
 import { initializeHealthStore, type HealthStore, type ScenarioId } from '../../../src/store/useHealthStore'
 import { SCENARIOS } from './mockStore'
 
@@ -32,6 +32,18 @@ function scenePreset(id: ScenarioId) {
   }
 }
 
+// Field-by-field baseline merge: the shared store's value wins only where it defines the field;
+// everything else (sleepHours, reactionMs, activityMin, ...) comes from the scene preset.
+function mergeBaseline(shared: Baseline | undefined, id: ScenarioId): Baseline {
+  const merged = { ...SCENARIOS[id].baseline } as Baseline // every scene preset has a baseline
+  if (shared) {
+    for (const [key, value] of Object.entries(shared)) {
+      if (value !== undefined) (merged as unknown as Record<string, unknown>)[key] = value
+    }
+  }
+  return merged
+}
+
 function sceneMetrics(state: Pick<HealthStore, 'metrics' | 'day'>) {
   const value = (id: string) => state.metrics.find(metric => metric.id === id)?.value
   return {
@@ -48,6 +60,7 @@ export const useHealthStore = create<TwinStore>()((set) => {
     if (changes === state) return state
     return {
       ...changes,
+      ...(changes.baseline ? { baseline: mergeBaseline(changes.baseline, changes.scenario ?? state.scenario) } : {}),
       ...(changes.metrics || changes.day !== undefined ? sceneMetrics({ ...state, ...changes }) : {}),
     }
   }))
@@ -56,6 +69,7 @@ export const useHealthStore = create<TwinStore>()((set) => {
     ...scenePreset('healthy'),
     ...health,
     ...sceneMetrics(health),
+    baseline: mergeBaseline(health.baseline, 'healthy'),
     setScenario: (id) => {
       health.setScenario(id)
       set(state => ({ ...scenePreset(id), ...sceneMetrics(state) }))
