@@ -1,9 +1,11 @@
 import type { Alert, Escalation, Metric, RegionId, RegionState, Status } from '../contract/types'
+import type { ReactNode } from 'react'
 import { STATUS_HEX } from '../twin/colors'
 import { REGION_LABEL, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
 import { DISCLAIMER, ZONE_INFO } from '../../../src/data/zoneInfo'
 import { ALERT_REGION, METRIC_ALERT, autonomousAction } from './alerts'
+import { ZoneCharts } from './ZoneCharts'
 
 // Zone panel: everything about the selected region, top to bottom:
 // name + status, measured/forecast badge, score + metrics, why, how, cause, what to do,
@@ -58,6 +60,7 @@ export function ZonePanel() {
       alerts={alerts}
       earthLink={earthLink}
       onClose={() => select(null)}
+      charts={selected ? <ZoneCharts regionId={selected} /> : null}
     />
   )
 }
@@ -69,12 +72,14 @@ export function ZoneDetails({
   alerts,
   earthLink,
   onClose,
+  charts,
 }: {
   region: RegionState | undefined
   metrics: Metric[]
   alerts: Alert[]
   earthLink: boolean
   onClose(): void
+  charts?: ReactNode // trend charts (store-driven), placed after the metrics
 }) {
   if (!region) {
     return (
@@ -126,6 +131,8 @@ export function ZoneDetails({
           </div>
         ))}
       </dl>
+
+      {charts}
 
       {zone.why && (
         <div className="zone-block">

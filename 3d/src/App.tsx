@@ -84,6 +84,7 @@ function isolationFrame(t: number) {
     mood: mix(a.mood, b.mood, e),
     activityMin: mix(a.activityMin, b.activityMin, e),
     history: b.history.map((day, i) => ({
+      ...day, // keeps the other tracked fields (reaction, mood, CO2) of the target day
       sleepHours: mix(a.history[i].sleepHours, day.sleepHours, e),
       activityMin: mix(a.history[i].activityMin, day.activityMin, e),
     })),
