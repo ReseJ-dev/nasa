@@ -281,11 +281,12 @@
 .alert-message { font-weight: 600; }
 .alert-item small { color: var(--text-3); }
 .alert-action { color: var(--text-2); }
-/* Banner: in the flow of the right column, above the card; never over the threats strip or the twin */
+/* Banner: top of the right column, under the top bar, in the flow; never over the threats strip or the twin */
 .critical-banner { animation: banner-in 0.25s ease-out; }
 .critical-banner button { width: 100%; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0 var(--sp-3); text-align: left; padding: var(--sp-2) var(--sp-4); color: #fff; background: #4a0e0b; border: 1px solid var(--st-critical); border-radius: var(--r-2); box-shadow: 0 10px 30px rgba(255, 59, 48, 0.35); }
 .critical-banner strong { grid-row: 1 / 3; padding: var(--sp-1) var(--sp-2); color: #fff; background: var(--st-critical); border-radius: var(--r-1); text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--fs-caption); }
-.critical-banner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.critical-banner span { min-width: 0; overflow-wrap: anywhere; }
+.critical-banner .alert-action { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .critical-banner > button > span:first-of-type { font-weight: 650; }
 .critical-banner small, .critical-banner .alert-action { color: #ffc4bf; }
 .critical-vignette { position: fixed; inset: 0; z-index: 55; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(255, 30, 20, 0.55) 100%); opacity: 0; animation: vignette-flash 1.4s ease-out; }
