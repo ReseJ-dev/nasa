@@ -5,7 +5,7 @@ import { CO2_LIMITS_MMHG, ppmToMmHg } from '../sim/constants'
 // against the NASA limits (same limits as the engine's lungs region and the lungs chart).
 
 export const CO2_LABEL = 'Cabin CO₂ (ppCO₂)'
-export const CO2_LIMITS_TEXT = `limits ${CO2_LIMITS_MMHG.warn} / ${CO2_LIMITS_MMHG.critical} mmHg`
+export const CO2_LIMITS_TEXT = `NASA limits ${CO2_LIMITS_MMHG.warn} / ${CO2_LIMITS_MMHG.critical} mmHg`
 
 const ppmFormat = new Intl.NumberFormat('en', { maximumFractionDigits: 0 })
 

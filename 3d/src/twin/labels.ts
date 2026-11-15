@@ -84,6 +84,10 @@ const signed = (v: number, digits = 0) => {
 export const formatHours = (h: number) => `${h.toFixed(1)} h` // "5.2 h"
 export const formatShift = (h: number) => `${signed(h, 1)} h` // "+3 h"
 export const formatMs = (ms: number) => `${Math.round(ms)} ms` // "412 ms"
+// Shown wherever the app shows thresholds (metrics panel, zone panel).
+export const SOURCES_NOTE =
+  'Thresholds are drawn from NASA-STD-3001 where marked; others are project estimates. Not a medical device.'
+
 export const formatMinutes = (min: number) => `${Math.round(min)} min`
 // Change against the personal baseline: "+31%", "−73%", "±0%".
 export const formatChange = (value: number, baseline: number) =>

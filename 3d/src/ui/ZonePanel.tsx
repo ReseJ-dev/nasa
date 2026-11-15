@@ -1,7 +1,7 @@
 import type { Alert, Escalation, Metric, RegionId, RegionState, Status } from '../contract/types'
 import type { CSSProperties, ReactNode } from 'react'
 import { STATUS_HEX } from '../twin/colors'
-import { NO_DATA_LABEL, REGION_LABEL, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
+import { NO_DATA_LABEL, REGION_LABEL, SOURCES_NOTE, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
 import { DISCLAIMER, ZONE_INFO } from '../../../src/data/zoneInfo'
 import { ALERT_REGION, METRIC_ALERT, autonomousAction } from './alerts'
@@ -196,6 +196,7 @@ export function ZoneDetails({
             {!zone.verified && ` (${TEXT.unverified})`}
           </p>
         )}
+        <p>{SOURCES_NOTE}</p>
         <p className="zone-disclaimer">{DISCLAIMER}</p>
       </footer>
     </section>
