@@ -21,6 +21,11 @@ export const STATUS_LABEL: Record<Status, string> = {
 // Shown instead of a score or a value when the engine has no input for it.
 export const NO_DATA_LABEL = 'No data'
 
+// Labels drawn over the 3D scene stay short: at most this many characters.
+export const SCENE_LABEL_MAX = 25
+export const sceneLabel = (text: string) =>
+  text.length <= SCENE_LABEL_MAX ? text : `${text.slice(0, SCENE_LABEL_MAX - 1).trimEnd()}…`
+
 export const DENSITY_LABEL = {
   normal: 'normal',
   low: 'low density',
