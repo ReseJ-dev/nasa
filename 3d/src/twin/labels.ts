@@ -18,6 +18,9 @@ export const STATUS_LABEL: Record<Status, string> = {
   critical: 'Critical',
 }
 
+// Shown instead of a score or a value when the engine has no input for it.
+export const NO_DATA_LABEL = 'No data'
+
 export const DENSITY_LABEL = {
   normal: 'normal',
   low: 'low density',

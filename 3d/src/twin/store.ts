@@ -90,7 +90,7 @@ function liveThreats(state: TwinStore): Partial<TwinStore> {
   if (!state.threats) return {}
   const level = {
     radiation: state.radiationLevel ?? state.threats.radiation.level,
-    gravity: clamp01(state.inputs.microgravity * (state.day / GRAVITY_THREAT_DAYS)),
+    gravity: clamp01((state.inputs.microgravity ?? 0) * (state.day / GRAVITY_THREAT_DAYS)),
     distance: clamp01((state.commDelaySec ?? 0) / DISTANCE_DELAY_FULL_SEC),
   }
   const t = state.threats

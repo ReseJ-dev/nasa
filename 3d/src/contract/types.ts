@@ -19,6 +19,9 @@ export interface RegionState {
   advice: string[]
   source?: Source // proposed: measured now, or forecast by the model
   escalation?: Escalation // proposed: who should act
+  // Proposed: true when the region has no input at all. Status stays 'ok' and the UI shows
+  // "No data" instead of the score; missing data never lowers a score or raises an alert.
+  noData?: boolean
 }
 
 export interface Metric {

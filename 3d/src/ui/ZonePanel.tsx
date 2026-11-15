@@ -1,7 +1,7 @@
 import type { Alert, Escalation, Metric, RegionId, RegionState, Status } from '../contract/types'
 import type { CSSProperties, ReactNode } from 'react'
 import { STATUS_HEX } from '../twin/colors'
-import { REGION_LABEL, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
+import { NO_DATA_LABEL, REGION_LABEL, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
 import { DISCLAIMER, ZONE_INFO } from '../../../src/data/zoneInfo'
 import { ALERT_REGION, METRIC_ALERT, autonomousAction } from './alerts'
@@ -115,7 +115,7 @@ export function ZoneDetails({
       <header className="zone-head">
         <i aria-hidden="true" style={{ background: color }} />
         <h2 id="zone-title">{REGION_LABEL[selected]}</h2>
-        <span className="zone-status" data-status={status}>{STATUS_LABEL[status]}</span>
+        <span className="zone-status" data-status={status}>{region.noData ? NO_DATA_LABEL : STATUS_LABEL[status]}</span>
         <button type="button" className="zone-close" onClick={onClose} aria-label={TEXT.close}>×</button>
       </header>
 
@@ -126,7 +126,7 @@ export function ZoneDetails({
       <dl className="health-grid zone-metrics">
         <div className="health-metric">
           <dt>{TEXT.score}</dt>
-          <dd style={{ color }}>{region.score} <small>/ 100</small></dd>
+          <dd style={{ color }}>{region.noData ? <small>{NO_DATA_LABEL}</small> : <>{region.score} <small>/ 100</small></>}</dd>
         </div>
         {regionMetrics.map((m) => (
           <div key={m.id} className="health-metric">
