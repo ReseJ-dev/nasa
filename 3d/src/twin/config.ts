@@ -113,6 +113,9 @@ export const LAYERS: Record<Layer, { shell: number; skeleton: number; organs: nu
 // In skeleton mode these regions are hidden completely (they overlap the bones);
 // the other organs fade to LAYERS.skeleton.organs and cannot be hovered or clicked.
 export const HIDDEN_IN_SKELETON: RegionId[] = ['muscles', 'bones']
+// Regions with no organ mesh in Body mode: the bones region (straight spine line + pelvis ring)
+// is shown only by the real bones of the Skeleton layer. Its status stays in the lists and callout.
+export const SKELETON_ONLY: RegionId[] = ['bones']
 export const LAYER_FADE_SPEED = 4 // how fast layers fade (higher = faster, ~0.7 s at 4)
 
 // Heartbeat: the heart mesh scales in a "lub-dub, pause" rhythm.
