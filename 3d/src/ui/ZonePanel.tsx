@@ -6,6 +6,7 @@ import { useHealthStore } from '../twin/store'
 import { DISCLAIMER, ZONE_INFO } from '../../../src/data/zoneInfo'
 import { ALERT_REGION, METRIC_ALERT, autonomousAction } from './alerts'
 import { ZoneCharts } from './ZoneCharts'
+import { Co2Value } from './Co2Value'
 
 // Zone panel: everything about the selected region, top to bottom:
 // name + status, measured/forecast badge, score + metrics, why, how, cause, what to do,
@@ -128,7 +129,7 @@ export function ZoneDetails({
           <dt>{TEXT.score}</dt>
           <dd style={{ color }}>{region.noData ? <small>{NO_DATA_LABEL}</small> : <>{region.score} <small>/ 100</small></>}</dd>
         </div>
-        {regionMetrics.map((m) => (
+        {regionMetrics.map((m) => m.id === 'co2_ppm' ? <Co2Value key={m.id} metric={m} /> : (
           <div key={m.id} className="health-metric">
             <dt>{m.label}</dt>
             <dd>{format.format(m.value)} {m.unit && <small>{m.unit}</small>}</dd>
