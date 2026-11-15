@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 import type { Baseline, HealthState, RegionId, SimEnvironment, ThreatId } from '../contract/types'
-import { DISTANCE_DELAY_FULL_SEC, ENVIRONMENTS, GRAVITY_THREAT_DAYS } from '../sim/constants'
+import { ENVIRONMENTS } from '../sim/constants'
 import { initializeHealthStore, type HealthStore, type ScenarioId } from '../../../src/store/useHealthStore'
 import { PERSONAL_BASELINE } from '../../../src/data/baseline'
-import { isolationAlerts } from '../sim'
+import { distanceThreatLevel, gravityThreatLevel, isolationAlerts, microgravityIndex } from '../sim'
 import { SCENARIOS } from './mockStore'
 
 export type { ScenarioId }
@@ -78,20 +78,21 @@ function sceneMetrics(state: Pick<HealthStore, 'metrics' | 'day'>) {
 // themselves do not depend on it; it applies from the first change of day, inputs or exercise.
 const DEFAULT_EXERCISE = { aerobic: 1, resistance: 1 }
 
-const clamp01 = (v: number) => Math.min(Math.max(v, 0), 1)
-
 // Cumulative dose of an environment by mission day (the engine takes the cumulative dose in mSv).
 const doseAt = (id: SimEnvironment, day: number) => ENVIRONMENTS[id].doseMsvPerDay * day
 
-// Threat levels that follow the live inputs (same formulas as the reference sim, src/sim).
-// Only used after a user change of day / inputs / environment, not on a scenario load, so the
-// hand-made scenario presets keep their own levels.
-function liveThreats(state: TwinStore): Partial<TwinStore> {
+// Threat levels that follow the state, with the one definition of each (src/sim/threats.ts):
+// gravity = microgravity index (inputs.microgravity) x mission day, distance = comm delay,
+// radiation = the store's radiationLevel. Applied on every scenario load and after every user
+// change, so the strip, the metrics panel and the alerts always read the same numbers.
+// Isolation and environment keep the level of the scene preset.
+type ThreatInputs = Pick<TwinStore, 'threats' | 'radiationLevel' | 'inputs' | 'day' | 'commDelaySec'>
+function threatLevels(state: ThreatInputs): Pick<TwinStore, 'threats'> | Record<string, never> {
   if (!state.threats) return {}
   const level = {
     radiation: state.radiationLevel ?? state.threats.radiation.level,
-    gravity: clamp01((state.inputs.microgravity ?? 0) * (state.day / GRAVITY_THREAT_DAYS)),
-    distance: clamp01((state.commDelaySec ?? 0) / DISTANCE_DELAY_FULL_SEC),
+    gravity: gravityThreatLevel(state.inputs.microgravity ?? 0, state.day),
+    distance: distanceThreatLevel(state.commDelaySec ?? 0),
   }
   const t = state.threats
   if (t.radiation.level === level.radiation && t.gravity.level === level.gravity && t.distance.level === level.distance) {
@@ -125,7 +126,7 @@ function liveAlerts(state: TwinStore): Partial<TwinStore> {
 }
 
 // Everything that follows the live inputs after a user change (not on a scenario load).
-const live = (state: TwinStore): Partial<TwinStore> => ({ ...liveThreats(state), ...liveAlerts(state) })
+const live = (state: TwinStore): Partial<TwinStore> => ({ ...threatLevels(state), ...liveAlerts(state) })
 
 export const useHealthStore = create<TwinStore>()((set, get) => {
   const health = initializeHealthStore(update => set(state => {
@@ -138,9 +139,10 @@ export const useHealthStore = create<TwinStore>()((set, get) => {
     }
   }))
 
+  const loaded = { ...scenePreset('healthy'), ...health }
   return {
-    ...scenePreset('healthy'),
-    ...health,
+    ...loaded,
+    ...threatLevels(loaded),
     ...sceneMetrics(health),
     exercise: DEFAULT_EXERCISE,
     baseline: mergeBaseline(health.baseline, 'healthy'),
@@ -159,6 +161,7 @@ export const useHealthStore = create<TwinStore>()((set, get) => {
     setScenario: (id) => {
       health.setScenario(id)
       set(state => ({ ...scenePreset(id), ...sceneMetrics(state), environment: null, exercise: DEFAULT_EXERCISE }))
+      set(threatLevels)
     },
     setDay: (day) => {
       const env = get().environment
@@ -176,7 +179,7 @@ export const useHealthStore = create<TwinStore>()((set, get) => {
     },
     setEnvironment: (id) => {
       const env = ENVIRONMENTS[id]
-      health.setInputs({ microgravity: 1 - env.gravityField, radiationMsv: doseAt(id, get().day) })
+      health.setInputs({ microgravity: microgravityIndex(env.gravityField), radiationMsv: doseAt(id, get().day) })
       set({ environment: id, gravityField: env.gravityField, commDelaySec: env.commDelaySec })
       set(live)
     },
