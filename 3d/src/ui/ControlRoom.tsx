@@ -2,7 +2,7 @@ import { useHealthStore, type ScenarioId } from '../twin/store'
 import { CheckInPanel } from './CheckInPanel'
 import { EarthLinkToggle, MissionControls } from './ControlBar'
 import { HealthMetrics } from './MetricsCards'
-import { loadPreset } from './presetState'
+import { loadPreset, useIsCustom } from './presetState'
 import { SoundControls } from './SoundControls'
 
 // Control room: everything for driving the demo, hidden in presentation mode (key C or
@@ -17,21 +17,30 @@ const TEXT = {
   scenario: 'Scenario',
   mission: 'Mission',
   link: 'Earth link and sound',
+  custom: 'Custom',
+  customNote: 'Inputs changed since the preset was loaded. Pick a preset to reset.',
   checkIn: 'Daily check-in',
   checkInNote: 'Manual items that sensors cannot capture: mood, reaction test, glucose, blood pressure.',
   closeCheckIn: 'Close check-in',
 }
 
+// The highlight is on a preset only while the inputs still are that preset's; after any change
+// (day, check-in, exercise, environment, Earth link) it moves to "Custom".
 function Presets() {
   const scenario = useHealthStore((s) => s.scenario)
+  const custom = useIsCustom()
   return (
-    <div className="health-presets" role="group" aria-label="Mission scenario">
-      {Object.entries(SCENARIOS).map(([id, label]) => (
-        <button key={id} type="button" data-scenario={id} aria-pressed={scenario === id} onClick={() => loadPreset(id as ScenarioId)}>
-          {label}
-        </button>
-      ))}
-    </div>
+    <>
+      <div className="health-presets" role="group" aria-label="Mission scenario">
+        {Object.entries(SCENARIOS).map(([id, label]) => (
+          <button key={id} type="button" data-scenario={id} aria-pressed={!custom && scenario === id} onClick={() => loadPreset(id as ScenarioId)}>
+            {label}
+          </button>
+        ))}
+        {custom && <span className="preset-custom" aria-current="true" title={TEXT.customNote}>{TEXT.custom}</span>}
+      </div>
+      {custom && <p className="preset-note">{TEXT.customNote}</p>}
+    </>
   )
 }
 
