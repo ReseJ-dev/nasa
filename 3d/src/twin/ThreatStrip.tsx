@@ -8,6 +8,7 @@ import { EFFECTS, THREAT_COLOR, THREAT_LEVEL, THREAT_STRIP as S } from './config
 import { EARTH_LABEL, RADIATION_LABEL, THREAT_LABEL, THREAT_STRIP_LABEL } from './labels'
 import { overlayStyles as s } from './overlayStyles'
 import { formatLevel } from '../../../src/engine'
+import { delayedEarth } from '../missionDisplay'
 
 // Five threats strip: its own row above the 3D stage (never over the astronaut).
 // Each threat: its icon inside a ring filled by level (ring color = status thresholds),
@@ -148,10 +149,12 @@ export function ThreatStrip({
   iconRefs,
   onToggle,
   compact = false,
+  showPhysicalDose = false,
 }: {
   iconRefs: RefObject<Partial<Record<ThreatId, HTMLElement | null>>> // ring elements, for the focus lines
   onToggle(id: ThreatId): void
   compact?: boolean // narrow centered row without the panel chrome
+  showPhysicalDose?: boolean
 }) {
   // New objects only on scenario change, so this re-renders rarely.
   const threats = useHealthStore((st) => st.threats)
@@ -161,10 +164,11 @@ export function ThreatStrip({
   // Dose counter next to the radiation level while a solar flare is on.
   const flare = useHealthStore((st) => st.activeEvent === 'solar_flare')
   const dose = useHealthStore((st) => st.radiationLevel ?? 0)
+  const doseMsv = useHealthStore(st => st.metrics.find(metric => metric.id === 'radiation_msv')?.value)
   // Distance shows the link state and delay instead of a level.
   const link = useHealthStore((st) => st.earthLink ?? true)
   const delay = useHealthStore((st) => st.commDelaySec ?? 0)
-  const distanceText = link ? EARTH_LABEL.replyIn(delay * 2) : EARTH_LABEL.noLink
+  const distanceText = delayedEarth(delay) ? 'Autonomous mode' : link ? EARTH_LABEL.replyIn(delay * 2) : EARTH_LABEL.noLink
   if (!threats) return null
 
   return (
@@ -174,10 +178,11 @@ export function ThreatStrip({
         const { level, regions } = threats[id]
         const status = levelStatus(level)
         const ofSelected = selected !== null && regions.includes(selected) // reverse highlight
+        const physicalDose = id === 'radiation' && showPhysicalDose && doseMsv !== undefined
         return (
           <button
             key={id}
-            title={`${THREAT_LABEL[id]}: ${id === 'distance' ? distanceText : formatLevel(level)}`}
+            title={`${THREAT_LABEL[id]}: ${physicalDose ? `${doseMsv} mSv accumulated · ${status}` : id === 'distance' ? distanceText : formatLevel(level)}`}
             aria-pressed={focused === id}
             style={{
               ...s.threat,
@@ -201,11 +206,14 @@ export function ThreatStrip({
                 style={{
                   ...s.threatLevel,
                   ...(status !== 'ok' ? { color: STATUS_HEX[status], fontWeight: 700 } : null),
-                  ...(id === 'distance' ? (link ? { color: 'var(--text-2)', fontWeight: 400 } : s.threatNoLink) : null),
+                  ...(id === 'distance' ? (
+                    delayedEarth(delay) ? { ...s.threatNoLink, whiteSpace: 'normal', fontSize: 12 }
+                      : link ? { color: 'var(--text-2)', fontWeight: 400 } : s.threatNoLink
+                  ) : null),
                 }}
               >
-                {id === 'distance' ? distanceText : formatLevel(level)}
-                {id === 'radiation' && flare && EFFECTS.solarFlare && (
+                {physicalDose ? `${doseMsv} mSv · ${status}` : id === 'distance' ? distanceText : formatLevel(level)}
+                {!physicalDose && id === 'radiation' && flare && EFFECTS.solarFlare && (
                   <span style={s.doseBadge}>{RADIATION_LABEL.dose(dose)}</span>
                 )}
               </span>

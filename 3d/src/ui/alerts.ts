@@ -1,6 +1,7 @@
 import type { Alert, AlertMetric, RegionId, RegionState, Status, ThreatId, ThreatState } from '../contract/types'
 import { REGION_LABEL, STATUS_LABEL } from '../twin/labels'
 import { ZONE_INFO } from '../../../src/data/zoneInfo'
+import { delayedEarth, DELAYED_EARTH_TEXT } from '../missionDisplay'
 
 // One list of alerts for the UI, built from what the engine already decided:
 // - every region with a warning/critical status (engine regions),
@@ -20,6 +21,8 @@ export interface AlertItem {
   source: string // rule source, shown on hover
   verified: boolean
   forecast: boolean
+  score?: number
+  escalationNote?: string
 }
 
 // Isolation indicator alerts carry a metric, not a region: the region they belong to.
@@ -68,13 +71,16 @@ export function buildAlerts({
   alerts,
   threats,
   earthLink,
+  commDelaySec,
 }: {
   regions: Record<RegionId, RegionState>
   alerts: Alert[] | undefined
   threats: Record<ThreatId, ThreatState> | undefined
   earthLink: boolean
+  commDelaySec?: number
 }): AlertItem[] {
-  const adapt = (action: string) => (earthLink ? action : autonomousAction(action))
+  const escalationNote = delayedEarth(commDelaySec) ? DELAYED_EARTH_TEXT : undefined
+  const adapt = (action: string) => (earthLink || escalationNote ? action : autonomousAction(action))
   const items: AlertItem[] = []
 
   for (const region of Object.values(regions)) {
@@ -95,6 +101,8 @@ export function buildAlerts({
       source: zone.source,
       verified: zone.verified,
       forecast: (region.source ?? zone.measurement) === 'forecast',
+      score: region.score,
+      ...(escalationNote ? { escalationNote } : {}),
     })
   }
 
@@ -112,6 +120,7 @@ export function buildAlerts({
       source: info.source,
       verified: false,
       forecast: false, // self-tracked today
+      ...(escalationNote ? { escalationNote } : {}),
     })
   }
 
@@ -122,4 +131,26 @@ export function buildAlerts({
       Number(a.id.startsWith('region_')) - Number(b.id.startsWith('region_')) ||
       a.message.localeCompare(b.message),
   )
+}
+
+// The event is a presentation priority. It does not change the store's alert count.
+export function statusNowItems(items: AlertItem[], event: 'none' | 'solar_flare' | undefined, inShelter: boolean, commDelaySec?: number): AlertItem[] {
+  const ordered = [...items].sort((a, b) =>
+    LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] ||
+    (a.level === 'critical' ? (a.score ?? Infinity) - (b.score ?? Infinity) : 0),
+  )
+  if (event !== 'solar_flare') return ordered
+  return [{
+    id: 'event_solar_flare',
+    level: 'critical',
+    regionId: 'immune',
+    regions: ['immune'],
+    message: 'Solar flare active',
+    hazard: 'radiation',
+    action: inShelter ? 'Stay in the storm shelter.' : 'Move to the storm shelter.',
+    source: 'Project storm-shelter protocol',
+    verified: false,
+    forecast: false,
+    ...(delayedEarth(commDelaySec) ? { escalationNote: DELAYED_EARTH_TEXT } : {}),
+  }, ...ordered]
 }

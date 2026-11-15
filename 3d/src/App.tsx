@@ -11,6 +11,7 @@ import { loadPreset } from './ui/presetState'
 import { SoundControls } from './ui/SoundControls'
 import { DEV_PANEL, REGION_LABEL } from './twin/labels'
 import { GRAVITY_FIELDS, type Layer } from './twin/config'
+import { loadSlideScene } from './slideScene'
 
 // App entry: the presentation screen by default; the TEMPORARY dev page (test panel + scripted
 // demo, not part of the twin) behind ?dev / ?preset / ?focus / ?layer; the FPS bench at ?bench.
@@ -31,7 +32,10 @@ const params = new URLSearchParams(location.search)
 const START_PRESET = SCENARIO_BUTTONS.find((id) => id === params.get('preset'))
 const START_FOCUS = (Object.keys(SCENARIOS.healthy.threats) as ThreatId[]).find((id) => id === params.get('focus')) ?? null
 const START_LAYER: Layer = params.get('layer') === 'skeleton' ? 'skeleton' : 'body'
-if (START_PRESET) loadPreset(START_PRESET)
+const scene = params.get('scene')
+const slide = scene === 'flare' || scene === 'shelter' ? scene : undefined
+if (slide) loadSlideScene(slide)
+else if (START_PRESET) loadPreset(START_PRESET)
 
 // ---- Dev page ------------------------------------------------------------------------
 
@@ -110,6 +114,7 @@ function TestPanel({ demo }: { demo: ReturnType<typeof useDemo> }) {
 }
 
 export default function App() {
+  if (slide) return <HealthDashboard slide={slide} />
   // Dev tool: FPS benchmark at ?bench (see Bench.tsx).
   if (location.search.includes('bench')) return <Bench />
   // ?mode=present / ?mode=control always opens the main screen (a ?preset= still applies).

@@ -350,9 +350,8 @@ export const THREAT_LABEL_EMPHASIS = 0.99
 export const THREAT_DIMMED_EMPHASIS = 0.2
 
 // Threats row layout (px) and its lines.
-// Permanent callouts in 3D: every critical region, plus at most this many warnings (the lowest
-// scores first). The other warnings show their label on hover only.
-export const CALLOUTS = { maxWarnings: 2 }
+// Permanent callout limit, with critical regions first.
+export const CALLOUTS = { maxVisible: 4 }
 
 export const THREAT_STRIP = {
   ring: 38, // icon ring diameter
@@ -381,16 +380,16 @@ export const RADIATION_TRACKS = {
   maxCount: 45, // visible tracks at radiationLevel = 1, focused
   minSpeed: 1.6, // units per second at low levels
   maxSpeed: 3.2, // at radiationLevel = 1
-  length: [0.35, 0.7] as [number, number], // random track length
-  thickness: 0.006,
-  color: '#b98bff',
-  opacity: 0.75,
+  length: [0.1, 0.32] as [number, number],
+  thickness: 0.0024,
+  color: '#dcf2ff',
+  opacity: 0.95,
   span: 1.3, // tracks enter at x = -span and leave at x = +span
   yRange: [0.05, 1.85] as [number, number],
   zRange: [-0.12, 0.12] as [number, number],
   lerpSpeed: 1.5,
   // Hits: a short spark where a track enters the body shell (or the shelter wall).
-  sparks: { max: 5, life: 0.3, size: 0.05, color: '#c79bff' },
+  sparks: { max: 9, life: 0.16, size: 0.022, color: '#b1e9ff' },
   // Immune and brain regions: slight violet shimmer on top of their status color.
   shimmer: { regions: ['immune', 'brain'] as RegionId[], color: '#a66cff', amount: 0.35, wobble: 0.15, hz: 2.2 },
 }
@@ -416,12 +415,12 @@ export const SOLAR_FLARE = {
 // Shelter (inShelter): translucent capsule around the body; tracks stop at its wall.
 export const SHELTER = {
   center: [0, 0.95, 0] as Vec3,
-  radius: 0.48, // also the wall the tracks stop at (x = -radius)
-  length: 1.1, // straight part of the capsule
-  color: '#a66cff',
-  rimPower: 2.5,
-  opacity: 0.5, // at the silhouette edge
-  labelPosition: [0.48, 0.12, 0] as Vec3,
+  radius: 0.37,
+  length: 1.18,
+  color: '#69c8ff',
+  rimPower: 3.5,
+  opacity: 0.23,
+  labelPosition: [0.42, 1.49, 0.08] as Vec3,
   lerpSpeed: 2,
 }
 

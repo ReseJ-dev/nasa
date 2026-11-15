@@ -2,8 +2,9 @@ import { STATUS_HEX } from '../twin/colors'
 import { STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
 import { ZONE_INFO } from '../../../src/data/zoneInfo'
-import { AlertCard, sourceTitle, useAlertItems, useOpenAlert } from './AlertsPanel'
+import { AlertCard, sourceTitle, useStatusNowItems, useOpenAlert } from './AlertsPanel'
 import type { AlertItem } from './alerts'
+import type { SlideScene } from '../slideScene'
 import { AUTONOMOUS_LABEL, ESCALATION_LABEL, escalationFor } from './ZonePanel'
 
 // "Status now": the one thing that matters right now. The highest-priority alert with its cause,
@@ -28,6 +29,8 @@ function useEscalation(item: AlertItem | undefined) {
   const region = useHealthStore((s) => (item ? s.regions[item.regionId] : undefined))
   const earthLink = useHealthStore((s) => s.earthLink ?? true)
   if (!item || !region) return undefined
+  if (item.escalationNote) return { level: 'autonomous', label: item.escalationNote }
+  if (item.id === 'event_solar_flare') return { level: 'crew', label: ESCALATION_LABEL.crew }
   const zone = ZONE_INFO[item.regionId]
   const who = item.id.startsWith('region_')
     ? escalationFor(region.escalation, item.level, item.regionId)
@@ -36,12 +39,11 @@ function useEscalation(item: AlertItem | undefined) {
   return {
     level: autonomous ? 'autonomous' : who,
     label: autonomous ? AUTONOMOUS_LABEL : ESCALATION_LABEL[who],
-    text: autonomous ? zone.escalation.autonomous : zone.escalation[item.level].text,
   }
 }
 
-export function StatusNow() {
-  const items = useAlertItems()
+export function StatusNow({ slide }: { slide?: SlideScene }) {
+  const items = useStatusNowItems()
   const openAlert = useOpenAlert()
   const top = items[0]
   const rest = items.slice(1)
@@ -69,7 +71,7 @@ export function StatusNow() {
           <strong className="zone-status" data-status={top.level}>{STATUS_LABEL[top.level]}</strong>
           {top.forecast && <span className="zone-badge" data-source="forecast">{TEXT.forecast}</span>}
         </span>
-        <p className="status-message">{top.message}</p>
+        <p className="status-message">{slide === 'shelter' ? 'In shelter · dose rate reduced' : slide === 'flare' ? 'Solar particle event in progress' : top.message}</p>
         <p className="status-cause">
           {TEXT.cause}: <b>{THREAT_LABEL[top.hazard]}</b>
         </p>
@@ -79,12 +81,11 @@ export function StatusNow() {
           <>
             <h3>{TEXT.who}</h3>
             <span className="zone-escalation" data-level={escalation.level}>{escalation.label}</span>
-            <p className="status-who">{escalation.text}</p>
           </>
         )}
-        <button type="button" className="status-open" onClick={() => openAlert(top)}>{TEXT.details}</button>
+        {!slide && <button type="button" className="status-open" onClick={() => openAlert(top)}>{TEXT.details}</button>}
       </div>
-      {rest.length > 0 && (
+      {!slide && rest.length > 0 && (
         <details className="status-more">
           <summary>{TEXT.more(rest.length)}</summary>
           <ul>

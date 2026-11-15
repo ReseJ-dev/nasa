@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, Stars, Stats } from '@react-three/drei'
 import { EffectComposer, Selection, SelectiveBloom, Vignette } from '@react-three/postprocessing'
 import { AdditiveBlending, CanvasTexture, SRGBColorSpace, type AmbientLight, type DirectionalLight } from 'three'
@@ -34,6 +34,22 @@ import { useHealthStore } from './store'
 import { BLOOM, CAMERA, EFFECTS, RENDER, SCENE, type Layer } from './config'
 import { overlayStyles as st } from './overlayStyles'
 import './theme'
+
+function StillFrame({ onReady }: { onReady(): void }) {
+  const advance = useThree(state => state.advance)
+  useEffect(() => {
+    let frame = 0
+    let request = 0
+    const draw = () => {
+      advance(++frame / 24, false)
+      if (frame < 52) request = requestAnimationFrame(draw)
+      else onReady()
+    }
+    request = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(request)
+  }, [advance, onReady])
+  return null
+}
 
 // Scene backdrop, drawn once at module load: a dark vertical gradient with a soft halo behind
 // the torso. A little noise is mixed in, so the dark gradient shows no visible steps (banding).
@@ -192,6 +208,7 @@ function LayerSwitch({ layer, onChange }: { layer: Layer; onChange(l: Layer): vo
 export function BodyScene({
   showFps = false,
   compact = false,
+  still = false,
   layer: layerProp,
   onLayerChange,
   onThreatClick,
@@ -199,6 +216,7 @@ export function BodyScene({
 }: {
   showFps?: boolean
   compact?: boolean
+  still?: boolean
   layer?: Layer
   onLayerChange?(layer: Layer): void
   onThreatClick?(threatId: ThreatId): void
@@ -239,6 +257,7 @@ export function BodyScene({
   // Shared between the HTML overlay and the Canvas for the focus lines (no React state per frame).
   const container = useRef<HTMLDivElement>(null)
   const stage = useRef<HTMLDivElement>(null)
+  const finishStill = useMemo(() => () => stage.current?.setAttribute('data-frame', 'frozen'), [])
   const iconRefs = useRef<Partial<Record<ThreatId, HTMLElement | null>>>({})
   const focusLines = useRef<(SVGLineElement | null)[]>([])
   // Hint disappears after the first pointer interaction with the canvas (set once).
@@ -260,9 +279,10 @@ export function BodyScene({
   return (
     <div ref={container} style={st.root}>
       {/* Threats: their own row, so nothing covers the astronaut. */}
-      <ThreatStrip iconRefs={iconRefs} onToggle={onThreatToggle} compact={compact} />
+      <ThreatStrip iconRefs={iconRefs} onToggle={onThreatToggle} compact={compact} showPhysicalDose={still} />
       <div ref={stage} style={st.stage}>
         <Canvas
+          frameloop={still ? 'never' : 'always'}
           camera={{ position: CAMERA.position, fov: CAMERA.fov }}
           dpr={RENDER.dpr}
           shadows={false} // no shadow maps: nothing in the scene casts shadows
@@ -336,17 +356,19 @@ export function BodyScene({
           {EFFECTS.moodDots && <MoodDots />}
           {EFFECTS.offline && <OfflineTag />}
           {EFFECTS.gravityArrow && <GravityArrow />}
-          {EFFECTS.radiationTracks && <RadiationTracks layer={layer} />}
+          {EFFECTS.radiationTracks && <RadiationTracks layer={layer} still={still} />}
           {EFFECTS.shelter && <Shelter layer={layer} />}
           {showFps && <Stats />}
           <CameraRig />
           <FocusLineTracker lines={focusLines} iconRefs={iconRefs} container={container} stage={stage} />
+          {still && <StillFrame onReady={finishStill} />}
         </Canvas>
-        <LayerSwitch layer={layer} onChange={changeLayer} />
+        {!still && <LayerSwitch layer={layer} onChange={changeLayer} />}
         {EFFECTS.offline && <OfflineTint />}
-        {EFFECTS.solarFlare && <FlareFlash />}
+        {still && <div className="slide-flare-glow" aria-hidden="true" />}
+        {!still && EFFECTS.solarFlare && <FlareFlash />}
         <Legend layer={layer} />
-        <Hint visible={hintVisible} />
+        {!still && <Hint visible={hintVisible} />}
       </div>
       <FocusLinesSvg lines={focusLines} />
     </div>

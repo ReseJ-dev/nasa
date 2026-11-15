@@ -26,7 +26,8 @@ function LinkLabel({ link, delay }: { link: ChainLink; delay: number }) {
     const y = (a[1] + b[1]) / 2
     // Both organs in the head (brain -> eyes): the label goes above the head, not over the face.
     const lifted = y > CHAIN_LABEL.headFrom ? CHAIN_LABEL.aboveHead : y
-    return [(a[0] + b[0]) / 2, lifted, Math.max(a[2], b[2]) + CHAIN_LABEL.zOffset] as [number, number, number]
+    const onCo2Chain = link.from === 'lungs' && link.to === 'brain'
+    return [onCo2Chain ? -0.55 : (a[0] + b[0]) / 2, lifted, Math.max(a[2], b[2]) + CHAIN_LABEL.zOffset] as [number, number, number]
   }, [link])
 
   // Fade in once, in sync with the chain glow (no React state per frame). A ref callback, not an
@@ -53,10 +54,12 @@ function LinkLabel({ link, delay }: { link: ChainLink; delay: number }) {
 export function ChainLinks({ visible }: { visible: boolean }) {
   const chain = useHealthStore((st) => st.chain)
   const links = useHealthStore((st) => st.chainLinks ?? NONE)
+  const hiddenByFlare = useHealthStore(state => state.activeEvent === 'solar_flare' &&
+    state.selectedRegion !== 'lungs' && state.selectedRegion !== 'brain' && state.selectedRegion !== 'eyes')
   // Same restart rule as useChainGlow: new content -> labels remount and fade in again.
   const chainKey = chain.join(',')
 
-  if (!visible) return null
+  if (!visible || hiddenByFlare) return null
   return (
     <group name="chain_links" key={chainKey}>
       {links.filter((link) => !isFluidShift(link)).map((link) => {
