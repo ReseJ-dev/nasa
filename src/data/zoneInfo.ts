@@ -4,7 +4,7 @@
  * hazards affect it, what to do at warning / critical, and who to involve.
  *
  * Based only on these NASA HRP risks: altered immune responses, cardiovascular adaptation,
- * SANS, bone changes, reduced cardiorespiratory and musculoskeletal fitness, hypoxia and CO₂,
+ * SANS, bone changes, reduced cardiorespiratory and musculoskeletal fitness, hypoxia (CO₂: OCHMO-TB-004),
  * behavioral conditions, inadequate sleep, inadequate food and nutrition.
  * No numbers here on purpose: thresholds and rates live in 3d/src/sim/constants.ts.
  * Every entry is `verified: false` until participant 3 checks it against the sources.
@@ -115,7 +115,7 @@ export const ZONE_INFO: Record<RegionId, ZoneInfo> = {
       },
       autonomous: AUTONOMOUS,
     },
-    source: 'NASA HRP: behavioral conditions; inadequate sleep; hypoxia and CO₂',
+    source: 'NASA HRP: behavioral conditions; inadequate sleep; risk of hypoxia. CO₂: NASA OCHMO-TB-004',
     verified: false,
   },
 
@@ -284,7 +284,7 @@ export const ZONE_INFO: Record<RegionId, ZoneInfo> = {
       },
       autonomous: AUTONOMOUS,
     },
-    source: 'NASA HRP: hypoxia and CO₂',
+    source: 'NASA OCHMO-TB-004 (CO₂); NASA HRP: risk of hypoxia',
     verified: false,
   },
 

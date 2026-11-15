@@ -25,7 +25,10 @@ export interface RegionDef {
   labelPosition: Vec3 // where the hover label appears (text: REGION_LABEL in labels.ts)
   // Permanent callout for warning/critical: a line from `anchor` (on the organ)
   // to `label` (left or right of the body). Fixed per region so labels never overlap.
-  callout: { anchor: Vec3; label: Vec3 }
+  // `lineStart` (optional): where the line starts instead of `anchor`. Used for the head organs,
+  // whose line would otherwise cross the head and the circadian ring: their line is a short
+  // pointer that starts just outside the ring.
+  callout: { anchor: Vec3; label: Vec3; lineStart?: Vec3 }
   parts: RegionPart[]
   heartbeat?: boolean // true = parts scale with heart_rate (see useHeartbeat)
 }
@@ -34,13 +37,13 @@ export const REGIONS: RegionDef[] = [
   {
     id: 'brain',
     labelPosition: [0, 1.82, 0],
-    callout: { anchor: [0, 1.69, 0], label: [-0.6, 1.8, 0] },
+    callout: { anchor: [0, 1.69, 0], label: [-0.6, 1.8, 0], lineStart: [-0.31, 1.745, 0] },
     parts: [{ geometry: new SphereGeometry(0.085, 24, 16), position: [0, 1.69, -0.005], scale: [1, 0.85, 1.1] }],
   },
   {
     id: 'eyes',
     labelPosition: [0, 1.66, 0.2],
-    callout: { anchor: [0.04, 1.655, 0.1], label: [0.6, 1.66, 0] },
+    callout: { anchor: [0.04, 1.655, 0.1], label: [0.6, 1.66, 0], lineStart: [0.31, 1.66, 0] },
     parts: [
       { geometry: new SphereGeometry(0.018, 12, 8), position: [-0.04, 1.655, 0.1] },
       { geometry: new SphereGeometry(0.018, 12, 8), position: [0.04, 1.655, 0.1] },

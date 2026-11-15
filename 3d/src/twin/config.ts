@@ -6,8 +6,8 @@ type Vec3 = [number, number, number]
 // Camera controls. The camera moves on its own only on a selection change (see CameraRig.tsx).
 export const CAMERA = {
   // Start in front of the body, at mid height. At this distance the figure (1.8 units tall)
-  // fills about 85 % of the canvas height, with room for the callouts on both sides.
-  position: [0, 0.93, 2.62] as Vec3,
+  // fills about 90 % of the canvas height (the twin is the hero of the presentation screen).
+  position: [0, 0.93, 2.52] as Vec3,
   fov: 45, // vertical field of view, degrees
   target: [0, 0.93, 0] as Vec3, // orbit center = vertical middle of the body
   fitPadding: 0.5, // space around a selected region when the camera fits to it: the organ in its body context
@@ -115,6 +115,8 @@ export const CHAIN = {
 export const CHAIN_LABEL = {
   zOffset: 0.25, // in front of the body, so the label does not sit inside the organs
   fadeMs: 400, // fade-in time when the label's organ lights up
+  headFrom: 1.6, // a label whose midpoint is above this height is inside the head...
+  aboveHead: 1.76, // ...and is lifted here: it is drawn in front of the body, so on screen this lands just above the head
 }
 
 // Habitat module around the body (isolation + closed environment threats).
@@ -325,6 +327,10 @@ export const THREAT_LABEL_EMPHASIS = 0.99
 export const THREAT_DIMMED_EMPHASIS = 0.2
 
 // Threats row layout (px) and its lines.
+// Permanent callouts in 3D: every critical region, plus at most this many warnings (the lowest
+// scores first). The other warnings show their label on hover only.
+export const CALLOUTS = { maxWarnings: 2 }
+
 export const THREAT_STRIP = {
   ring: 38, // icon ring diameter
   ringWidth: 3,

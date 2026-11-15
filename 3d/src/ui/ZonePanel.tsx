@@ -1,7 +1,7 @@
 import type { Alert, Escalation, Metric, RegionId, RegionState, Status } from '../contract/types'
 import type { CSSProperties, ReactNode } from 'react'
 import { STATUS_HEX } from '../twin/colors'
-import { NO_DATA_LABEL, REGION_LABEL, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
+import { NO_DATA_LABEL, REGION_LABEL, SOURCES_NOTE, STATUS_LABEL, THREAT_LABEL } from '../twin/labels'
 import { useHealthStore } from '../twin/store'
 import { DISCLAIMER, ZONE_INFO } from '../../../src/data/zoneInfo'
 import { ALERT_REGION, METRIC_ALERT, autonomousAction } from './alerts'
@@ -16,12 +16,12 @@ import { Co2Value } from './Co2Value'
 const NO_METRICS: Metric[] = []
 const NO_ALERTS: Alert[] = []
 
-const ESCALATION_LABEL: Record<Escalation, string> = {
+export const ESCALATION_LABEL: Record<Escalation, string> = {
   self: 'Handle yourself',
   crew: 'Tell the crew',
   ground: 'Request Earth doctor',
 }
-const AUTONOMOUS_LABEL = 'Autonomous protocol: tell a crew member'
+export const AUTONOMOUS_LABEL = 'Autonomous protocol: tell a crew member'
 
 const SOURCE_LABEL = { measured: 'measured', forecast: 'forecast' }
 const TEXT = {
@@ -42,7 +42,7 @@ const TEXT = {
 const format = new Intl.NumberFormat('en', { maximumFractionDigits: 2 })
 
 // Who acts: the engine's value when it has one, otherwise the zone info rule for this status.
-function escalationFor(engine: Escalation | undefined, status: Status, id: RegionId): Escalation {
+export function escalationFor(engine: Escalation | undefined, status: Status, id: RegionId): Escalation {
   if (engine) return engine
   return status === 'ok' ? 'self' : ZONE_INFO[id].escalation[status].who
 }
@@ -196,6 +196,7 @@ export function ZoneDetails({
             {!zone.verified && ` (${TEXT.unverified})`}
           </p>
         )}
+        <p>{SOURCES_NOTE}</p>
         <p className="zone-disclaimer">{DISCLAIMER}</p>
       </footer>
     </section>

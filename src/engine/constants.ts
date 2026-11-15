@@ -11,13 +11,14 @@ export const CUMULATIVE_RADIATION_SCALE_MSV = 250 // demo normalization for accu
 
 export const ENVIRONMENTS: Record<SimEnvironment, { gravityField: number; doseMsvPerDay: number; commDelaySec: number }> =
   {
-    // ISS: ~0.5 mSv/day (NASA, ISS radiation environment); comm delay < 1 s (TDRS relay).
+    // ISS: ~0.5 mSv/day (NASA LSAH newsletter Oct 2023, p. 6); comm delay 1 s is a project estimate.
     station: { gravityField: 0, doseMsvPerDay: 0.5, commDelaySec: 1 },
-    // Cruise to Mars: 1.84 mSv/day GCR (Zeitlin et al., Science 2013, MSL RAD);
-    // one-way light time to Mars 3..22 min, mid-cruise value taken. TODO: delay by mission day.
+    // Cruise to Mars: 1.84 mSv/day GCR, unverified: the Zeitlin et al. 2013 abstract gives only the
+    // 0.66 Sv round trip, the SwRI release gives 1.8 mSv/day (see SOURCES.md).
+    // One-way light time to Mars 3..22 min (NSSDC Mars fact sheet distances); 300 s is a project estimate.
     transit: { gravityField: 0, doseMsvPerDay: 1.84, commDelaySec: 300 },
-    // Mars surface: 0.64 mSv/day (Hassler et al., Science 2014, MSL RAD); 0.38 g;
-    // one-way delay ~12.5 min on average (light time).
+    // Mars surface: 0.64 mSv/day, unverified (not in the Hassler et al. 2014 abstract); 0.38 g (NSSDC);
+    // one-way delay ~12.5 min = light time over the 140 million mile average distance (NASA HRP).
     mars_surface: { gravityField: 0.38, doseMsvPerDay: 0.64, commDelaySec: 750 },
   }
 
@@ -56,8 +57,9 @@ export const REGION_INPUTS: Partial<Record<RegionId, Partial<Record<keyof Vitals
 // ppm -> mmHg assumes a sea-level cabin (760 mmHg total), as on the ISS.
 export const CABIN_PRESSURE_MMHG = 760
 export const ppmToMmHg = (ppm: number) => (ppm * CABIN_PRESSURE_MMHG) / 1_000_000
-// NASA limits for cabin CO₂ (user-provided reference values, NASA OCHMO CO2 brief; not yet verified):
-// from 2.5 mmHg warning, from 3 mmHg critical.
+// NASA limits for cabin CO₂: 3 mmHg critical = NASA-STD-3001 Vol 2 Rev F [V2 6004], a 1-hour average;
+// 2.5 mmHg warning = OCHMO-TB-004 Rev D, 7-day average that keeps headache risk below 1%.
+// Our input is a daily mean, so the averaging time differs from both (see SOURCES.md).
 export const CO2_LIMITS_MMHG = { warn: 2.5, critical: 3 }
 
 // Cabin and radiation (not personal vitals): deviation = value / unit.
@@ -69,6 +71,8 @@ export const RADIATION_UNIT = 0.4 // radiationLevel per deviation unit for the i
 // Bone mineral density loss per month in microgravity without full countermeasures:
 // 1-1.5 %/month, largest at hip, pelvis and spine (LeBlanc et al., J Musculoskelet Neuronal
 // Interact 2000; Lang et al., JBMR 2004). Per part below; scaled by (1 - gravityField).
+// The per-part split is a project estimate: LeBlanc 2000 Table 1 gives spine 1.06, pelvis 1.35,
+// legs 0.34 and arms 0.04 %/month, so pelvis, legs and arms here differ from it (see SOURCES.md).
 // TODO: partial gravity (Mars) is unknown; linear scaling is an assumption.
 export const BONE_LOSS_PER_MONTH: Record<BonePart, number> = {
   pelvis: 0.016,
@@ -82,7 +86,8 @@ export const BONE_LOSS_PER_MONTH: Record<BonePart, number> = {
 }
 export const BONE_UNIT = 0.05 // density drop per deviation unit for the bones region. TODO
 
-// Muscle mass: ~1.5 %/month with ISS exercise (TODO: source, e.g. Gopalakrishnan et al. 2010).
+// Muscle mass: ~1.5 %/month with ISS exercise, a project estimate inside the measured range
+// (calf -10..-16 %, thigh -4..-7 % over ~6 months: Rice et al., NTRS 20110015001).
 export const MUSCLE_LOSS_PER_MONTH = 0.015
 export const MUSCLE_UNIT = 0.06 // mass drop per deviation unit. TODO
 

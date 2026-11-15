@@ -1,16 +1,18 @@
 import { useLayoutEffect, useMemo } from 'react'
 import { Html } from '@react-three/drei'
 import { BufferGeometry, Line, LineBasicMaterial, Vector3 } from 'three'
-import type { Status } from '../contract/types'
+import type { RegionId, RegionState, Status } from '../contract/types'
 import { useHealthStore } from './store'
 import { STATUS_HEX } from './colors'
-import { REGION_LABEL } from './labels'
+import { CALLOUTS } from './config'
+import { REGION_LABEL, sceneLabel } from './labels'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
 import { overlayStyles as s } from './overlayStyles'
 import { REGIONS, type RegionDef } from './regions'
 
-// Permanent callouts for warning/critical regions: a thin line from the organ
-// to a label (name + score) at a fixed spot left or right of the body.
+// Permanent callouts: a thin line from the organ to a label (name + score) at a fixed spot left
+// or right of the body. Shown for every critical region and for the CALLOUTS.maxWarnings
+// highest-priority warnings (lowest score); the other warnings show a label on hover (RegionMesh).
 // Performance: every callout stays mounted and is only shown/hidden, so a scenario
 // or layer change creates no new materials, geometries or Html roots.
 
@@ -18,7 +20,10 @@ import { REGIONS, type RegionDef } from './regions'
 const LINE_GEOMETRY = new Map(
   REGIONS.map((def) => [
     def.id,
-    new BufferGeometry().setFromPoints([new Vector3(...def.callout.anchor), new Vector3(...def.callout.label)]),
+    new BufferGeometry().setFromPoints([
+      new Vector3(...(def.callout.lineStart ?? def.callout.anchor)),
+      new Vector3(...def.callout.label),
+    ]),
   ]),
 )
 const lineMaterial = (status: Status) =>
@@ -31,6 +36,16 @@ const LINE_MATERIAL: Record<Status, LineBasicMaterial> = {
 }
 
 const noRaycast = () => null // the line must not catch hover or clicks
+
+// Ids of the regions with a permanent callout, as one string (a stable selector result).
+function pinnedCallouts(regions: Record<RegionId, RegionState>): string {
+  const all = Object.values(regions)
+  const warnings = all
+    .filter((r) => r.status === 'warning')
+    .sort((a, b) => a.score - b.score)
+    .slice(0, CALLOUTS.maxWarnings)
+  return [...all.filter((r) => r.status === 'critical'), ...warnings].map((r) => r.id).join(',')
+}
 
 function Callout({ def, visible }: { def: RegionDef; visible: boolean }) {
   // Re-renders only when this region's status or score changes.
@@ -54,7 +69,15 @@ function Callout({ def, visible }: { def: RegionDef; visible: boolean }) {
   const outOfAlert = useHealthStore((st) => st.highlightRegions !== null && !st.highlightRegions.includes(def.id))
   const otherSelected = useHealthStore((st) => st.selectedRegion !== null && st.selectedRegion !== def.id)
 
-  const shown = visible && status !== 'ok' && !outOfThreat && !outOfAlert && !otherSelected
+  // A selected or highlighted region always keeps its callout, whatever its priority.
+  const pinned = useHealthStore(
+    (st) =>
+      st.selectedRegion === def.id ||
+      (st.highlightRegions?.includes(def.id) ?? false) ||
+      pinnedCallouts(st.regions).split(',').includes(def.id),
+  )
+
+  const shown = visible && status !== 'ok' && pinned && !outOfThreat && !outOfAlert && !otherSelected
   useLayoutEffect(() => {
     line.material = LINE_MATERIAL[status]
     line.visible = shown
@@ -74,7 +97,7 @@ function Callout({ def, visible }: { def: RegionDef; visible: boolean }) {
         }}
       >
         <div style={{ ...s.callout, ...side, border: `1px solid ${color}` }}>
-          {REGION_LABEL[def.id]}
+          {sceneLabel(REGION_LABEL[def.id])}
           <span style={{ ...s.calloutScore, color }}>{Math.round(score)}</span>
         </div>
       </Html>
