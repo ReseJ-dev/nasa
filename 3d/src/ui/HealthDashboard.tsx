@@ -10,6 +10,7 @@ import { Forecast, MAX_DAY } from './ControlBar'
 import { ControlRoom } from './ControlRoom'
 import { useSound } from './sound'
 import { StatusNow } from './StatusNow'
+import { MissionTimeline } from './MissionTimeline'
 import { ZonePanel } from './ZonePanel'
 import '../twin/theme'
 import './healthDashboard.css'
@@ -260,6 +261,7 @@ export function HealthDashboard() {
       />
       <div className="health-layout">
         <section className="health-scene" aria-label="Interactive astronaut model">
+          <div className="health-stage">
           <BodyScene
             compact
             layer={layer}
@@ -267,6 +269,8 @@ export function HealthDashboard() {
             focusedThreat={focus}
             onThreatClick={(id) => setView((v) => ({ ...v, focus: v.focus === id ? null : id }))}
           />
+          </div>
+          <MissionTimeline />
           {caption && !forecastOpen && <p className="demo-caption" role="status">{caption}</p>}
           {keysOpen && <KeyHints onClose={() => setKeysOpen(false)} />}
           {forecastOpen && <ForecastDrawer onClose={() => setForecastOpen(false)} />}
