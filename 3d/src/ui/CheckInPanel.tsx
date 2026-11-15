@@ -21,14 +21,21 @@ interface Field {
 }
 
 const FIELDS: Field[] = [
-  { key: 'systolic', label: 'Systolic pressure', unit: 'mmHg', min: 70, max: 220, step: 1, metricId: 'systolic' },
-  { key: 'diastolic', label: 'Diastolic pressure', unit: 'mmHg', min: 40, max: 140, step: 1, metricId: 'diastolic' },
+  { key: 'systolic', label: 'Systolic', unit: 'mmHg', min: 70, max: 220, step: 1, metricId: 'systolic' },
+  { key: 'diastolic', label: 'Diastolic', unit: 'mmHg', min: 40, max: 140, step: 1, metricId: 'diastolic' },
   { key: 'heartRate', label: 'Pulse', unit: 'bpm', min: 30, max: 220, step: 1, metricId: 'heart_rate' },
-  { key: 'glucose', label: 'Blood glucose', unit: 'mmol/L', min: 2, max: 30, step: 0.1, metricId: 'glucose' },
-  { key: 'bodyTempC', label: 'Body temperature', unit: '°C', min: 34, max: 42, step: 0.1, metricId: 'body_temp' },
+  { key: 'glucose', label: 'Glucose', unit: 'mmol/L', min: 2, max: 30, step: 0.1, metricId: 'glucose' },
+  { key: 'bodyTempC', label: 'Temperature', unit: '°C', min: 34, max: 42, step: 0.1, metricId: 'body_temp' },
   { key: 'sleepHours', label: 'Sleep last night', unit: 'h', min: 0, max: 16, step: 0.25, metricId: 'sleep_hours' },
   { key: 'mood', label: 'Mood', unit: '1–5', min: 1, max: 5, step: 1, metricId: 'mood' },
 ]
+// Full names for error messages (the form labels are short to fit two fields per row).
+const FULL_LABEL: Partial<Record<FieldKey, string>> = {
+  systolic: 'Systolic pressure',
+  diastolic: 'Diastolic pressure',
+  glucose: 'Blood glucose',
+  bodyTempC: 'Body temperature',
+}
 const MOODS = [1, 2, 3, 4, 5]
 const MOOD_HINT: Record<number, string> = { 1: 'very low', 2: 'low', 3: 'okay', 4: 'good', 5: 'great' }
 
@@ -42,13 +49,13 @@ const EMPTY_CHECKS: Checklist = { pressure: false, sleep: false, reaction: false
 
 const TEXT = {
   title: 'Today',
-  subtitle: (day: number) => `Daily check-in · mission day ${day}`,
+  subtitle: (day: number) => `Check-in · day ${day}`,
   useLast: 'Use last value',
+  noChange: 'Change at least one value, then submit.',
   submit: 'Submit check-in',
   saved: 'Check-in saved. The twin and statuses are updated.',
-  empty: 'Fill in at least one value.',
   pressurePair: 'Enter both systolic and diastolic pressure.',
-  range: (f: Field) => `${f.label}: enter ${f.min}–${f.max} ${f.unit === '1–5' ? '' : f.unit}`.trim(),
+  range: (f: Field) => `${FULL_LABEL[f.key] ?? f.label}: enter ${f.min}–${f.max} ${f.unit === '1–5' ? '' : f.unit}`.trim(),
   reaction: 'Reaction test (30 s)',
   lastReaction: (ms: number, lapses: number) => `Last result: ${ms} ms, ${lapses} lapse${lapses === 1 ? '' : 's'}`,
   checklist: "Today's checklist",
@@ -101,9 +108,17 @@ export function CheckInPanel() {
       if (!Number.isFinite(n) || n < f.min || n > f.max) problems.push(TEXT.range(f))
       else parsed[f.key] = n
     }
+    // Every field shows its last value, so an untouched half of the pressure pair uses that value.
+    if ((parsed.systolic !== undefined) !== (parsed.diastolic !== undefined)) {
+      for (const f of FIELDS) {
+        if ((f.key === 'systolic' || f.key === 'diastolic') && parsed[f.key] === undefined && !values[f.key]?.trim()) {
+          parsed[f.key] = Number(format(lastValue(f), f.step))
+        }
+      }
+    }
     const pressure = parsed.systolic !== undefined && parsed.diastolic !== undefined
     if ((parsed.systolic !== undefined) !== (parsed.diastolic !== undefined)) problems.push(TEXT.pressurePair)
-    if (problems.length === 0 && Object.keys(parsed).length === 0) problems.push(TEXT.empty)
+    if (problems.length === 0 && Object.keys(parsed).length === 0) problems.push(TEXT.noChange)
     setErrors(problems)
     if (problems.length) return
 
@@ -113,6 +128,7 @@ export function CheckInPanel() {
       ...(sleepHours !== undefined ? { sleepHours } : {}),
     })
     tick({ ...(pressure ? { pressure: true } : {}), ...(sleepHours !== undefined ? { sleep: true } : {}) })
+    setValues({}) // the submitted values are now the last values: no field is marked as changed
     setSaved(true)
   }
 
@@ -127,8 +143,10 @@ export function CheckInPanel() {
 
   return (
     <section className="health-card checkin" aria-labelledby="checkin-title">
-      <h2 id="checkin-title">{TEXT.title}</h2>
-      <p className="checkin-sub">{TEXT.subtitle(day)}</p>
+      <div className="checkin-head">
+        <h2 id="checkin-title">{TEXT.title}</h2>
+        <small>{TEXT.subtitle(day)}</small>
+      </div>
 
       <ul className="checkin-list" aria-label={TEXT.checklist}>
         {CHECKLIST.map((item) => (
@@ -141,10 +159,13 @@ export function CheckInPanel() {
 
       <form onSubmit={submit} noValidate>
         {FIELDS.map((f) => {
-          const last = lastValue(f)
+          // Every field shows a real value: what was typed, else the last value.
+          const last = format(lastValue(f), f.step)
+          const shown = values[f.key] ?? last
+          const changed = values[f.key] !== undefined && values[f.key] !== last
           const id = `checkin-${f.key}`
           return (
-            <div key={f.key} className="checkin-field">
+            <div key={f.key} className="checkin-field" data-changed={changed} data-wide={f.key === 'mood'}>
               <label htmlFor={id}>
                 {f.label} <small>{f.unit}</small>
               </label>
@@ -156,7 +177,7 @@ export function CheckInPanel() {
                         key={m}
                         type="button"
                         title={MOOD_HINT[m]}
-                        aria-pressed={values.mood === String(m)}
+                        aria-pressed={shown === String(m)}
                         onClick={() => setValue('mood', String(m))}
                       >
                         {m}
@@ -171,19 +192,21 @@ export function CheckInPanel() {
                     min={f.min}
                     max={f.max}
                     step={f.step}
-                    placeholder={format(last, f.step)}
-                    value={values[f.key] ?? ''}
+                    value={shown}
                     onChange={(e) => setValue(f.key, e.currentTarget.value)}
                   />
                 )}
-                <button
-                  type="button"
-                  className="checkin-last"
-                  title={`${TEXT.useLast}: ${format(last, f.step)} ${f.unit === '1–5' ? '' : f.unit}`}
-                  onClick={() => setValue(f.key, format(last, f.step))}
-                >
-                  {TEXT.useLast}
-                </button>
+                {changed && (
+                  <button
+                    type="button"
+                    className="checkin-last"
+                    aria-label={`${TEXT.useLast}: ${f.label}`}
+                    title={`${TEXT.useLast}: ${last} ${f.unit === '1–5' ? '' : f.unit}`}
+                    onClick={() => setValue(f.key, last)}
+                  >
+                    ↺
+                  </button>
+                )}
               </div>
             </div>
           )
