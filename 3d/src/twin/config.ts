@@ -221,7 +221,7 @@ export const CIRCADIAN = {
   frontHour: 3, // hour at the front of the ring: the middle of a normal night
   normalBedtime: 23, // the sleep arc starts here when sleepShiftHours = 0
   lightStartHour: 9, // the bright-light arc starts here; length = brightLightMin
-  outlineRest: 0.45, // outline opacity when isolation is not focused (the only visible part then)
+  outlineRest: 0.45, // outline opacity while isolation is Warning / Critical but not focused
   outlineFocused: 0.9,
   sleepTube: 0.011, // tube radius of the sleep arc
   lightTube: 0.007,
@@ -322,7 +322,7 @@ export const EFFECTS = {
   radiationShimmer: true, // violet shimmer on immune and brain
   solarFlare: true, // flash + track burst + dose badge
   shelter: true, // shelter capsule
-  habitatModule: true, // wireframe module (isolation)
+  habitatModule: false, // wireframe module rings around the torso (isolation): off, decorative ellipses
   cabinFog: true, // fog inside the module (environment)
   cabinSensors: true, // CO2 / temperature / noise chips (environment)
   cabinFlow: true, // air flow into the nose and lungs (environment)

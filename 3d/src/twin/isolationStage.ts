@@ -4,15 +4,15 @@ import type { AlertMetric, Status } from '../contract/types'
 import { useHealthStore } from './store'
 import { useSceneStore } from './sceneStore'
 import { useFocusedThreat } from './hooks/useFocusedThreat'
-import { CIRCADIAN, ISOLATION as I, type Layer } from './config'
+import { CIRCADIAN, ISOLATION as I, THREAT_LEVEL, type Layer } from './config'
 
 // Shared presentation state of the isolation visuals (ring, impulse, bars, labels).
 // One driver (useIsolationStageDriver) advances it every frame; the elements only read it
 // in their own useFrame. Plain mutable object: no React state, no re-renders.
 // Every value is an eased strength 0..1, except `outline`, which is the ring outline opacity.
 export const stage = {
-  outline: 0, // the thin ring outline: the only part visible while isolation is not focused
-  ring: 0, // arcs and ticks
+  outline: 0, // the thin ring outline
+  ring: 0, // arcs, ticks and the "Sleep rhythm" label: only while isolation is Warning / Critical or focused
   impulse: 0,
   bars: 0,
   labels: 0, // labels of the ring, the impulse and the mood dots (body mode only)
@@ -52,31 +52,39 @@ export function useAnyIsolationAlert() {
   return useHealthStore((s) => s.alerts?.some((a) => a.hazard === 'isolation') ?? false)
 }
 
+// True while the isolation threat level is Warning or Critical (same thresholds as the strip ring).
+export function useIsolationWarning() {
+  return useHealthStore((s) => (s.threats?.isolation.level ?? 0) >= THREAT_LEVEL.warnAt)
+}
+
 // Call once (IsolationStage in BodyScene), before the elements, so they read fresh values.
 export function useIsolationStageDriver(layer: Layer) {
   const focus = useIsolationFocus()
+  const warning = useIsolationWarning()
   const otherFocused = useFocusedThreat() !== null && !focus
-  const target = useRef({ focus, body: layer === 'body', otherFocused })
+  const target = useRef({ focus, warning, body: layer === 'body', otherFocused })
   useLayoutEffect(() => {
-    target.current = { focus, body: layer === 'body', otherFocused }
-  }, [focus, layer, otherFocused])
+    target.current = { focus, warning, body: layer === 'body', otherFocused }
+  }, [focus, warning, layer, otherFocused])
 
   const since = useRef(0) // seconds since isolation got the focus
   const progress = useRef<Record<Channel, number>>({ ring: 0, impulse: 0, bars: 0, labels: 0, barLabel: 0 })
 
   useFrame((_, delta) => {
-    const { focus, body, otherFocused } = target.current
+    const { focus, warning, body, otherFocused } = target.current
     since.current = focus ? since.current + delta : 0
     for (const { channel, slot, inSkeleton } of ORDER) {
-      const want = focus && (body || inSkeleton)
+      // The sleep ring also stays on while isolation is Warning / Critical; the rest needs the focus.
+      const want = (focus || (channel === 'ring' && warning)) && (body || inSkeleton)
       let p = progress.current[channel]
       if (!want) p = Math.max(0, p - delta / I.fadeOut)
       else if (since.current >= slot * I.stagger) p = Math.min(1, p + delta / I.fadeIn)
       progress.current[channel] = p
       stage[channel] = ease(p)
     }
-    // One accent at a time: the outline drops to 20 % while another threat is focused.
-    const rest = CIRCADIAN.outlineRest * (otherFocused ? 0.2 : 1)
+    // Hidden unless isolation is Warning / Critical or focused. One accent at a time: the outline
+    // drops to 20 % while another threat is focused.
+    const rest = warning ? CIRCADIAN.outlineRest * (otherFocused ? 0.2 : 1) : 0
     const goal = !body ? 0 : focus ? CIRCADIAN.outlineFocused : rest
     stage.outline += (goal - stage.outline) * smoothK(delta, I.colorLerp)
   })
